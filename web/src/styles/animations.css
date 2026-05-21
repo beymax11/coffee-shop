@@ -1,0 +1,66 @@
+/* Custom keyframe and utility animations for L'OR NOIR */
+
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.05);
+  }
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 8s infinite ease-in-out;
+}
+
+@keyframes hero-shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-hero-shine {
+  animation: hero-shine 0.9s ease-out forwards;
+}
+
+@keyframes hero-gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hero-gradient-text {
+  background: linear-gradient(
+    105deg,
+    var(--brand-gold) 0%,
+    var(--brand-beige) 35%,
+    #fff 55%,
+    var(--brand-gold-hover) 75%,
+    var(--brand-gold) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: hero-gradient-shift 6s ease-in-out infinite;
+}
+
+/* Legacy shimmer utility (used outside hero) */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}

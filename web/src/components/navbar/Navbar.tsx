@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Heart, Menu, X, Coffee } from "lucide-react";
+import { ShoppingBag, Heart, Menu, X, Coffee, LogIn } from "lucide-react";
 import { useCartStore } from "@/store/cart-store";
 import { useScroll } from "@/hooks/use-scroll";
 import { motion, AnimatePresence } from "framer-motion";
@@ -72,6 +72,18 @@ export const Navbar: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-4">
+            <Link
+              href="/login"
+              className={`hidden sm:flex items-center gap-1.5 rounded-full border px-3 py-1.5 type-caption transition-colors ${
+                pathname === "/login"
+                  ? "border-brand-gold/40 bg-brand-gold/10 text-brand-gold"
+                  : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-white"
+              }`}
+            >
+              <LogIn size={14} />
+              Sign In
+            </Link>
+
             {/* Wishlist Link / Indicator */}
             <Link
               href="/shop"
@@ -149,6 +161,18 @@ export const Navbar: React.FC = () => {
 
                 {/* Mobile Links */}
                 <nav className="flex flex-col gap-6">
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-2 type-nav text-sm transition-colors py-1 ${
+                      pathname === "/login"
+                        ? "text-brand-gold border-l-2 border-brand-gold pl-3"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <LogIn size={16} />
+                    Sign In
+                  </Link>
                   {navLinks.map((link) => {
                     const isActive = pathname === link.href;
                     return (

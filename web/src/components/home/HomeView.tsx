@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { PageTransition } from "@/components/animations";
 import { HomeHero } from "@/components/hero/HomeHero";
-import { BrandStats } from "@/components/sections/BrandStats";
 import { RoastingExperience } from "@/components/sections/RoastingExperience";
 import { SignatureShowcase } from "@/components/sections/SignatureShowcase";
 import { EventShowcase } from "@/components/sections/EventShowcase";
@@ -23,7 +22,6 @@ export function HomeView() {
   return (
     <PageTransition>
       <HomeHero />
-      <BrandStats />
       <RoastingExperience />
       <SignatureShowcase onQuickView={handleQuickView} />
       <EventShowcase />

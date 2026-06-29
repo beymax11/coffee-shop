@@ -47,7 +47,7 @@ export const HomeHero: React.FC = () => {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage:
-            "url('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1600&auto=format&fit=crop')",
+            "url('/hero.png')",
         }}
         initial={{ scale: 1.12, opacity: 0 }}
         animate={{ scale: [1.08, 1.12, 1.08], opacity: 1 }}
@@ -84,31 +84,32 @@ export const HomeHero: React.FC = () => {
         animate="show"
       >
         {/* Eyebrow badge */}
-        <motion.div variants={heroItem} className="flex items-center justify-center gap-4 mb-8">
-          <span className="hidden sm:block h-px w-12 bg-gradient-to-r from-transparent to-brand-gold/50" />
-          <span className="type-eyebrow bg-brand-gold/[0.08] border border-brand-gold/25 rounded-full px-5 py-2 backdrop-blur-sm shadow-[0_0_30px_rgba(197,168,128,0.08)]">
+        <motion.div
+          variants={heroItem}
+          className="flex items-center justify-center gap-3 mb-6"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse" />
+          <span className="type-eyebrow tracking-[0.25em] text-xs font-semibold text-brand-gold/90">
             Welcome to the Golden Ritual
           </span>
-          <span className="hidden sm:block h-px w-12 bg-gradient-to-l from-transparent to-brand-gold/50" />
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse" />
         </motion.div>
 
         {/* Headline */}
         <motion.h1
-          className="type-display text-white max-w-4xl mx-auto drop-shadow-[0_2px_24px_rgba(0,0,0,0.5)]"
-          variants={heroStagger}
+          className="type-display text-white max-w-4xl mx-auto drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] font-serif leading-[1.12] tracking-tight"
+          variants={heroItem}
         >
-          <motion.span className="block" variants={headlineLine}>
-            Redefining the
-          </motion.span>
-          <motion.span className="block mt-1 sm:mt-2" variants={headlineLine}>
-            <span className="hero-gradient-text">Coffee Experience</span>
-          </motion.span>
+          Redefining the{" "}
+          <span className="hero-gradient-text block sm:inline-block">
+            Coffee Experience
+          </span>
         </motion.h1>
 
         {/* Subcopy */}
         <motion.p
           variants={heroItem}
-          className="type-body mt-7 text-zinc-300 max-w-lg mx-auto drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)]"
+          className="type-body mt-6 text-zinc-300/90 max-w-2xl mx-auto drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-base md:text-[1.05rem]"
         >
           Indulge in our carefully curated, slow-roasted single-origin coffees and custom artisan
           patisserie. Set in a sensory lounge designed for tranquility.
@@ -117,42 +118,44 @@ export const HomeHero: React.FC = () => {
         {/* CTAs */}
         <motion.div
           variants={heroItem}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-9"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-9 w-full max-w-md mx-auto sm:max-w-none"
         >
-          <motion.div whileHover={ctaHover} whileTap={ctaTap}>
+          <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
             <Link
               href="/menu"
-              className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2 overflow-hidden rounded-full bg-brand-gold px-8 py-3.5 text-black transition-colors duration-300 hover:bg-brand-gold-hover gold-glow"
+              className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-brand-gold px-8 py-4 text-black font-semibold transition-all duration-300 hover:bg-brand-gold-hover hover:shadow-[0_0_30px_rgba(197,168,128,0.25)]"
             >
-              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent group-hover:animate-hero-shine" />
+              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
               <span className="relative flex items-center gap-2">
                 Explore Salon Menu
-                <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" />
               </span>
             </Link>
           </motion.div>
 
-          <motion.div whileHover={ctaHover} whileTap={ctaTap}>
+          <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
             <Link
               href="/reservations"
-              className="type-ui group w-full sm:w-auto flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-8 py-3.5 text-white backdrop-blur-sm transition-all duration-300 hover:border-brand-gold/40 hover:bg-white/10 hover:shadow-[0_0_24px_rgba(197,168,128,0.12)]"
+              className="type-ui group w-full sm:w-auto flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-brand-gold/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)]"
             >
               <Calendar
-                size={14}
+                size={15}
                 className="text-brand-gold transition-transform duration-300 group-hover:scale-110"
               />
               Reserve Event Cart
             </Link>
           </motion.div>
+        </motion.div>
 
-          <motion.div whileHover={ctaHover} whileTap={ctaTap}>
-            <Link
-              href="/shop"
-              className="type-ui w-full sm:w-auto flex items-center justify-center gap-2 rounded-full border border-transparent px-8 py-3.5 text-zinc-500 transition-all duration-300 hover:text-zinc-200 hover:border-white/10 hover:bg-white/[0.04]"
-            >
-              Shop Merchandise
-            </Link>
-          </motion.div>
+        {/* Tertiary CTA - Clean & Subtitle-like */}
+        <motion.div variants={heroItem} className="pt-6">
+          <Link
+            href="/loyalty"
+            className="type-ui inline-flex items-center gap-2 text-zinc-400 hover:text-brand-gold transition-colors duration-300 text-xs tracking-wider"
+          >
+            <span>Digital Loyalty Card</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse" />
+          </Link>
         </motion.div>
       </motion.div>
 

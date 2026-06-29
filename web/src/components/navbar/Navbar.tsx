@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Heart, Menu, X, Coffee, LogIn } from "lucide-react";
+import { ShoppingBag, Heart, Menu, X, LogIn } from "lucide-react";
 import { useCartStore } from "@/store/cart-store";
 import { useScroll } from "@/hooks/use-scroll";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,27 +23,27 @@ export const Navbar: React.FC = () => {
     { name: "Home", href: "/" },
     { name: "Menu", href: "/menu" },
     { name: "Reservations", href: "/reservations" },
-    { name: "Boutique Shop", href: "/shop" },
-    { name: "About Heritage", href: "/about" },
+    { name: "Loyalty Card", href: "/loyalty" },
+    { name: "About Us", href: "/about" },
     { name: "Contact", href: "/contact" },
   ];
 
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${
-          isScrolled
-            ? "border-b border-white/5 bg-black/70 backdrop-blur-md py-4 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
-            : "bg-transparent py-6"
-        }`}
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 flex items-center ${isScrolled
+            ? "border-b border-white/5 bg-black/70 backdrop-blur-md h-16 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+            : "bg-transparent h-20"
+          }`}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 md:px-8">
+        <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between px-6 md:px-8">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <Coffee className="text-brand-gold group-hover:scale-110 transition-transform duration-300" size={24} />
-            <span className="type-logo text-white">
-              L&apos;OR <span className="text-brand-gold">NOIR</span>
-            </span>
+          <Link href="/" className="flex items-center group">
+            <img
+              src="/logo.png"
+              alt="ANTONIONI GROUNDS"
+              className="h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+            />
           </Link>
 
           {/* Desktop Navigation Links */}
@@ -74,14 +74,13 @@ export const Navbar: React.FC = () => {
           <div className="flex items-center gap-4">
             <Link
               href="/login"
-              className={`hidden sm:flex items-center gap-1.5 rounded-full border px-3 py-1.5 type-caption transition-colors ${
-                pathname === "/login"
-                  ? "border-brand-gold/40 bg-brand-gold/10 text-brand-gold"
-                  : "border-white/10 text-zinc-400 hover:border-white/20 hover:text-white"
-              }`}
+              className={`relative transition-colors p-1 ${pathname === "/login"
+                  ? "text-brand-gold"
+                  : "text-zinc-400 hover:text-white"
+                }`}
+              aria-label="Sign In"
             >
-              <LogIn size={14} />
-              Sign In
+              <LogIn size={20} />
             </Link>
 
             {/* Wishlist Link / Indicator */}
@@ -148,9 +147,13 @@ export const Navbar: React.FC = () => {
               <div>
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-white/5 pb-6 mb-8">
-                  <span className="type-logo text-white">
-                    L&apos;OR <span className="text-brand-gold">NOIR</span>
-                  </span>
+                  <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
+                    <img
+                      src="/logo.png"
+                      alt="ANTONIONI GROUNDS"
+                      className="h-7 w-auto object-contain"
+                    />
+                  </Link>
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="rounded-full border border-white/5 bg-white/5 p-2 text-zinc-400 hover:text-white"
@@ -164,11 +167,10 @@ export const Navbar: React.FC = () => {
                   <Link
                     href="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-2 type-nav text-sm transition-colors py-1 ${
-                      pathname === "/login"
+                    className={`flex items-center gap-2 type-nav text-sm transition-colors py-1 ${pathname === "/login"
                         ? "text-brand-gold border-l-2 border-brand-gold pl-3"
                         : "text-zinc-400 hover:text-white"
-                    }`}
+                      }`}
                   >
                     <LogIn size={16} />
                     Sign In
@@ -180,9 +182,8 @@ export const Navbar: React.FC = () => {
                         key={link.name}
                         href={link.href}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={`type-nav text-sm transition-colors py-1 ${
-                          isActive ? "text-brand-gold border-l-2 border-brand-gold pl-3" : "text-zinc-400 hover:text-white"
-                        }`}
+                        className={`type-nav text-sm transition-colors py-1 ${isActive ? "text-brand-gold border-l-2 border-brand-gold pl-3" : "text-zinc-400 hover:text-white"
+                          }`}
                       >
                         {link.name}
                       </Link>

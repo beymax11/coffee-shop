@@ -10,12 +10,14 @@ interface QuickViewModalProps {
   isOpen: boolean;
   onClose: () => void;
   item: MenuItem | Product | null;
+  showCommerceControls?: boolean;
 }
 
 export const QuickViewModal: React.FC<QuickViewModalProps> = ({
   isOpen,
   onClose,
   item,
+  showCommerceControls = true,
 }) => {
   const addItem = useCartStore((state) => state.addItem);
   const toggleWishlist = useCartStore((state) => state.toggleWishlist);
@@ -160,94 +162,107 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   )}
 
                   {/* Configurable Options */}
-                  <div className="mt-6 space-y-4">
-                    {/* Coffee Bean Grind Selection */}
-                    {isCoffeeBeans && (
-                      <div>
-                        <label className="block type-label text-zinc-400 mb-2">Grind Preference</label>
-                        <div className="flex flex-wrap gap-2">
-                          {["Whole Bean", "Filter / V60", "Espresso", "Cold Brew"].map((grind) => (
-                            <button
-                                key={grind}
-                                onClick={() => setSelectedGrind(grind)}
-                                className={`rounded-full px-3 py-1.5 type-ui font-medium border transition-all ${
-                                  selectedGrind === grind
-                                    ? "bg-brand-gold border-brand-gold text-black"
-                                    : "bg-[#1c1c1c] border-white/10 text-zinc-300 hover:border-brand-gold/50"
-                                }`}
-                              >
-                                {grind}
-                              </button>
-                            ))}
+                  {showCommerceControls && (
+                    <div className="mt-6 space-y-4">
+                      {/* Coffee Bean Grind Selection */}
+                      {isCoffeeBeans && (
+                        <div>
+                          <label className="block type-label text-zinc-400 mb-2">Grind Preference</label>
+                          <div className="flex flex-wrap gap-2">
+                            {["Whole Bean", "Filter / V60", "Espresso", "Cold Brew"].map((grind) => (
+                              <button
+                                  key={grind}
+                                  onClick={() => setSelectedGrind(grind)}
+                                  className={`rounded-full px-3 py-1.5 type-ui font-medium border transition-all ${
+                                    selectedGrind === grind
+                                      ? "bg-brand-gold border-brand-gold text-black"
+                                      : "bg-[#1c1c1c] border-white/10 text-zinc-300 hover:border-brand-gold/50"
+                                  }`}
+                                >
+                                  {grind}
+                                </button>
+                              ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Drink Size Selection */}
-                    {isMenuItemCoffee && (
-                      <div>
-                        <label className="block type-label text-zinc-400 mb-2">Cup Size</label>
-                        <div className="flex gap-2">
-                          {["Regular", "Large (+ $1.00)"].map((size) => (
-                            <button
-                                key={size}
-                                onClick={() => setSelectedCupSize(size)}
-                                className={`rounded-full px-3 py-1.5 type-ui font-medium border transition-all ${
-                                  selectedCupSize === size
-                                    ? "bg-brand-gold border-brand-gold text-black"
-                                    : "bg-[#1c1c1c] border-white/10 text-zinc-300 hover:border-brand-gold/50"
-                                }`}
-                              >
-                                {size}
-                              </button>
-                            ))}
+                      {/* Drink Size Selection */}
+                      {isMenuItemCoffee && (
+                        <div>
+                          <label className="block type-label text-zinc-400 mb-2">Cup Size</label>
+                          <div className="flex gap-2">
+                            {["Regular", "Large (+ $1.00)"].map((size) => (
+                              <button
+                                  key={size}
+                                  onClick={() => setSelectedCupSize(size)}
+                                  className={`rounded-full px-3 py-1.5 type-ui font-medium border transition-all ${
+                                    selectedCupSize === size
+                                      ? "bg-brand-gold border-brand-gold text-black"
+                                      : "bg-[#1c1c1c] border-white/10 text-zinc-300 hover:border-brand-gold/50"
+                                  }`}
+                                >
+                                  {size}
+                                </button>
+                              ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions & Quantity */}
-                <div className="mt-8 flex items-center gap-4 border-t border-white/5 pt-6">
-                  {/* Quantity Counter */}
-                  <div className="flex items-center rounded-full border border-white/10 bg-black/40 px-2 py-1">
+                {showCommerceControls ? (
+                  <div className="mt-8 flex items-center gap-4 border-t border-white/5 pt-6">
+                    {/* Quantity Counter */}
+                    <div className="flex items-center rounded-full border border-white/10 bg-black/40 px-2 py-1">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="type-qty-btn px-2 text-zinc-400 hover:text-white"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center type-body-sm font-semibold">{quantity}</span>
+                      <button
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="type-qty-btn px-2 text-zinc-400 hover:text-white"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Add to Cart */}
                     <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="type-qty-btn px-2 text-zinc-400 hover:text-white"
+                      onClick={handleAddToCart}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-gold px-6 py-3 type-ui text-black transition-all hover:bg-brand-gold-hover active:scale-95 shadow-md gold-glow-hover"
                     >
-                      -
+                      <ShoppingBag size={16} />
+                      Add to Cart
                     </button>
-                    <span className="w-8 text-center type-body-sm font-semibold">{quantity}</span>
+
+                    {/* Favorite Button */}
                     <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="type-qty-btn px-2 text-zinc-400 hover:text-white"
+                      onClick={() => toggleWishlist(item.id)}
+                      className={`rounded-full border p-3 transition-all ${
+                        isFavorited
+                          ? "bg-red-500/10 border-red-500/30 text-red-500"
+                          : "bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:border-brand-gold/50"
+                      }`}
+                      aria-label="Add to wishlist"
                     >
-                      +
+                      <Heart size={16} className={isFavorited ? "fill-red-500" : ""} />
                     </button>
                   </div>
-
-                  {/* Add to Cart */}
-                  <button
-                    onClick={handleAddToCart}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-gold px-6 py-3 type-ui text-black transition-all hover:bg-brand-gold-hover active:scale-95 shadow-md gold-glow-hover"
-                  >
-                    <ShoppingBag size={16} />
-                    Add to Cart
-                  </button>
-
-                  {/* Favorite Button */}
-                  <button
-                    onClick={() => toggleWishlist(item.id)}
-                    className={`rounded-full border p-3 transition-all ${
-                      isFavorited
-                        ? "bg-red-500/10 border-red-500/30 text-red-500"
-                        : "bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:border-brand-gold/50"
-                    }`}
-                    aria-label="Add to wishlist"
-                  >
-                    <Heart size={16} className={isFavorited ? "fill-red-500" : ""} />
-                  </button>
-                </div>
+                ) : (
+                  <div className="mt-8 flex items-center justify-end border-t border-white/5 pt-6">
+                    <button
+                      onClick={onClose}
+                      className="rounded-full border border-brand-gold/30 bg-brand-gold/5 px-6 py-2.5 type-ui text-brand-gold transition-all hover:bg-brand-gold hover:text-black active:scale-95 shadow-md hover:gold-glow"
+                    >
+                      Close Details
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

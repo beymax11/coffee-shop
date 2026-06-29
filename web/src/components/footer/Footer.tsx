@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Coffee, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 const InstagramIcon = ({ size = 18 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
@@ -38,11 +38,12 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-white/5 pb-16">
           {/* Column 1: Brand Info */}
           <div className="space-y-6">
-            <Link href="/" className="flex items-center gap-2">
-              <Coffee className="text-brand-gold" size={24} />
-              <span className="type-logo">
-                L&apos;OR <span className="text-brand-gold">NOIR</span>
-              </span>
+            <Link href="/" className="flex items-center">
+              <img
+                src="/logo.png"
+                alt="ANTONIONI GROUNDS"
+                className="h-10 w-auto object-contain"
+              />
             </Link>
             <p className="type-body-sm text-zinc-400">
               A sensory sanctuary redefining coffee. We source the world’s most exclusive microlots, roasting to reveal complex, elegant flavor profiles for the discerning palate.
@@ -71,10 +72,10 @@ export const Footer: React.FC = () => {
                 <Link href="/reservations" className="hover:text-brand-gold transition-colors">Event Reservations</Link>
               </li>
               <li>
-                <Link href="/shop" className="hover:text-brand-gold transition-colors">Boutique Merchandise</Link>
+                <Link href="/loyalty" className="hover:text-brand-gold transition-colors">Loyalty Card</Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-brand-gold transition-colors">Heritage & Roastery</Link>
+                <Link href="/about" className="hover:text-brand-gold transition-colors">About Us</Link>
               </li>
               <li>
                 <Link href="/contact" className="hover:text-brand-gold transition-colors">Find a Salon</Link>
@@ -102,7 +103,7 @@ export const Footer: React.FC = () => {
 
           {/* Column 4: Newsletter */}
           <div className="space-y-4">
-            <h4 className="type-label text-white">L&apos;OR CLUB</h4>
+            <h4 className="type-label text-white">ANTONIONI GROUNDS</h4>
             <p className="type-body-sm text-zinc-400">
               Subscribe to receive exclusive access to microlot releases, roasting masterclasses, and private lounge events.
             </p>
@@ -138,7 +139,7 @@ export const Footer: React.FC = () => {
 
         {/* Legal Footer */}
         <div className="flex flex-col md:flex-row items-center justify-between py-8 type-caption text-zinc-500 gap-4">
-          <p>© {new Date().getFullYear()} L&apos;OR NOIR. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Antonioni Grounds. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:underline">Privacy Policy</a>
             <a href="#" className="hover:underline">Terms of Service</a>

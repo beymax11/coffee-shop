@@ -18,8 +18,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "L'OR NOIR | Luxury Café & Boutique Roastery",
-  description: "Experience the art of artisanal coffee. L'OR NOIR offers exclusive single-origin Geisha coffees, luxury custom patisserie, and cinematic private café events.",
+  title: "Antonioni Grounds",
+  description: "Experience the art of artisanal coffee. Antonioni Grounds offers exclusive single-origin Geisha coffees, luxury custom patisserie, and cinematic private café events.",
   keywords: "luxury coffee, single origin coffee, geisha coffee beans, specialty coffee, private event booking, coffee catering, espresso bar",
 };
 

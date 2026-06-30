@@ -41,7 +41,7 @@ const ctaTap = { scale: 0.97 };
 
 export const HomeHero: React.FC = () => {
   return (
-    <section className="relative h-[calc(100vh-72px)] md:h-[calc(100vh-80px)] w-full flex items-center justify-center overflow-hidden bg-black">
+    <section className="relative h-[calc(100vh-72px)] md:h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-black">
       {/* Background with slow Ken Burns */}
       <motion.div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -57,47 +57,45 @@ export const HomeHero: React.FC = () => {
         }}
       />
 
-      {/* Light overlays — keeps text readable without crushing the photo */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_45%,transparent_35%,rgba(11,11,11,0.45)_100%)]" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B]/90 via-black/20 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/15 via-transparent to-black/15" />
-      {/* Soft scrim behind headline only */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_50%_42%,rgba(0,0,0,0.35)_0%,transparent_70%)]" />
+      {/* Overlays — left scrim for readable copy, photo stays visible on the right */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B]/95 via-[#0B0B0B]/55 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B]/80 via-transparent to-black/10" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_20%_45%,rgba(0,0,0,0.4)_0%,transparent_65%)]" />
 
-      {/* Ambient gold glow */}
+      {/* Ambient gold glow — anchored near left content */}
       <motion.div
-        className="absolute top-[20%] left-[18%] w-[320px] h-[320px] bg-brand-gold/8 blur-[110px] rounded-full"
+        className="absolute top-[18%] left-[8%] w-[280px] h-[280px] bg-brand-gold/10 blur-[100px] rounded-full"
         animate={{ opacity: [0.35, 0.55, 0.35], scale: [1, 1.06, 1] }}
         transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute bottom-[22%] right-[16%] w-[280px] h-[280px] bg-brand-gold/6 blur-[100px] rounded-full"
-        animate={{ opacity: [0.25, 0.45, 0.25], scale: [1.04, 1, 1.04] }}
+        className="absolute bottom-[20%] right-[12%] w-[320px] h-[320px] bg-brand-gold/6 blur-[110px] rounded-full"
+        animate={{ opacity: [0.2, 0.4, 0.2], scale: [1.04, 1, 1.04] }}
         transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
 
       {/* Content */}
       <motion.div
-        className="relative z-10 max-w-5xl mx-auto px-6 text-center"
+        className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 lg:px-16 text-left"
         variants={heroStagger}
         initial="hidden"
         animate="show"
       >
+        <div className="max-w-xl md:max-w-2xl">
         {/* Eyebrow badge */}
         <motion.div
           variants={heroItem}
-          className="flex items-center justify-center gap-3 mb-6"
+          className="flex items-center justify-start gap-3 mb-6"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse shrink-0" />
           <span className="type-eyebrow tracking-[0.25em] text-xs font-semibold text-brand-gold/90">
             Welcome to the Golden Ritual
           </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse" />
         </motion.div>
 
         {/* Headline */}
         <motion.h1
-          className="type-display text-white max-w-4xl mx-auto drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] font-serif leading-[1.12] tracking-tight"
+          className="type-display text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] font-serif leading-[1.12] tracking-tight"
           variants={heroItem}
         >
           Redefining the{" "}
@@ -109,7 +107,7 @@ export const HomeHero: React.FC = () => {
         {/* Subcopy */}
         <motion.p
           variants={heroItem}
-          className="type-body mt-6 text-zinc-300/90 max-w-2xl mx-auto drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-base md:text-[1.05rem]"
+          className="type-body mt-6 text-zinc-300/90 max-w-lg drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-base md:text-[1.05rem]"
         >
           Indulge in our carefully curated, slow-roasted single-origin coffees and custom artisan
           patisserie. Set in a sensory lounge designed for tranquility.
@@ -118,7 +116,7 @@ export const HomeHero: React.FC = () => {
         {/* CTAs */}
         <motion.div
           variants={heroItem}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-9 w-full max-w-md mx-auto sm:max-w-none"
+          className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-4 pt-9"
         >
           <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
             <Link
@@ -157,6 +155,7 @@ export const HomeHero: React.FC = () => {
             <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse" />
           </Link>
         </motion.div>
+        </div>
       </motion.div>
 
       {/* Scroll hint */}

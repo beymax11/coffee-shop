@@ -8,13 +8,13 @@ import { SignatureShowcase } from "@/components/sections/SignatureShowcase";
 import { EventShowcase } from "@/components/sections/EventShowcase";
 import { LifestyleGrid } from "@/components/sections/LifestyleGrid";
 import { QuickViewModal } from "@/components/shared/QuickViewModal";
-import { MenuItem, Product } from "@/types";
+import { MenuItem } from "@/types";
 
 export function HomeView() {
-  const [selectedItem, setSelectedItem] = useState<MenuItem | Product | null>(null);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
-  const handleQuickView = (item: MenuItem | Product) => {
+  const handleQuickView = (item: MenuItem) => {
     setSelectedItem(item);
     setIsQuickViewOpen(true);
   };

@@ -3,18 +3,13 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Heart, Menu, X, LogIn } from "lucide-react";
-import { useCartStore } from "@/store/cart-store";
+import { Menu, X, LogIn } from "lucide-react";
 import { useScroll } from "@/hooks/use-scroll";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const openCart = useCartStore((state) => state.openCart);
-  const cartCount = useCartStore((state) => state.getCartCount());
-  const wishlistCount = useCartStore((state) => state.wishlist.length);
 
   // Monitor scroll height with our custom hook
   const isScrolled = useScroll(50);
@@ -60,7 +55,7 @@ export const Navbar: React.FC = () => {
                   {link.name}
                   {isActive && (
                     <motion.span
-                      layoutId="navActiveLine"
+                       layoutId="navActiveLine"
                       className="absolute -bottom-1 left-0 right-0 h-[1.5px] bg-brand-gold"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
@@ -82,34 +77,6 @@ export const Navbar: React.FC = () => {
             >
               <LogIn size={20} />
             </Link>
-
-            {/* Wishlist Link / Indicator */}
-            <Link
-              href="/shop"
-              className="relative text-zinc-400 hover:text-white transition-colors p-1"
-              aria-label="Wishlist"
-            >
-              <Heart size={20} className={wishlistCount > 0 ? "fill-red-500 text-red-500" : ""} />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 type-badge text-white">
-                  {wishlistCount}
-                </span>
-              )}
-            </Link>
-
-            {/* Cart Button */}
-            <button
-              onClick={openCart}
-              className="relative text-zinc-400 hover:text-white transition-colors p-1"
-              aria-label="Open Cart"
-            >
-              <ShoppingBag size={20} />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand-gold type-badge text-black shadow">
-                  {cartCount}
-                </span>
-              )}
-            </button>
 
             {/* Hamburger Button */}
             <button

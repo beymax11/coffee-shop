@@ -22,6 +22,7 @@ import {
 import { FadeUp, PageTransition, StaggerContainer, StaggerItem } from "@/components/animations";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { db } from "@/utils/db";
 
 interface ActivityLog {
   id: string;
@@ -33,14 +34,30 @@ interface ActivityLog {
 }
 
 export function LoyaltyView() {
+  const memberId = "LN-882-901";
+  
   const [stamps, setStamps] = useState<number>(5);
   const [points, setPoints] = useState<number>(720);
   const [tier, setTier] = useState<"Bronze" | "Gold" | "Platinum">("Gold");
   const [showQRModal, setShowQRModal] = useState<boolean>(false);
   const [showClaimSuccess, setShowClaimSuccess] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<boolean>(false);
-  
-  const memberId = "LN-882-901";
+
+  // Sync with DB
+  useEffect(() => {
+    const syncFromDb = () => {
+      const members = db.getLoyaltyMembers();
+      const current = members.find((m) => m.id === memberId);
+      if (current) {
+        setStamps(current.stamps);
+        setPoints(current.points);
+      }
+    };
+    syncFromDb();
+
+    window.addEventListener("storage", syncFromDb);
+    return () => window.removeEventListener("storage", syncFromDb);
+  }, []);
 
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([
     {
@@ -106,6 +123,17 @@ export function LoyaltyView() {
     setStamps(newStamps);
     setPoints(newPoints);
 
+    // Save back to db
+    const members = db.getLoyaltyMembers();
+    const current = members.find((m) => m.id === memberId);
+    if (current) {
+      db.saveLoyaltyMember({
+        ...current,
+        stamps: newStamps,
+        points: newPoints
+      });
+    }
+
     const now = new Date();
     const formattedDate = `Today, ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     
@@ -125,8 +153,20 @@ export function LoyaltyView() {
     if (stamps < 9) return;
     
     setStamps(0);
-    setPoints(points + 50); // bonus points for claiming
+    const newPoints = points + 50;
+    setPoints(newPoints); // bonus points for claiming
     setShowClaimSuccess(true);
+
+    // Save back to db
+    const members = db.getLoyaltyMembers();
+    const current = members.find((m) => m.id === memberId);
+    if (current) {
+      db.saveLoyaltyMember({
+        ...current,
+        stamps: 0,
+        points: newPoints
+      });
+    }
     
     const now = new Date();
     const formattedDate = `Today, ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -146,6 +186,18 @@ export function LoyaltyView() {
   const handleResetSimulator = () => {
     setStamps(0);
     setPoints(280);
+
+    // Save back to db
+    const members = db.getLoyaltyMembers();
+    const current = members.find((m) => m.id === memberId);
+    if (current) {
+      db.saveLoyaltyMember({
+        ...current,
+        stamps: 0,
+        points: 280
+      });
+    }
+
     setActivityLogs([
       {
         id: "act-reset",

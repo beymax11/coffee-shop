@@ -15,6 +15,8 @@ export function LoginView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const [successMessage, setSuccessMessage] = useState("");
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
@@ -23,9 +25,20 @@ export function LoginView() {
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSuccess(true);
-      setTimeout(() => {
-        router.push("/");
-      }, 1200);
+
+      const isAdmin = email.trim() === "admin@coffee.com" && password === "admin123";
+      if (isAdmin) {
+        setSuccessMessage("Access granted. Redirecting to admin panel...");
+        localStorage.setItem("admin_session", "true");
+        setTimeout(() => {
+          router.push("/admin");
+        }, 1200);
+      } else {
+        setSuccessMessage("Welcome back. Redirecting to your salon...");
+        setTimeout(() => {
+          router.push("/");
+        }, 1200);
+      }
     }, 900);
   };
 
@@ -82,7 +95,7 @@ export function LoginView() {
                   {isSuccess && (
                     <div className="rounded border border-green-500/20 bg-green-500/10 p-4 type-success text-green-400 flex items-center gap-2">
                       <Check size={16} />
-                      <span>Welcome back. Redirecting to your salon...</span>
+                      <span>{successMessage}</span>
                     </div>
                   )}
 

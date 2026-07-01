@@ -1,4 +1,5 @@
 import { Reservation, ReservationType } from "@/types";
+import { db } from "@/utils/db";
 
 export class ReservationService {
   /**
@@ -66,6 +67,8 @@ export class ReservationService {
     reference: string;
     message: string;
   }> {
+    // Save to our dynamic local storage database
+    db.saveReservation(reservation);
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({

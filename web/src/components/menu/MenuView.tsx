@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { menuItems } from "@/data/menu";
+import React, { useState, useMemo, useEffect } from "react";
+import { db } from "@/utils/db";
 import { Star, Eye, Search, Compass, Coffee, CupSoda, Sparkles, Leaf, Cookie, Cake, ArrowRight } from "lucide-react";
 import { QuickViewModal } from "@/components/shared/QuickViewModal";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
@@ -19,10 +19,21 @@ const categoryIcons: Record<string, React.ComponentType<any>> = {
 };
 
 export function MenuView() {
+  const [items, setItems] = useState<MenuItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+
+  // Sync menu items from local database on mount & on storage update
+  useEffect(() => {
+    setItems(db.getMenuItems());
+    const handleStorage = () => {
+      setItems(db.getMenuItems());
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const categories = [
     "All",
@@ -36,7 +47,7 @@ export function MenuView() {
 
   // Filtering Logic
   const filteredItems = useMemo(() => {
-    return menuItems.filter((item) => {
+    return items.filter((item) => {
       const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase());
       
@@ -44,7 +55,7 @@ export function MenuView() {
       
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [items, searchQuery, selectedCategory]);
 
   const handleQuickView = (item: MenuItem) => {
     setSelectedItem(item);
@@ -231,7 +242,6 @@ export function MenuView() {
           isOpen={isQuickViewOpen}
           onClose={() => setIsQuickViewOpen(false)}
           item={selectedItem}
-          showCommerceControls={false}
         />
       )}
     </PageTransition>

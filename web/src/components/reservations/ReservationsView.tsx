@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText } from "lucide-react";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { motion, AnimatePresence } from "framer-motion";
+import { db } from "@/utils/db";
 
 type ReservationType = "Coffee Cart Booking" | "Table Reservation" | "Private Event" | "Corporate Event";
 
@@ -32,6 +33,23 @@ export function ReservationsView() {
     location: "",
     notes: "",
   });
+
+  useEffect(() => {
+    const sessionEmail = localStorage.getItem("customer_session");
+    if (sessionEmail) {
+      const members = db.getLoyaltyMembers();
+      const found = members.find(
+        (m) => m.email.toLowerCase() === sessionEmail.toLowerCase()
+      );
+      if (found) {
+        setFormData((prev) => ({
+          ...prev,
+          fullName: found.name,
+          email: found.email,
+        }));
+      }
+    }
+  }, []);
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 

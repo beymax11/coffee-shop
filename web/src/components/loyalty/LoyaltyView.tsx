@@ -34,7 +34,10 @@ interface ActivityLog {
 }
 
 export function LoyaltyView() {
-  const memberId = "LN-882-901";
+  const [memberId, setMemberId] = useState<string>("LN-882-901");
+  const [memberName, setMemberName] = useState<string>("Alexander Vance");
+  const [memberEmail, setMemberEmail] = useState<string>("alexander@vance.net");
+  const [isGuest, setIsGuest] = useState<boolean>(true);
   
   const [stamps, setStamps] = useState<number>(5);
   const [points, setPoints] = useState<number>(720);
@@ -46,11 +49,27 @@ export function LoyaltyView() {
   // Sync with DB
   useEffect(() => {
     const syncFromDb = () => {
+      const sessionEmail = localStorage.getItem("customer_session");
       const members = db.getLoyaltyMembers();
-      const current = members.find((m) => m.id === memberId);
+      
+      let current = members.find((m) => m.id === "LN-882-901"); // default fallback
+      let guestState = true;
+
+      if (sessionEmail) {
+        const found = members.find((m) => m.email.toLowerCase() === sessionEmail.toLowerCase());
+        if (found) {
+          current = found;
+          guestState = false;
+        }
+      }
+
       if (current) {
+        setMemberId(current.id);
+        setMemberName(current.name);
+        setMemberEmail(current.email);
         setStamps(current.stamps);
         setPoints(current.points);
+        setIsGuest(guestState);
       }
     };
     syncFromDb();
@@ -247,6 +266,26 @@ export function LoyaltyView() {
             <p className="type-body text-zinc-400 mt-4">
               Your key to custom salon experiences, complimentary Geisha reserves, and priority allocation of microlot roasts.
             </p>
+            {isGuest && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl border border-brand-gold/20 bg-brand-gold/5 text-center sm:text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <Info size={18} className="text-brand-gold shrink-0" />
+                  <span className="text-xs text-zinc-300 font-sans">
+                    You are viewing a guest loyalty card preview. <strong className="text-white">Sign In</strong> to access your personal stamps, points, and private event allocations.
+                  </span>
+                </div>
+                <Link
+                  href="/login"
+                  className="rounded-full bg-brand-gold px-4 py-1.5 text-xs font-semibold text-black hover:bg-brand-gold-hover transition-colors whitespace-nowrap active:scale-95 shadow-[0_0_10px_rgba(212,175,55,0.2)] cursor-pointer"
+                >
+                  Sign In
+                </Link>
+              </motion.div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -264,8 +303,8 @@ export function LoyaltyView() {
                 <div className="flex justify-between items-start z-10">
                   <div>
                     <span className="text-[10px] tracking-[0.25em] text-brand-gold uppercase font-bold">L&apos;OR NOIR MEMBER CARD</span>
-                    <h2 className="type-h2 text-white font-serif mt-1 font-bold">Alexander Vance</h2>
-                    <p className="type-caption text-zinc-400 mt-0.5">Premium Lounge Member</p>
+                    <h2 className="type-h2 text-white font-serif mt-1 font-bold">{memberName}</h2>
+                    <p className="type-caption text-zinc-400 mt-0.5">{isGuest ? "Guest Preview Card" : "Premium Lounge Member"}</p>
                   </div>
                   
                   <div className="text-right">
@@ -380,36 +419,6 @@ export function LoyaltyView() {
                   <p className="type-caption text-zinc-400 leading-relaxed">
                     Stamps are automatically issued upon checkout for any handcrafted beverage purchases when your loyalty ID is scanned. Complimentary drinks include any signature coffees, including Geisha reserve microlots.
                   </p>
-                </div>
-              </FadeUp>
-
-              {/* Simulator Action Center */}
-              <FadeUp delay={0.15} className="rounded-2xl border border-brand-gold/10 bg-[#161412] p-6 shadow-md">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles size={16} className="text-brand-gold" />
-                  <h4 className="type-subheading text-white text-xs">Sandbox Simulator Control Panel</h4>
-                </div>
-                <p className="type-caption text-zinc-400 mb-6">
-                  Test the interactive loyalty logic! Add stamps to fill the card, view the real-time activity ledger update, and claim your free beverage.
-                </p>
-                
-                <div className="flex flex-wrap gap-3">
-                  <button 
-                    onClick={handleSimulatePurchase}
-                    disabled={stamps >= 9}
-                    className="flex-1 min-w-[150px] flex items-center justify-center gap-2 rounded-full bg-brand-gold text-black py-2.5 px-4 type-ui hover:bg-brand-gold-hover transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Plus size={14} />
-                    Simulate Coffee Purchase
-                  </button>
-
-                  <button 
-                    onClick={handleResetSimulator}
-                    className="flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white py-2.5 px-4 type-ui transition-all"
-                  >
-                    <RotateCcw size={14} />
-                    Reset Card
-                  </button>
                 </div>
               </FadeUp>
 
@@ -567,7 +576,7 @@ export function LoyaltyView() {
               </button>
 
               <span className="type-eyebrow text-[10px] tracking-[0.25em]">Salon Register Scan</span>
-              <h3 className="type-h3 text-white font-serif mt-2 font-bold">Alexander Vance</h3>
+              <h3 className="type-h3 text-white font-serif mt-2 font-bold">{memberName}</h3>
               <p className="type-caption text-zinc-500">Scan at any register to log your purchase.</p>
 
               {/* Barcode/QR Code Visualization */}

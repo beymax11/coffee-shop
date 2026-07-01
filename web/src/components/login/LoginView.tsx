@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Coffee, Eye, EyeOff, Lock, LogIn, Mail, UserRound } from "lucide-react";
 import { FadeUp, PageTransition } from "@/components/animations";
+import { db } from "@/utils/db";
 
 export function LoginView() {
   const router = useRouter();
@@ -26,15 +27,48 @@ export function LoginView() {
       setIsSubmitting(false);
       setIsSuccess(true);
 
-      const isAdmin = email.trim() === "admin@coffee.com" && password === "admin123";
+      const trimmedEmail = email.trim();
+      const isAdmin = trimmedEmail === "admin@coffee.com" && password === "admin123";
       if (isAdmin) {
         setSuccessMessage("Access granted. Redirecting to admin panel...");
         localStorage.setItem("admin_session", "true");
+        localStorage.removeItem("customer_session");
+        window.dispatchEvent(new Event("storage"));
         setTimeout(() => {
           router.push("/admin");
         }, 1200);
       } else {
         setSuccessMessage("Welcome back. Redirecting to your salon...");
+        localStorage.removeItem("admin_session");
+        
+        // Find existing loyalty member
+        const members = db.getLoyaltyMembers();
+        const existingMember = members.find(
+          (m) => m.email.toLowerCase() === trimmedEmail.toLowerCase()
+        );
+
+        if (existingMember) {
+          localStorage.setItem("customer_session", existingMember.email);
+        } else {
+          // Auto-register new loyalty member
+          const namePart = trimmedEmail.split("@")[0];
+          const name = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+          const randomId = `LN-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+          
+          const newMember = {
+            id: randomId,
+            name,
+            email: trimmedEmail,
+            stamps: 0,
+            points: 0,
+            joinedAt: new Date().toISOString().split("T")[0]
+          };
+          
+          db.saveLoyaltyMember(newMember);
+          localStorage.setItem("customer_session", trimmedEmail);
+        }
+
+        window.dispatchEvent(new Event("storage"));
         setTimeout(() => {
           router.push("/");
         }, 1200);

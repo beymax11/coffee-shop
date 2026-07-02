@@ -35,10 +35,10 @@ export class ReservationService {
       if (count <= 0) {
         errors.guestCount = "Guest count must be at least 1";
       } else if (data.eventType === "Table Reservation" && count > 4) {
-        errors.guestCount = "Lounge tables accommodate up to 4 guests. For larger parties, book a Private Event takeover.";
+        errors.guestCount = "Lounge tables accommodate up to 4 guests.";
       }
       
-      const isOffsite = data.eventType === "Coffee Cart Booking" || data.eventType === "Private Event";
+      const isOffsite = data.eventType === "Coffee Cart Booking";
       if (isOffsite && !data.location?.trim()) {
         errors.location = "Venue address / location is required for offsite bookings";
       }

@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
 });
@@ -29,9 +30,25 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${playfair.variable} ${jakarta.variable} h-full antialiased dark`}
+      className={`${cormorant.variable} ${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-[#0B0B0B] text-[#F5F5F0] font-sans">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col bg-background text-foreground font-sans transition-colors duration-300">
         <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>

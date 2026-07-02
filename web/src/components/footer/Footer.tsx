@@ -1,8 +1,5 @@
-"use client";
-
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 const InstagramIcon = ({ size = 18 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
@@ -17,123 +14,87 @@ const TwitterIcon = ({ size = 18 }: { size?: number }) => (
 );
 
 export const Footer: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setIsSubmitted(true);
-      setEmail("");
-      setTimeout(() => setIsSubmitted(false), 5000);
-    }
-  };
-
   return (
-    <footer className="relative mt-auto border-t border-white/5 bg-[#070707] text-[#F5F5F0]">
+    <footer className="relative mt-auto border-t border-card-border bg-card text-foreground">
       {/* Background soft gold glow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-[150px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="mx-auto max-w-7xl px-6 py-16 md:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-white/5 pb-16">
-          {/* Column 1: Brand Info */}
-          <div className="space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-12 lg:gap-16 xl:gap-20 border-b border-card-border pb-16">
+          {/* Brand Info */}
+          <div className="w-full max-w-sm shrink-0 space-y-6">
             <Link href="/" className="flex items-center">
               <img
                 src="/logo.png"
                 alt="ANTONIONI GROUNDS"
-                className="h-10 w-auto object-contain"
+                className="h-10 w-auto object-contain invert dark:invert-0"
               />
             </Link>
-            <p className="type-body-sm text-zinc-400">
+            <p className="type-body-sm text-neutral-500 dark:text-zinc-400">
               A sensory sanctuary redefining coffee. We source the world’s most exclusive microlots, roasting to reveal complex, elegant flavor profiles for the discerning palate.
             </p>
-            <div className="flex items-center gap-4 text-zinc-500">
-              <a href="#" className="hover:text-white transition-colors" aria-label="Instagram">
-                <InstagramIcon size={18} />
-              </a>
-              <a href="#" className="hover:text-white transition-colors" aria-label="Facebook">
-                <FacebookIcon size={18} />
-              </a>
-              <a href="#" className="hover:text-white transition-colors" aria-label="Twitter">
-                <TwitterIcon size={18} />
-              </a>
+          </div>
+
+          {/* Navigation, Opening Hours & Location */}
+          <div className="flex flex-col sm:flex-row flex-wrap items-start justify-start gap-10 sm:gap-12 lg:gap-14">
+            <div className="space-y-4">
+              <h4 className="type-label text-foreground">Navigation</h4>
+              <ul className="space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
+                <li>
+                  <Link href="/menu" className="hover:text-brand-gold transition-colors">Our Menu</Link>
+                </li>
+                <li>
+                  <Link href="/reservations" className="hover:text-brand-gold transition-colors">Reservations</Link>
+                </li>
+                <li>
+                  <Link href="/loyalty" className="hover:text-brand-gold transition-colors">Loyalty Card</Link>
+                </li>
+                <li>
+                  <Link href="/about" className="hover:text-brand-gold transition-colors">About Us</Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="hover:text-brand-gold transition-colors">Contact</Link>
+                </li>
+              </ul>
             </div>
-          </div>
 
-          {/* Column 2: Quick Links */}
-          <div className="space-y-4">
-            <h4 className="type-label text-white">Navigation</h4>
-            <ul className="space-y-2.5 type-body-sm text-zinc-400">
-              <li>
-                <Link href="/menu" className="hover:text-brand-gold transition-colors">Our Menu</Link>
-              </li>
-              <li>
-                <Link href="/reservations" className="hover:text-brand-gold transition-colors">Event Reservations</Link>
-              </li>
-              <li>
-                <Link href="/loyalty" className="hover:text-brand-gold transition-colors">Loyalty Card</Link>
-              </li>
-              <li>
-                <Link href="/about" className="hover:text-brand-gold transition-colors">About Us</Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-brand-gold transition-colors">Find a Salon</Link>
-              </li>
-            </ul>
-          </div>
+            <div className="space-y-4">
+              <h4 className="type-label text-foreground">Opening Hours</h4>
+              <ul className="space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
+                <li>
+                  <span>Monday - Friday</span>
+                  <span className="block text-neutral-800 dark:text-zinc-300 font-medium">07:00 - 20:00</span>
+                </li>
+                <li>
+                  <span>Saturday - Sunday</span>
+                  <span className="block text-neutral-800 dark:text-zinc-300 font-medium">08:00 - 22:00</span>
+                </li>
+              </ul>
+            </div>
 
-          {/* Column 3: Hours & Sourcing */}
-          <div className="space-y-4">
-            <h4 className="type-label text-white">Opening Hours</h4>
-            <ul className="space-y-2.5 type-body-sm text-zinc-400">
-              <li className="flex justify-between">
-                <span>Monday - Friday</span>
-                <span className="text-zinc-300 font-medium">07:00 - 20:00</span>
-              </li>
-              <li className="flex justify-between">
-                <span>Saturday - Sunday</span>
-                <span className="text-zinc-300 font-medium">08:00 - 22:00</span>
-              </li>
-              <li className="border-t border-white/5 pt-2.5 type-caption text-zinc-500">
-                *Private event bookings are available outside salon hours.
-              </li>
-            </ul>
-          </div>
+            <div className="space-y-4">
+              <h4 className="type-label text-foreground">Location</h4>
+              <address className="not-italic space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
+                <p className="text-neutral-800 dark:text-zinc-300 font-medium">Antonioni Grounds</p>
+                <p>55 Water St, Brooklyn, NY 11201</p>
+                <p>United States</p>
+              </address>
+            </div>
 
-          {/* Column 4: Newsletter */}
-          <div className="space-y-4">
-            <h4 className="type-label text-white">ANTONIONI GROUNDS</h4>
-            <p className="type-body-sm text-zinc-400">
-              Subscribe to receive exclusive access to microlot releases, roasting masterclasses, and private lounge events.
-            </p>
-
-            <form onSubmit={handleSubmit} className="relative mt-2">
-              {isSubmitted ? (
-                <div className="flex items-center gap-2 rounded-full border border-green-500/20 bg-green-500/10 px-4 py-2.5 type-success text-green-400">
-                  <CheckCircle2 size={16} />
-                  <span>Welcome to the club.</span>
-                </div>
-              ) : (
-                <div className="flex items-center rounded-full border border-white/10 bg-black/40 p-1.5 focus-within:border-brand-gold transition-all">
-                  <input
-                    type="email"
-                    required
-                    placeholder="Enter email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-transparent px-3 py-1 type-field text-[#F5F5F0] outline-none placeholder:text-zinc-600"
-                  />
-                  <button
-                    type="submit"
-                    className="rounded-full bg-brand-gold p-2 text-black hover:bg-brand-gold-hover transition-all"
-                    aria-label="Subscribe"
-                  >
-                    <ArrowRight size={14} />
-                  </button>
-                </div>
-              )}
-            </form>
+            <div className="space-y-4">
+              <h4 className="type-label text-foreground">Connect with us</h4>
+              <div className="flex items-center gap-4 text-zinc-500">
+                <a href="#" className="hover:text-foreground dark:hover:text-white transition-colors" aria-label="Instagram">
+                  <InstagramIcon size={18} />
+                </a>
+                <a href="#" className="hover:text-foreground dark:hover:text-white transition-colors" aria-label="Facebook">
+                  <FacebookIcon size={18} />
+                </a>
+                <a href="#" className="hover:text-foreground dark:hover:text-white transition-colors" aria-label="Twitter">
+                  <TwitterIcon size={18} />
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 

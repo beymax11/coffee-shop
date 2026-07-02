@@ -12,19 +12,19 @@ export const LifestyleGrid: React.FC = () => {
   ];
 
   return (
-    <section className="py-24 bg-[#0B0B0B] border-t border-white/5">
+    <section className="py-24 bg-background border-t border-card-border transition-colors duration-500">
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         <div className="text-center max-w-xl mx-auto mb-16">
           <span className="type-eyebrow">Social Curation</span>
-          <h2 className="type-h2 text-white mt-2">
+          <h2 className="type-h2 text-foreground mt-2">
             L&apos;OR NOIR Lifestyle
           </h2>
-          <p className="type-caption text-zinc-500 mt-2">Tag @LORNOIR_CAFE to be featured in our monthly selection.</p>
+          <p className="type-caption text-neutral-500 dark:text-zinc-500 mt-2">Tag @LORNOIR_CAFE to be featured in our monthly selection.</p>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {images.map((url, idx) => (
-            <FadeUp key={idx} delay={idx * 0.1} className="relative h-64 rounded-xl overflow-hidden group border border-white/5">
+            <FadeUp key={idx} delay={idx * 0.1} className="relative h-64 rounded-xl overflow-hidden group border border-card-border">
               <img
                 src={url}
                 alt={`Instagram Showcase ${idx + 1}`}

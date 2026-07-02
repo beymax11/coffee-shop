@@ -64,7 +64,7 @@ export function MenuView() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#0B0B0B] py-16 md:py-24 text-[#F5F5F0] relative overflow-hidden">
+      <div className="min-h-screen bg-background py-16 md:py-24 text-foreground relative overflow-hidden transition-colors duration-500">
         {/* Subtle Decorative Golden Aura Background */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none z-0">
           <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full bg-brand-gold/[0.03] blur-[120px]" />
@@ -83,7 +83,7 @@ export function MenuView() {
               </span>
             </div>
 
-            <h1 className="type-h1 text-white tracking-tight">
+            <h1 className="type-h1 text-foreground tracking-tight">
               The <span className="text-brand-gold italic font-serif">Curated</span> Menu
             </h1>
             
@@ -94,13 +94,13 @@ export function MenuView() {
               <span className="h-[1px] w-8 bg-gradient-to-l from-transparent to-brand-gold/60" />
             </div>
 
-            <p className="type-body text-zinc-400 max-w-lg">
+            <p className="type-body text-neutral-500 dark:text-zinc-400 max-w-lg">
               Explore our master-crafted hot brews, cold tonics, zero-proof signature cocktail pairings, and freshly baked luxury desserts.
             </p>
           </div>
 
           {/* Unified Filter Deck */}
-          <div className="relative max-w-5xl mx-auto mb-16 rounded-2xl border border-white/10 bg-[#121212]/80 p-6 backdrop-blur-md shadow-2xl glassmorphism-gold">
+          <div className="relative max-w-5xl mx-auto mb-16 rounded-2xl border border-card-border bg-card p-6 backdrop-blur-md shadow-2xl glassmorphism-gold">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               
               {/* Search Bar */}
@@ -111,20 +111,20 @@ export function MenuView() {
                   placeholder="Search our pourings and pastries..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-12 pr-6 type-field text-[#F5F5F0] outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all placeholder:text-zinc-600 shadow-inner"
+                  className="w-full rounded-xl border border-card-border bg-background-alt/50 py-3 pl-12 pr-6 type-field text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all placeholder:text-neutral-400 dark:placeholder:text-zinc-600 shadow-inner"
                 />
               </div>
 
               {/* Quick Summary */}
               <div className="hidden lg:block text-right">
-                <span className="type-caption text-zinc-500">Showing</span>
+                <span className="type-caption text-neutral-500 dark:text-zinc-500">Showing</span>
                 <span className="type-body-sm font-semibold text-brand-gold ml-1.5">{filteredItems.length}</span>
-                <span className="type-caption text-zinc-500 ml-1">exquisite creations</span>
+                <span className="type-caption text-neutral-500 dark:text-zinc-500 ml-1">exquisite creations</span>
               </div>
             </div>
 
             {/* Category Tabs */}
-            <div className="border-t border-white/5 mt-6 pt-6">
+            <div className="border-t border-card-border mt-6 pt-6">
               <div className="flex overflow-x-auto pb-2 scrollbar-none -mx-6 px-6 lg:mx-0 lg:px-0">
                 <div className="flex gap-2.5 mx-auto">
                   {categories.map((category) => {
@@ -137,7 +137,7 @@ export function MenuView() {
                         className={`flex items-center gap-2 rounded-xl px-5 py-2.5 type-ui border transition-all whitespace-nowrap ${
                           isSelected
                             ? "bg-brand-gold border-brand-gold text-black shadow-lg gold-glow font-medium scale-[1.02]"
-                            : "bg-black/30 border-white/5 text-zinc-400 hover:text-white hover:border-brand-gold/30 hover:bg-white/[0.02]"
+                            : "bg-card border-card-border text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white hover:border-brand-gold/30 hover:bg-background"
                         }`}
                       >
                         <IconComponent size={14} className={isSelected ? "text-black" : "text-brand-gold"} />
@@ -153,7 +153,7 @@ export function MenuView() {
           {/* Empty State */}
           {filteredItems.length === 0 ? (
             <div className="text-center py-20">
-              <p className="type-body-sm text-zinc-500 font-medium">No items found matching your filters.</p>
+              <p className="type-body-sm text-neutral-500 dark:text-zinc-500 font-medium">No items found matching your filters.</p>
               <button
                 onClick={() => { setSearchQuery(""); setSelectedCategory("All"); }}
                 className="mt-4 type-ui text-brand-gold hover:underline"
@@ -169,7 +169,7 @@ export function MenuView() {
                   <StaggerItem key={item.id}>
                     <div
                       onClick={() => handleQuickView(item)}
-                      className="group relative flex flex-col justify-between rounded-2xl border border-white/5 bg-[#141414] p-4 transition-all hover:border-brand-gold/30 hover:bg-[#181818] gold-glow-hover cursor-pointer h-full"
+                      className="group relative flex flex-col justify-between rounded-2xl border border-card-border bg-card p-4 transition-all hover:border-brand-gold/30 hover:bg-card/90 gold-glow-hover cursor-pointer h-full"
                     >
                       {/* Item Image with Overlay controls */}
                       <div className="relative h-60 w-full overflow-hidden rounded-xl bg-zinc-900 mb-6">
@@ -201,26 +201,26 @@ export function MenuView() {
                             </span>
                             <div className="flex items-center gap-0.5">
                               <Star size={12} className="fill-brand-gold text-brand-gold" />
-                              <span className="type-caption font-medium text-zinc-300">{item.rating}</span>
+                              <span className="type-caption font-medium text-neutral-600 dark:text-zinc-300">{item.rating}</span>
                             </div>
                           </div>
 
-                          <h3 className="type-card-title font-bold text-white mt-2 group-hover:text-brand-gold transition-colors">
+                          <h3 className="type-card-title font-bold text-foreground mt-2 group-hover:text-brand-gold transition-colors">
                             {item.name}
                           </h3>
                           
-                          <p className="type-body-sm text-zinc-400 mt-2 line-clamp-2">
+                          <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-2 line-clamp-2">
                             {item.description}
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-6">
+                        <div className="flex items-center justify-between border-t border-card-border pt-4 mt-6">
                           <span className="type-price text-brand-gold font-semibold">
                             ${item.price.toFixed(2)}
                           </span>
                           
                           <span
-                            className="type-ui text-zinc-400 group-hover:text-white flex items-center gap-1.5 transition-all font-medium"
+                            className="type-ui text-neutral-500 group-hover:text-foreground dark:text-zinc-400 dark:group-hover:text-white flex items-center gap-1.5 transition-all font-medium"
                           >
                             View Details
                             <ArrowRight size={12} className="text-brand-gold transition-transform group-hover:translate-x-1" />

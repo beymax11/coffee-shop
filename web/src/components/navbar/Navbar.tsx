@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, LogIn, UserRound, LogOut, Copy, Check, Sparkles, Award, Coffee } from "lucide-react";
+import { Menu, X, LogIn, UserRound, LogOut, Copy, Check, Sparkles, Award, Coffee, Loader2, Sun, Moon } from "lucide-react";
 import { useScroll } from "@/hooks/use-scroll";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, LoyaltyMember } from "@/utils/db";
@@ -14,6 +14,42 @@ export const Navbar: React.FC = () => {
   const [customer, setCustomer] = useState<LoyaltyMember | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  // Read theme on mount
+  useEffect(() => {
+    const root = document.documentElement;
+    const isDark = root.classList.contains("dark");
+    setTheme(isDark ? "dark" : "light");
+  }, []);
+
+  const toggleTheme = () => {
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setTheme("dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setTheme("light");
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "June 2026";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
 
   // Monitor scroll height with our custom hook
   const isScrolled = useScroll(50);
@@ -40,10 +76,15 @@ export const Navbar: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("customer_session");
-    setCustomer(null);
-    setIsProfileOpen(false);
-    window.dispatchEvent(new Event("storage"));
+    setIsLoggingOut(true);
+    setTimeout(() => {
+      localStorage.removeItem("customer_session");
+      setCustomer(null);
+      setIsProfileOpen(false);
+      setIsMobileMenuOpen(false);
+      setIsLoggingOut(false);
+      window.dispatchEvent(new Event("storage"));
+    }, 1000);
   };
 
   const handleCopy = (text: string) => {
@@ -52,31 +93,7 @@ export const Navbar: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const getTier = (points: number) => {
-    if (points >= 1500) {
-      return {
-        name: "Platinum",
-        style: "bg-gradient-to-r from-slate-200 to-slate-400 text-black",
-        next: null,
-      };
-    }
-    if (points >= 500) {
-      return {
-        name: "Gold",
-        style: "bg-gradient-to-r from-amber-200 to-yellow-500 text-black",
-        next: { name: "Platinum", diff: 1500 - points },
-      };
-    }
-    return {
-      name: "Bronze",
-      style: "bg-gradient-to-r from-amber-700 to-amber-900 text-amber-100",
-      next: { name: "Gold", diff: 500 - points },
-    };
-  };
 
-  const tierInfo = customer
-    ? getTier(customer.points)
-    : { name: "Bronze", style: "bg-[#27272a] text-zinc-300", next: null };
 
   const navLinks = [
     { name: "Home", href: "/" },
@@ -90,11 +107,10 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 flex items-center ${
-          isScrolled
-            ? "border-b border-white/5 bg-black/70 backdrop-blur-md h-16 shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 flex items-center ${isScrolled
+            ? "border-b border-card-border bg-background/80 backdrop-blur-md h-16 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
             : "bg-transparent h-20"
-        }`}
+          }`}
       >
         <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between px-6 md:px-8">
           {/* Logo */}
@@ -102,7 +118,7 @@ export const Navbar: React.FC = () => {
             <img
               src="/logo.png"
               alt="ANTONIONI GROUNDS"
-              className="h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105 invert dark:invert-0"
             />
           </Link>
 
@@ -114,8 +130,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="relative type-nav transition-colors hover:text-white"
-                  style={{ color: isActive ? "#F5F5F0" : "#A0A0A5" }}
+                  className={`relative type-nav transition-colors ${
+                    isActive ? "text-foreground font-semibold" : "text-neutral-500 hover:text-foreground dark:hover:text-white"
+                  }`}
                 >
                   {link.name}
                   {isActive && (
@@ -131,41 +148,60 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="w-8 h-8 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-gold hover:border-brand-gold/30 transition-all duration-300 cursor-pointer"
+              aria-label="Toggle Theme"
+            >
+              {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+            </button>
+
             {customer ? (
-              <div className="flex items-center gap-3">
-                {/* Profile Icon Button */}
+              <div className="flex items-center gap-2.5">
+                 {/* Profile Capsule Button */}
                 <button
                   onClick={() => setIsProfileOpen(true)}
-                  className="flex items-center gap-2 group cursor-pointer"
+                  className="group relative flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand-gold/30 bg-card/90 transition-all duration-300 hover:border-brand-gold hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                   aria-label="Profile"
                 >
-                  <div className="w-8 h-8 rounded-full border border-brand-gold/30 bg-[#141414] flex items-center justify-center text-brand-gold transition-all duration-300 group-hover:border-brand-gold group-hover:scale-105">
-                    <UserRound size={16} />
+                  <div className="absolute inset-0 rounded-full bg-brand-gold/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none" />
+                  <div className="w-5 h-5 rounded-full border border-brand-gold/40 bg-background flex items-center justify-center text-brand-gold text-[9px] font-bold shadow-[0_0_8px_rgba(197,168,128,0.1)] select-none">
+                    {customer.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="hidden lg:inline text-xs font-sans text-zinc-300 group-hover:text-white transition-colors">
-                    {customer.name}
+                  <span className="hidden sm:inline text-[10px] uppercase tracking-[0.15em] font-sans font-bold text-neutral-500 dark:text-zinc-300 group-hover:text-foreground dark:group-hover:text-white transition-colors">
+                    {customer.name.split(" ")[0]}
                   </span>
                 </button>
 
-                {/* Log Out Button */}
+                 {/* Log Out Button */}
                 <button
                   onClick={handleLogout}
-                  className="text-zinc-400 hover:text-red-400 transition-colors p-1"
+                  disabled={isLoggingOut}
+                  className="w-8 h-8 rounded-full border border-card-border bg-card/50 flex items-center justify-center text-neutral-500 dark:text-zinc-400 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   aria-label="Sign Out"
                 >
-                  <LogOut size={20} />
+                  {isLoggingOut ? (
+                    <Loader2 size={13} className="animate-spin text-zinc-400" />
+                  ) : (
+                    <LogOut size={13} />
+                  )}
                 </button>
               </div>
             ) : (
-              <Link
-                href="/login"
-                className={`relative transition-colors p-1 ${
-                  pathname === "/login" ? "text-brand-gold" : "text-zinc-400 hover:text-white"
-                }`}
-                aria-label="Sign In"
-              >
-                <LogIn size={20} />
+              <Link href="/login" className="group relative" aria-label="Sign In">
+                {/* Background glow ring on hover */}
+                <div className="absolute inset-0 -m-[1px] rounded-full bg-gradient-to-r from-brand-gold to-brand-gold-hover opacity-0 blur-[6px] transition-opacity duration-500 group-hover:opacity-100" />
+                                {/* Main button container */}
+                <div className={`relative flex items-center gap-2 px-5 py-2 rounded-full border text-[10px] font-sans font-bold tracking-[0.15em] uppercase transition-all duration-300 group-hover:scale-[1.02] active:scale-[0.98] ${
+                  pathname === "/login"
+                    ? "bg-brand-gold border-brand-gold text-black shadow-[0_0_15px_rgba(197,168,128,0.3)]"
+                    : "bg-card/90 border-brand-gold/30 text-neutral-500 dark:text-zinc-300 group-hover:border-brand-gold group-hover:text-black group-hover:bg-gradient-to-r group-hover:from-brand-gold group-hover:to-brand-gold-hover shadow-[0_0_15px_rgba(197,168,128,0.03)]"
+                }`}>
+                  <LogIn size={11} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                  <span>Sign In</span>
+                </div>
               </Link>
             )}
 
@@ -200,21 +236,21 @@ export const Navbar: React.FC = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute right-0 top-0 bottom-0 w-80 bg-[#0c0c0c] border-l border-white/5 p-8 flex flex-col justify-between"
+              className="absolute right-0 top-0 bottom-0 w-80 bg-card border-l border-card-border p-8 flex flex-col justify-between"
             >
               <div>
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-white/5 pb-6 mb-8">
+                <div className="flex items-center justify-between border-b border-card-border pb-6 mb-8">
                   <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
                     <img
                       src="/logo.png"
                       alt="ANTONIONI GROUNDS"
-                      className="h-7 w-auto object-contain"
+                      className="h-7 w-auto object-contain invert dark:invert-0"
                     />
                   </Link>
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="rounded-full border border-white/5 bg-white/5 p-2 text-zinc-400 hover:text-white"
+                    className="rounded-full border border-card-border bg-card p-2 text-zinc-400 hover:text-foreground"
                   >
                     <X size={18} />
                   </button>
@@ -223,16 +259,16 @@ export const Navbar: React.FC = () => {
                 {/* Mobile Links */}
                 <nav className="flex flex-col gap-6">
                   {customer ? (
-                    <div className="border-b border-white/5 pb-6 mb-4 space-y-4">
+                    <div className="border-b border-card-border pb-6 mb-4 space-y-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full border border-brand-gold/30 bg-[#161616] flex items-center justify-center text-brand-gold">
+                        <div className="w-10 h-10 rounded-full border border-brand-gold/30 bg-background-alt flex items-center justify-center text-brand-gold">
                           <UserRound size={18} />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-white truncate">
+                          <div className="text-sm font-semibold text-foreground truncate">
                             {customer.name}
                           </div>
-                          <div className="text-[10px] text-zinc-500 font-mono">
+                          <div className="text-[10px] text-zinc-400 font-mono">
                             {customer.id}
                           </div>
                         </div>
@@ -246,17 +282,19 @@ export const Navbar: React.FC = () => {
                           className="flex items-center gap-2 text-left type-nav text-sm text-zinc-400 hover:text-white transition-colors py-1"
                         >
                           <UserRound size={16} />
-                          My Profile Card
+                          My Profile
                         </button>
                         <button
-                          onClick={() => {
-                            handleLogout();
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="flex items-center gap-2 text-left type-nav text-sm text-zinc-400 hover:text-red-400 transition-colors py-1"
+                          onClick={handleLogout}
+                          disabled={isLoggingOut}
+                          className="flex items-center gap-2 text-left type-nav text-sm text-zinc-400 hover:text-red-400 transition-colors py-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <LogOut size={16} />
-                          Sign Out
+                          {isLoggingOut ? (
+                            <Loader2 size={16} className="animate-spin text-zinc-400" />
+                          ) : (
+                            <LogOut size={16} />
+                          )}
+                          {isLoggingOut ? "Signing Out..." : "Sign Out"}
                         </button>
                       </div>
                     </div>
@@ -264,11 +302,10 @@ export const Navbar: React.FC = () => {
                     <Link
                       href="/login"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center gap-2 type-nav text-sm transition-colors py-1 ${
-                        pathname === "/login"
-                          ? "text-brand-gold border-l-2 border-brand-gold pl-3"
-                          : "text-zinc-400 hover:text-white"
-                      }`}
+                      className={`flex items-center gap-2 type-nav text-sm transition-colors py-1 ${pathname === "/login"
+                           ? "text-brand-gold border-l-2 border-brand-gold pl-3"
+                           : "text-zinc-400 hover:text-foreground dark:hover:text-white"
+                        }`}
                     >
                       <LogIn size={16} />
                       Sign In
@@ -282,11 +319,10 @@ export const Navbar: React.FC = () => {
                         key={link.name}
                         href={link.href}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={`type-nav text-sm transition-colors py-1 ${
-                          isActive
+                        className={`type-nav text-sm transition-colors py-1 ${isActive
                             ? "text-brand-gold border-l-2 border-brand-gold pl-3"
-                            : "text-zinc-400 hover:text-white"
-                        }`}
+                            : "text-zinc-400 hover:text-foreground dark:hover:text-white"
+                          }`}
                       >
                         {link.name}
                       </Link>
@@ -296,9 +332,9 @@ export const Navbar: React.FC = () => {
               </div>
 
               {/* Mobile Footer */}
-              <div className="border-t border-white/5 pt-6 text-center">
+              <div className="border-t border-card-border pt-6 text-center">
                 <p className="type-caption text-zinc-500 type-micro">
-                  L&apos;OR NOIR Cafe & Boutique Roastery
+                  Antonioni Grounds Cafe & Boutique Roastery
                 </p>
               </div>
             </motion.div>
@@ -325,43 +361,50 @@ export const Navbar: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: "spring", duration: 0.4 }}
-              className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#121212] p-6 shadow-2xl glassmorphism-gold"
+              className="relative w-full max-w-md overflow-hidden rounded-2xl border border-card-border bg-card p-6 shadow-2xl glassmorphism-gold"
             >
               {/* Close Button */}
               <button
                 onClick={() => setIsProfileOpen(false)}
-                className="absolute right-4 top-4 rounded-full border border-white/5 bg-white/5 p-1.5 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                disabled={isLoggingOut}
+                className="absolute right-4 top-4 rounded-full border border-card-border bg-card/50 p-1.5 text-zinc-400 hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <X size={16} />
               </button>
 
               {/* Title / Header */}
               <div className="flex flex-col items-center text-center mt-2 mb-6">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-brand-gold font-sans font-semibold">
-                  L&apos;OR NOIR Reserve Membership
+                <span className="text-[10px] uppercase tracking-[0.25em] text-brand-gold font-sans font-bold">
+                  Antonioni Grounds
                 </span>
-                <h3 className="type-h3 text-white mt-1">Private Salon Profile</h3>
-                <div className="h-[1px] w-8 bg-brand-gold mt-3" />
+                <h3 className="type-h3 text-foreground mt-1 font-serif italic text-lg">Profile</h3>
+                <div className="h-[1px] w-12 bg-gradient-to-r from-transparent via-brand-gold to-transparent mt-3" />
               </div>
 
-              {/* User Identity Details */}
-              <div className="space-y-4 rounded-xl border border-white/5 bg-white/5 p-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full border border-brand-gold/30 bg-[#1a1a1a] flex items-center justify-center text-brand-gold text-lg font-semibold">
+              {/* Digital Membership Card */}
+              <div className="relative overflow-hidden rounded-2xl border border-brand-gold/30 bg-gradient-to-br from-[#1c1917] via-[#0c0a09] to-[#1c1917] p-6 shadow-[0_15px_35px_rgba(0,0,0,0.8)] mb-6 font-sans">
+                {/* Decorative card glow */}
+                <div className="absolute -right-20 -top-20 w-44 h-44 rounded-full bg-brand-gold/5 blur-3xl pointer-events-none" />
+                <div className="absolute -left-20 -bottom-20 w-44 h-44 rounded-full bg-brand-gold/5 blur-3xl pointer-events-none" />
+
+                {/* Card Middle: Profile Details */}
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full border-2 border-brand-gold/40 bg-zinc-900/90 flex items-center justify-center text-brand-gold text-xl font-serif font-bold shadow-[0_0_15px_rgba(197,168,128,0.2)] select-none">
                     {customer.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-white truncate">{customer.name}</h4>
-                    <p className="text-xs text-zinc-400 truncate font-sans">{customer.email}</p>
+                    <h4 className="text-base font-bold text-white tracking-wide font-serif truncate">
+                      {customer.name}
+                    </h4>
+                    <p className="text-xs text-zinc-400 truncate font-sans font-medium">
+                      {customer.email}
+                    </p>
                   </div>
-                  {/* Tier Badge */}
-                  <span className={`text-[10px] font-sans font-bold px-2 py-0.5 rounded-full ${tierInfo.style}`}>
-                    {tierInfo.name}
-                  </span>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-3">
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-sans">
+                {/* Card Bottom: Member Serial */}
+                <div className="mt-6 border-t border-white/5 pt-4">
+                  <span className="text-[8px] uppercase tracking-wider text-zinc-500 font-sans block mb-0.5">
                     Member Serial
                   </span>
                   <button
@@ -369,71 +412,49 @@ export const Navbar: React.FC = () => {
                     className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors font-mono cursor-pointer"
                   >
                     <span>{customer.id}</span>
-                    {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                    {copied ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} />}
                   </button>
                 </div>
               </div>
 
-              {/* Loyalty Progress */}
-              <div className="space-y-4 rounded-xl border border-white/5 bg-white/5 p-4 mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Award size={14} className="text-brand-gold" />
-                    <span className="text-xs font-semibold text-white font-sans">Loyalty Card</span>
+               {/* Account Overview Details */}
+              <div className="space-y-4 mb-6">
+                <div className="grid grid-cols-2 gap-4 rounded-xl border border-card-border bg-background-alt p-4 font-sans text-xs">
+                  <div>
+                    <span className="text-zinc-500 block mb-1">Registration Date</span>
+                    <span className="text-foreground font-medium">{formatDate(customer.joinedAt)}</span>
                   </div>
-                  <span className="text-xs text-brand-gold font-bold">
-                    {customer.stamps} / 10 Stamps
-                  </span>
+                  <div>
+                    <span className="text-zinc-500 block mb-1">Account Status</span>
+                    <span className="text-emerald-400 font-medium flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Active Member
+                    </span>
+                  </div>
                 </div>
-
-                {/* Stamps Coffee Row */}
-                <div className="grid grid-cols-5 gap-2.5 my-2 justify-items-center">
-                  {Array.from({ length: 10 }).map((_, i) => {
-                    const isStamped = i < customer.stamps;
-                    return (
-                      <div
-                        key={i}
-                        className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all duration-300 ${
-                          isStamped
-                            ? "bg-gradient-to-br from-brand-gold to-amber-600 border-brand-gold text-black shadow-[0_0_8px_rgba(212,175,55,0.4)]"
-                            : "border-white/10 bg-[#161616] text-zinc-600"
-                        }`}
-                      >
-                        <Coffee size={14} className={isStamped ? "fill-black" : ""} />
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="border-t border-white/5 pt-3 mt-3 flex items-center justify-between text-xs font-sans">
-                  <span className="text-zinc-400">Total Reserve Points:</span>
-                  <span className="font-bold text-white font-mono">{customer.points} pts</span>
-                </div>
-
-                {tierInfo.next && (
-                  <p className="text-[10px] text-zinc-500 font-sans italic text-center">
-                    Earn {tierInfo.next.diff} more points to reach {tierInfo.next.name} Member Tier.
-                  </p>
-                )}
               </div>
 
               {/* Actions */}
               <div className="flex flex-col gap-2">
-                <Link
-                  href="/loyalty"
+                <button
                   onClick={() => setIsProfileOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-brand-gold py-2.5 text-xs font-semibold text-black hover:bg-brand-gold-hover transition-colors gold-glow active:scale-[0.98]"
+                  disabled={isLoggingOut}
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-brand-gold py-2.5 text-xs font-semibold text-black hover:bg-brand-gold-hover transition-colors gold-glow active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Sparkles size={12} />
-                  Manage Bean Loyalty Card
-                </Link>
-                
+                  Close Profile
+                </button>
+
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-zinc-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all duration-300 active:scale-[0.98] cursor-pointer"
+                  disabled={isLoggingOut}
+                  className="w-full flex items-center justify-center gap-2 rounded-full border border-card-border bg-background-alt py-2.5 text-xs font-semibold text-zinc-500 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all duration-300 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <LogOut size={12} />
-                  Sign Out of Salon
+                  {isLoggingOut ? (
+                    <Loader2 size={12} className="animate-spin text-zinc-400" />
+                  ) : (
+                    <LogOut size={12} />
+                  )}
+                  {isLoggingOut ? "Signing Out..." : "Sign Out of Account"}
                 </button>
               </div>
             </motion.div>

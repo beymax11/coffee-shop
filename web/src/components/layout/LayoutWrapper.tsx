@@ -15,7 +15,7 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   if (isAdmin) {
     return (
-      <main className="flex-1 flex flex-col min-h-screen bg-[#0B0B0B]">
+      <main className="flex-1 flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300">
         {children}
       </main>
     );

@@ -148,6 +148,27 @@ export const db = {
     }
     setLocalStorageItem("loyalty_members", members);
     if (isBrowser) window.dispatchEvent(new Event("storage"));
+
+    // Sync updates to Supabase database in background
+    if (isBrowser) {
+      import("./supabase").then(({ supabase }) => {
+        if (supabase) {
+          supabase
+            .from("profiles")
+            .update({
+              name: member.name,
+              stamps: member.stamps,
+              points: member.points
+            })
+            .eq("email", member.email.toLowerCase())
+            .then(({ error }) => {
+              if (error) {
+                console.error("Error syncing loyalty member update to Supabase:", error);
+              }
+            });
+        }
+      });
+    }
   },
 
   deleteLoyaltyMember(id: string): void {

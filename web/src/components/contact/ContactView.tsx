@@ -1,15 +1,30 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mail, Phone, MapPin, Check, Send, Clock, Globe } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Check,
+  Send,
+  Clock,
+  User,
+  FileText,
+  MessageSquare,
+  ArrowRight,
+} from "lucide-react";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import Image from "next/image";
+import { SALON_LOCATIONS } from "@/lib/constants";
 
 export function ContactView() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     subject: "",
-    message: ""
+    message: "",
   });
   const [isSent, setIsSent] = useState(false);
 
@@ -26,186 +41,317 @@ export function ContactView() {
     setFormData({ ...formData, [field]: val });
   };
 
-  const locations = [
+  const primaryLocation = SALON_LOCATIONS[0];
+
+  const contactChannels = [
     {
-      city: "Tokyo",
-      neighborhood: "Aoyama Salon",
-      address: "5-10-1 Minami-Aoyama, Minato-ku, Tokyo 107-0062",
-      phone: "+81 3 5468 0912",
-      hours: "08:00 - 22:00 Daily"
+      icon: Mail,
+      label: "Email",
+      value: "concierge@antonionigrounds.com",
+      href: "mailto:concierge@antonionigrounds.com",
     },
     {
-      city: "New York",
-      neighborhood: "Soho Roastery",
-      address: "412 West Broadway, New York, NY 10012",
-      phone: "+1 (212) 965-0143",
-      hours: "07:00 - 20:00 Daily"
+      icon: Phone,
+      label: "Phone",
+      value: primaryLocation.phone,
+      href: `tel:${primaryLocation.phone.replace(/\s/g, "")}`,
     },
     {
-      city: "Paris",
-      neighborhood: "Marais Lounge",
-      address: "18 Rue des Quatre-Fils, 75003 Paris",
-      phone: "+33 1 42 74 98 05",
-      hours: "08:00 - 21:00 Daily"
-    }
+      icon: Clock,
+      label: "Response Time",
+      value: "Within 12 hours",
+      href: undefined,
+    },
   ];
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#0B0B0B] py-16 md:py-24 text-[#F5F5F0]">
-        <div className="mx-auto max-w-7xl px-6 md:px-8">
-          
-          {/* Header Title */}
-          <div className="text-center max-w-xl mx-auto mb-16">
-            <span className="type-eyebrow">L'OR NOIR Global</span>
-            <h1 className="type-h1 text-white mt-2">
-              Our Salons & Roasteries
+      <div className="min-h-screen bg-background text-foreground relative overflow-hidden transition-colors duration-500">
+        {/* Atmospheric background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(197,168,128,0.07)_0%,transparent_70%)] blur-[120px]" />
+          <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(197,168,128,0.05)_0%,transparent_70%)] blur-[120px]" />
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)",
+              backgroundSize: "40px 40px",
+              maskImage: "radial-gradient(ellipse at center, black, transparent 80%)",
+              WebkitMaskImage: "radial-gradient(ellipse at center, black, transparent 80%)",
+            }}
+          />
+        </div>
+
+        {/* Cinematic header */}
+        <div className="relative h-[320px] md:h-[380px] w-full flex items-center justify-center overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-25"
+            style={{ backgroundImage: "url('/kape.jpg')" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-black/70 transition-colors duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/40 transition-colors duration-500" />
+
+          <FadeUp className="relative z-10 text-center max-w-2xl px-6 space-y-4">
+            <div className="flex items-center justify-center gap-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse shrink-0" />
+              <span className="type-eyebrow tracking-[0.25em]">Antonioni Grounds</span>
+            </div>
+            <h1 className="type-h1 text-white leading-tight">
+              Get in{" "}
+              <span className="hero-gradient-text">Touch</span>
             </h1>
-            <div className="h-[1px] w-12 bg-brand-gold mx-auto mt-4" />
-            <p className="type-body text-zinc-400 mt-4">
-              Find a physical sanctuary or send us details for private events. Our concierge team is available to assist you.
+            <div className="h-[1px] w-12 bg-brand-gold mx-auto" />
+            <p className="type-body text-zinc-400 max-w-md mx-auto">
+              Questions about our menu, private events, or wholesale partnerships — our concierge team is here to help.
             </p>
-          </div>
+          </FadeUp>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-            
-            {/* Left: Contact Form & Info */}
-            <div className="space-y-10">
-              <div className="space-y-6">
-                <h3 className="type-h2 text-white">Concierge Inquiries</h3>
-                <p className="type-body text-zinc-400">
-                  For wholesale partnership accounts, event staging requests, or general thoughts on our roast profiles, please submit the form below.
+        <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-8 pb-16 md:pb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+            {/* Left sidebar */}
+            <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-8">
+              <FadeUp>
+                <span className="type-eyebrow">Connect</span>
+                <h2 className="type-h2 text-foreground mt-2 leading-snug">
+                  Bespoke Sourcing Consultations
+                </h2>
+                <div className="w-16 h-[1px] bg-brand-gold/40 mt-5 mb-5" />
+                <p className="type-body text-zinc-400 leading-relaxed">
+                  For wholesale accounts, event cart staging, or general inquiries about our roast profiles — reach us directly or visit our Brooklyn flagship.
                 </p>
-              </div>
+              </FadeUp>
 
-              <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-white/5 bg-[#141414] p-8 glassmorphism shadow-xl">
-                {isSent && (
-                  <div className="rounded border border-green-500/20 bg-green-500/10 p-4 type-success text-green-400 flex items-center gap-2">
-                    <Check size={16} />
-                    <span>Inquiry sent successfully. A concierge will respond within 12 hours.</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <label className="type-label block">Your Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Alexander Vance"
-                      value={formData.name}
-                      onChange={(e) => updateField("name", e.target.value)}
-                      className="w-full rounded border border-white/10 bg-[#181818] p-3 type-field text-[#F5F5F0] outline-none focus:border-brand-gold/60 font-sans"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="type-label block">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="alexander@example.com"
-                      value={formData.email}
-                      onChange={(e) => updateField("email", e.target.value)}
-                      className="w-full rounded border border-white/10 bg-[#181818] p-3 type-field text-[#F5F5F0] outline-none focus:border-brand-gold/60 font-sans"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="type-label block">Subject</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Sourcing details, cart event catering"
-                    value={formData.subject}
-                    onChange={(e) => updateField("subject", e.target.value)}
-                    className="w-full rounded border border-white/10 bg-[#181818] p-3 type-field text-[#F5F5F0] outline-none focus:border-brand-gold/60 font-sans"
+              <FadeUp delay={0.1}>
+                <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.6)] aspect-[4/3] group">
+                  <Image
+                    src="/res.jpg"
+                    alt="Antonioni Grounds salon interior"
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <span className="type-micro text-brand-gold/80">Flagship Salon</span>
+                    <p className="type-card-title text-white mt-1">{primaryLocation.name}</p>
+                  </div>
                 </div>
+              </FadeUp>
 
-                <div className="space-y-1.5">
-                  <label className="type-label block">Your Message</label>
-                  <textarea
-                    rows={4}
-                    required
-                    placeholder="Share details of your request..."
-                    value={formData.message}
-                    onChange={(e) => updateField("message", e.target.value)}
-                    className="w-full rounded border border-white/10 bg-[#181818] p-3 type-field text-[#F5F5F0] outline-none focus:border-brand-gold/60 font-sans resize-none"
-                  />
-                </div>
+              <StaggerContainer className="space-y-3" staggerDelay={0.08}>
+                {contactChannels.map((channel) => {
+                  const Icon = channel.icon;
+                  const inner = (
+                    <div className="flex items-center gap-4 rounded-xl border border-card-border bg-card p-4 backdrop-blur-sm transition-all duration-300 hover:border-brand-gold/20 hover:bg-card/90">
+                      <div className="rounded-full bg-brand-gold/10 p-2.5 text-brand-gold shrink-0">
+                        <Icon size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="type-label text-zinc-500 block">{channel.label}</span>
+                        <span className="type-body-sm text-zinc-200 truncate block">{channel.value}</span>
+                      </div>
+                    </div>
+                  );
 
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-brand-gold py-3 type-ui text-black hover:bg-brand-gold-hover transition-colors gold-glow active:scale-95"
+                  return (
+                    <StaggerItem key={channel.label}>
+                      {channel.href ? (
+                        <a href={channel.href} className="block">
+                          {inner}
+                        </a>
+                      ) : (
+                        inner
+                      )}
+                    </StaggerItem>
+                  );
+                })}
+              </StaggerContainer>
+
+              <FadeUp delay={0.2}>
+                <Link
+                  href="/reservations"
+                  className="type-ui group inline-flex items-center gap-2 rounded-full border border-card-border bg-card px-6 py-3 text-foreground transition-all duration-300 hover:border-brand-gold/40 hover:bg-background"
                 >
-                  <Send size={12} />
-                  Send Message
-                </button>
-              </form>
+                  Reserve a Table
+                  <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              </FadeUp>
             </div>
 
-            {/* Right: Global Salons List & Custom Map */}
-            <div className="space-y-8">
-              <div className="space-y-6">
-                <h3 className="type-h2 text-white">Global Locations</h3>
-                
-                {/* Salons list */}
-                <div className="space-y-6">
-                  {locations.map((loc, idx) => (
-                    <div key={idx} className="flex gap-4 border-b border-white/5 pb-6 last:border-0">
-                      <div className="rounded-full bg-brand-gold/10 p-2.5 text-brand-gold h-fit shrink-0">
-                        <MapPin size={16} />
+            {/* Right: Form + Locations */}
+            <div className="lg:col-span-8 space-y-12">
+              {/* Inquiry form */}
+              <FadeUp>
+                <div className="rounded-2xl border border-card-border bg-card p-8 md:p-10 shadow-[0_0_50px_rgba(0,0,0,0.08)] dark:shadow-[0_0_50px_rgba(0,0,0,0.6)] relative overflow-hidden backdrop-blur-xl glassmorphism-gold">
+                  <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-brand-gold/30" />
+                  <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-brand-gold/30" />
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-brand-gold/30" />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-brand-gold/30" />
+                  <div className="absolute -bottom-1/4 -right-1/4 w-72 h-72 bg-brand-gold/5 blur-[90px] rounded-full pointer-events-none" />
+
+                  <div className="relative z-10 space-y-6">
+                    <div className="border-b border-white/5 pb-4">
+                      <h3 className="type-h3 text-foreground">Send an Inquiry</h3>
+                      <p className="type-body-sm text-zinc-500 mt-1">
+                        We typically respond within 12 hours on business days.
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                      {isSent && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 type-success text-emerald-400 flex items-center gap-2"
+                        >
+                          <Check size={16} />
+                          <span>Inquiry sent successfully. A concierge will respond shortly.</span>
+                        </motion.div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-brand-beige block pl-1">
+                            Your Name
+                          </label>
+                          <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-brand-gold transition-colors">
+                              <User size={14} />
+                            </div>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Your full name"
+                              value={formData.name}
+                              onChange={(e) => updateField("name", e.target.value)}
+                              className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-brand-beige block pl-1">
+                            Email Address
+                          </label>
+                          <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-brand-gold transition-colors">
+                              <Mail size={14} />
+                            </div>
+                            <input
+                              type="email"
+                              required
+                              placeholder="concierge@example.com"
+                              value={formData.email}
+                              onChange={(e) => updateField("email", e.target.value)}
+                              className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-1 font-sans type-body-sm">
-                        <h4 className="type-subheading text-white">
-                          {loc.city} <span className="text-brand-gold font-sans type-body-sm font-bold">/ {loc.neighborhood}</span>
-                        </h4>
-                        <p className="text-zinc-400 leading-relaxed">{loc.address}</p>
-                        <div className="flex gap-4 type-caption text-zinc-500 pt-1">
-                          <span className="flex items-center gap-1">
-                            <Phone size={10} /> {loc.phone}
+
+                      <div className="space-y-2">
+                        <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-brand-beige block pl-1">
+                          Subject
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-brand-gold transition-colors">
+                            <MessageSquare size={14} />
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Microlot subscription query..."
+                            value={formData.subject}
+                            onChange={(e) => updateField("subject", e.target.value)}
+                            className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-brand-beige block pl-1">
+                          Your Message
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute top-3.5 left-3.5 pointer-events-none text-zinc-500 group-focus-within:text-brand-gold transition-colors">
+                            <FileText size={14} />
+                          </div>
+                          <textarea
+                            rows={4}
+                            required
+                            placeholder="Write your concierge request..."
+                            value={formData.message}
+                            onChange={(e) => updateField("message", e.target.value)}
+                            className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all resize-none placeholder:text-neutral-400 dark:placeholder:text-zinc-700 min-h-[120px]"
+                          />
+                        </div>
+                      </div>
+
+                      <motion.button
+                        type="submit"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="type-ui group relative w-full flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-brand-gold py-4 text-black font-semibold transition-all duration-300 hover:bg-brand-gold-hover hover:shadow-[0_0_30px_rgba(197,168,128,0.25)]"
+                      >
+                        <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
+                        <span className="relative flex items-center gap-2">
+                          <Send size={14} />
+                          Send Message
+                        </span>
+                      </motion.button>
+                    </form>
+                  </div>
+                </div>
+              </FadeUp>
+
+              {/* Global salons */}
+              <div className="space-y-8">
+                <FadeUp>
+                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                    <div>
+                      <span className="type-eyebrow">Our Salons</span>
+                      <h1 className="type-h1 text-foreground leading-tight">
+                        Salon Concierge
+                      </h1>
+                    </div>
+                    <p className="type-body-sm text-neutral-500 dark:text-zinc-400 max-w-md mx-auto">
+                      Visit any of our sensory lounges for the full Antonioni experience.
+                    </p>
+                  </div>
+                </FadeUp>
+
+                <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-5" staggerDelay={0.1}>
+                  {SALON_LOCATIONS.map((loc) => (
+                    <StaggerItem key={loc.name} className="h-full">
+                      <div className="group rounded-xl border border-card-border bg-card p-6 space-y-4 h-full transition-all duration-300 hover:border-brand-gold/20 hover:shadow-[0_8px_30px_rgba(197,168,128,0.08)]">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="rounded-full bg-brand-gold/10 p-2.5 text-brand-gold shrink-0">
+                            <MapPin size={16} />
+                          </div>
+                          <span className="type-micro text-zinc-600">{loc.coordinates}</span>
+                        </div>
+
+                        <div>
+                          <h4 className="type-subheading text-foreground">{loc.name}</h4>
+                          <p className="type-body-sm text-zinc-400 mt-2 leading-relaxed">{loc.address}</p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 pt-3 border-t border-white/5">
+                          <span className="flex items-center gap-2 type-caption text-zinc-500">
+                            <Phone size={11} className="text-brand-gold/70 shrink-0" />
+                            {loc.phone}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Clock size={10} /> {loc.hours}
+                          <span className="flex items-center gap-2 type-caption text-zinc-500">
+                            <Clock size={11} className="text-brand-gold/70 shrink-0" />
+                            {loc.hours}
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </StaggerItem>
                   ))}
-                </div>
-              </div>
-
-              {/* Custom Map Mockup */}
-              <div className="rounded-2xl border border-white/5 bg-[#141414] p-6 h-60 relative flex flex-col justify-between overflow-hidden shadow-md">
-                <div className="absolute inset-0 bg-cover opacity-10" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=800')" }} />
-                
-                <div className="flex items-center gap-2 relative z-10">
-                  <Globe className="text-brand-gold animate-spin" style={{ animationDuration: "12s" }} size={16} />
-                  <span className="type-micro text-zinc-500">Salon Coordinates Map</span>
-                </div>
-
-                {/* Stylized locations representation in map */}
-                <div className="relative h-28 w-full flex items-center justify-center border border-white/5 rounded-lg bg-black/40">
-                  <div className="absolute top-[20%] left-[25%] flex flex-col items-center">
-                    <span className="h-2 w-2 rounded-full bg-brand-gold animate-ping" />
-                    <span className="type-micro mt-1">NYC</span>
-                  </div>
-                  <div className="absolute top-[35%] left-[45%] flex flex-col items-center">
-                    <span className="h-2 w-2 rounded-full bg-brand-gold animate-ping" style={{ animationDelay: "1s" }} />
-                    <span className="type-micro mt-1">PARIS</span>
-                  </div>
-                  <div className="absolute top-[25%] left-[80%] flex flex-col items-center">
-                    <span className="h-2 w-2 rounded-full bg-brand-gold animate-ping" style={{ animationDelay: "2s" }} />
-                    <span className="type-micro mt-1">TOKYO</span>
-                  </div>
-                </div>
-
-                <span className="type-micro text-zinc-600 relative z-10">
-                  L&apos;OR NOIR Roasters Network Inc.
-                </span>
+                </StaggerContainer>
               </div>
             </div>
-
           </div>
         </div>
       </div>

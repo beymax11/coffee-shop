@@ -1,23 +1,47 @@
 @import "tailwindcss";
 @import "../styles/animations.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  --background: #FAF7F2;
+  --background-alt: #F4ECE1;
+  --foreground: #1C1917;
+  
+  --card-bg: #FFFFFF;
+  --card-border: rgba(45, 31, 24, 0.08);
+
+  --brand-gold: #C5A880;
+  --brand-gold-hover: #A88B62;
+  --brand-charcoal: #F5F2EB;
+  --brand-espresso: #2D1F18;
+  --brand-beige: #D4C5B9;
+  
+  --font-serif: var(--font-cormorant);
+  --font-sans: var(--font-inter);
+}
+
+.dark {
   --background: #0B0B0B;
+  --background-alt: #111111;
   --foreground: #F5F5F0;
   
+  --card-bg: #141414;
+  --card-border: rgba(255, 255, 255, 0.05);
+
   --brand-gold: #C5A880;
   --brand-gold-hover: #E2C59D;
   --brand-charcoal: #161616;
   --brand-espresso: #2D1F18;
   --brand-beige: #D4C5B9;
-  
-  --font-serif: var(--font-playfair);
-  --font-sans: var(--font-jakarta);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-alt: var(--background-alt);
   --color-foreground: var(--foreground);
+  --color-card: var(--card-bg);
+  --color-card-border: var(--card-border);
   --color-brand-gold: var(--brand-gold);
   --color-brand-gold-hover: var(--brand-gold-hover);
   --color-brand-charcoal: var(--brand-charcoal);
@@ -34,13 +58,13 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0B0B;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2A2A2A;
+  background: var(--card-border);
   border-radius: 3px;
-  border: 1px solid #161616;
+  border: 1px solid var(--background);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -48,8 +72,8 @@
 }
 
 body {
-  background-color: #0B0B0B;
-  color: #F5F5F0;
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   overflow-x: hidden;
 }
@@ -57,7 +81,7 @@ body {
 /* Selection Highlight */
 ::selection {
   background-color: var(--brand-gold);
-  color: #0B0B0B;
+  color: var(--background);
 }
 
 /* Smooth Scrolling */
@@ -67,18 +91,29 @@ html {
 
 /* Glassmorphism Helper */
 .glassmorphism {
-  background: rgba(22, 22, 22, 0.7);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.dark .glassmorphism {
+  background: rgba(22, 22, 22, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .glassmorphism-gold {
-  background: rgba(22, 22, 22, 0.8);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(197, 168, 128, 0.25);
+}
+
+.dark .glassmorphism-gold {
+  background: rgba(22, 22, 22, 0.85);
   border: 1px solid rgba(197, 168, 128, 0.15);
 }
+
 
 /* Luxury Glows */
 .gold-glow {
@@ -94,10 +129,12 @@ html {
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 input[type=number] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* ── Typography scale ── */

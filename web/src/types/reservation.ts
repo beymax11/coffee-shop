@@ -1,4 +1,4 @@
-export type ReservationType = "Coffee Cart Booking" | "Table Reservation" | "Private Event" | "Corporate Event";
+export type ReservationType = "Coffee Cart Booking" | "Table Reservation";
 
 export interface Reservation {
   fullName: string;

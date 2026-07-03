@@ -10,15 +10,15 @@ export const PROMO_CODES = {
 export const SALON_LOCATIONS = [
   {
     id: "loc-new-york",
-    name: "L'OR NOIR Brooklyn",
-    address: "55 Water St, Brooklyn, NY 11201",
+    name: "Antonioni Grounds",
+    address: "J.P Rizal Street, Poblacion 3, Tiaong, 4325 Quezon",
     hours: "Mon - Fri: 7:00 AM - 8:00 PM | Sat - Sun: 8:00 AM - 10:00 PM",
     phone: "+1 (718) 555-0192",
-    coordinates: "40.7032° N, 73.9926° W",
+    coordinates: "13.9608° N, 121.3225° E",
   },
   {
     id: "loc-tokyo",
-    name: "L'OR NOIR Aoyama",
+    name: "Antonioni Grounds Aoyama",
     address: "5-10-1 Minami-Aoyama, Minato-ku, Tokyo 107-0062",
     hours: "Daily: 9:00 AM - 9:00 PM",
     phone: "+81 3-5555-0143",
@@ -26,7 +26,7 @@ export const SALON_LOCATIONS = [
   },
   {
     id: "loc-paris",
-    name: "L'OR NOIR Marais",
+    name: "Antonioni Grounds Marais",
     address: "24 Rue de Sévigné, 75004 Paris",
     hours: "Daily: 8:30 AM - 8:30 PM",
     phone: "+33 1 55 55 01 78",
@@ -34,7 +34,7 @@ export const SALON_LOCATIONS = [
   },
   {
     id: "loc-seoul",
-    name: "L'OR NOIR Gangnam",
+    name: "Antonioni Grounds Gangnam",
     address: "420 Teheran-ro, Gangnam-gu, Seoul 06193",
     hours: "Mon - Sat: 8:00 AM - 10:00 PM | Sun: 9:00 AM - 9:00 PM",
     phone: "+82 2-555-0129",

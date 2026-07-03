@@ -86,23 +86,22 @@ export function ContactView() {
         {/* Cinematic header */}
         <div className="relative h-[320px] md:h-[380px] w-full flex items-center justify-center overflow-hidden">
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-25"
+            className="absolute inset-0 bg-cover bg-center opacity-15 dark:opacity-25"
             style={{ backgroundImage: "url('/kape.jpg')" }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-black/70 transition-colors duration-500" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/40 transition-colors duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 dark:via-background/50 to-background/20 dark:to-black/70 transition-colors duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-transparent to-background/50 dark:from-background/80 dark:via-transparent dark:to-background/40 transition-colors duration-500" />
 
           <FadeUp className="relative z-10 text-center max-w-2xl px-6 space-y-4">
             <div className="flex items-center justify-center gap-3">
               <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse shrink-0" />
               <span className="type-eyebrow tracking-[0.25em]">Antonioni Grounds</span>
             </div>
-            <h1 className="type-h1 text-white leading-tight">
-              Get in{" "}
-              <span className="hero-gradient-text">Touch</span>
+            <h1 className="type-h1 text-foreground leading-tight">
+              Get in Touch
             </h1>
             <div className="h-[1px] w-12 bg-brand-gold mx-auto" />
-            <p className="type-body text-zinc-400 max-w-md mx-auto">
+            <p className="type-body text-neutral-600 dark:text-zinc-400 max-w-md mx-auto">
               Questions about our menu, private events, or wholesale partnerships — our concierge team is here to help.
             </p>
           </FadeUp>
@@ -118,22 +117,22 @@ export function ContactView() {
                   Bespoke Sourcing Consultations
                 </h2>
                 <div className="w-16 h-[1px] bg-brand-gold/40 mt-5 mb-5" />
-                <p className="type-body text-zinc-400 leading-relaxed">
-                  For wholesale accounts, event cart staging, or general inquiries about our roast profiles — reach us directly or visit our Brooklyn flagship.
+                <p className="type-body text-neutral-600 dark:text-zinc-400 leading-relaxed">
+                  For wholesale accounts, event cart staging, or general inquiries about our roast profiles — reach us directly or visit our Tiaong flagship.
                 </p>
               </FadeUp>
 
               <FadeUp delay={0.1}>
-                <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-[0_10px_35px_rgba(0,0,0,0.6)] aspect-[4/3] group">
+                <div className="relative rounded-xl overflow-hidden border border-card-border shadow-[0_10px_35px_rgba(0,0,0,0.12)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.6)] aspect-[4/3] group">
                   <Image
                     src="/res.jpg"
-                    alt="Antonioni Grounds salon interior"
+                    alt="Antonioni Grounds coffee house interior"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 right-4">
-                    <span className="type-micro text-brand-gold/80">Flagship Salon</span>
+                    <span className="type-micro text-brand-gold/80">Flagship Coffee House</span>
                     <p className="type-card-title text-white mt-1">{primaryLocation.name}</p>
                   </div>
                 </div>
@@ -143,13 +142,13 @@ export function ContactView() {
                 {contactChannels.map((channel) => {
                   const Icon = channel.icon;
                   const inner = (
-                    <div className="flex items-center gap-4 rounded-xl border border-card-border bg-card p-4 backdrop-blur-sm transition-all duration-300 hover:border-brand-gold/20 hover:bg-card/90">
+                    <div className="flex items-center gap-4 rounded-xl border border-card-border bg-card p-4 backdrop-blur-sm transition-all duration-300 hover:border-brand-gold/30 hover:bg-card/90 hover:shadow-md hover:shadow-brand-gold/5 dark:hover:shadow-none hover:-translate-y-0.5">
                       <div className="rounded-full bg-brand-gold/10 p-2.5 text-brand-gold shrink-0">
                         <Icon size={16} />
                       </div>
                       <div className="min-w-0">
                         <span className="type-label text-zinc-500 block">{channel.label}</span>
-                        <span className="type-body-sm text-zinc-200 truncate block">{channel.value}</span>
+                        <span className="type-body-sm text-foreground truncate block">{channel.value}</span>
                       </div>
                     </div>
                   );
@@ -183,7 +182,7 @@ export function ContactView() {
             <div className="lg:col-span-8 space-y-12">
               {/* Inquiry form */}
               <FadeUp>
-                <div className="rounded-2xl border border-card-border bg-card p-8 md:p-10 shadow-[0_0_50px_rgba(0,0,0,0.08)] dark:shadow-[0_0_50px_rgba(0,0,0,0.6)] relative overflow-hidden backdrop-blur-xl glassmorphism-gold">
+                <div className="rounded-2xl p-8 md:p-10 shadow-[0_0_50px_rgba(0,0,0,0.04)] dark:shadow-[0_0_50px_rgba(0,0,0,0.6)] relative overflow-hidden glassmorphism-gold">
                   <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-brand-gold/30" />
                   <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-brand-gold/30" />
                   <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-brand-gold/30" />
@@ -191,9 +190,9 @@ export function ContactView() {
                   <div className="absolute -bottom-1/4 -right-1/4 w-72 h-72 bg-brand-gold/5 blur-[90px] rounded-full pointer-events-none" />
 
                   <div className="relative z-10 space-y-6">
-                    <div className="border-b border-white/5 pb-4">
+                    <div className="border-b border-card-border pb-4">
                       <h3 className="type-h3 text-foreground">Send an Inquiry</h3>
-                      <p className="type-body-sm text-zinc-500 mt-1">
+                      <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-1">
                         We typically respond within 12 hours on business days.
                       </p>
                     </div>
@@ -212,7 +211,7 @@ export function ContactView() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-brand-beige block pl-1">
+                          <label className="type-label block pl-1 tracking-[0.2em] text-[#8B5E3C]/90 dark:text-brand-beige">
                             Your Name
                           </label>
                           <div className="relative group">
@@ -225,13 +224,13 @@ export function ContactView() {
                               placeholder="Your full name"
                               value={formData.name}
                               onChange={(e) => updateField("name", e.target.value)}
-                              className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                              className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
                             />
                           </div>
                         </div>
 
                         <div className="space-y-2">
-                          <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-brand-beige block pl-1">
+                          <label className="type-label block pl-1 tracking-[0.2em] text-[#8B5E3C]/90 dark:text-brand-beige">
                             Email Address
                           </label>
                           <div className="relative group">
@@ -244,14 +243,14 @@ export function ContactView() {
                               placeholder="concierge@example.com"
                               value={formData.email}
                               onChange={(e) => updateField("email", e.target.value)}
-                              className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                              className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
                             />
                           </div>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-brand-beige block pl-1">
+                        <label className="type-label block pl-1 tracking-[0.2em] text-[#8B5E3C]/90 dark:text-brand-beige">
                           Subject
                         </label>
                         <div className="relative group">
@@ -263,13 +262,13 @@ export function ContactView() {
                             placeholder="Microlot subscription query..."
                             value={formData.subject}
                             onChange={(e) => updateField("subject", e.target.value)}
-                            className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                            className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
                           />
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-brand-beige block pl-1">
+                        <label className="type-label block pl-1 tracking-[0.2em] text-[#8B5E3C]/90 dark:text-brand-beige">
                           Your Message
                         </label>
                         <div className="relative group">
@@ -282,7 +281,7 @@ export function ContactView() {
                             placeholder="Write your concierge request..."
                             value={formData.message}
                             onChange={(e) => updateField("message", e.target.value)}
-                            className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all resize-none placeholder:text-neutral-400 dark:placeholder:text-zinc-700 min-h-[120px]"
+                            className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-brand-gold/60 focus:ring-1 focus:ring-brand-gold/20 transition-all resize-none placeholder:text-neutral-400 dark:placeholder:text-zinc-600 min-h-[120px]"
                           />
                         </div>
                       </div>
@@ -304,52 +303,67 @@ export function ContactView() {
                 </div>
               </FadeUp>
 
-              {/* Global salons */}
+              {/* Coffee Concierge with Map */}
               <div className="space-y-8">
                 <FadeUp>
                   <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                     <div>
-                      <span className="type-eyebrow">Our Salons</span>
+                      <span className="type-eyebrow">Our Coffee Shop</span>
                       <h1 className="type-h1 text-foreground leading-tight">
-                        Salon Concierge
+                        Coffee Concierge
                       </h1>
                     </div>
-                    <p className="type-body-sm text-neutral-500 dark:text-zinc-400 max-w-md mx-auto">
-                      Visit any of our sensory lounges for the full Antonioni experience.
+                    <p className="type-body-sm text-neutral-500 dark:text-zinc-400 max-w-md">
+                      Visit our sensory flagship lounge for the full Antonioni experience.
                     </p>
                   </div>
                 </FadeUp>
 
-                <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-5" staggerDelay={0.1}>
-                  {SALON_LOCATIONS.map((loc) => (
-                    <StaggerItem key={loc.name} className="h-full">
-                      <div className="group rounded-xl border border-card-border bg-card p-6 space-y-4 h-full transition-all duration-300 hover:border-brand-gold/20 hover:shadow-[0_8px_30px_rgba(197,168,128,0.08)]">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                  {/* Left Column: Location Details */}
+                  <div className="lg:col-span-5 h-full">
+                    <div className="group rounded-xl border border-card-border bg-card p-6 space-y-4 h-full flex flex-col justify-between transition-all duration-300 hover:border-brand-gold/30 hover:shadow-[0_8px_30px_rgba(197,168,128,0.12)] hover:-translate-y-0.5">
+                      <div className="space-y-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="rounded-full bg-brand-gold/10 p-2.5 text-brand-gold shrink-0">
                             <MapPin size={16} />
                           </div>
-                          <span className="type-micro text-zinc-600">{loc.coordinates}</span>
+                          <span className="type-micro text-neutral-500 dark:text-zinc-400">{primaryLocation.coordinates}</span>
                         </div>
 
                         <div>
-                          <h4 className="type-subheading text-foreground">{loc.name}</h4>
-                          <p className="type-body-sm text-zinc-400 mt-2 leading-relaxed">{loc.address}</p>
-                        </div>
-
-                        <div className="flex flex-col gap-2 pt-3 border-t border-white/5">
-                          <span className="flex items-center gap-2 type-caption text-zinc-500">
-                            <Phone size={11} className="text-brand-gold/70 shrink-0" />
-                            {loc.phone}
-                          </span>
-                          <span className="flex items-center gap-2 type-caption text-zinc-500">
-                            <Clock size={11} className="text-brand-gold/70 shrink-0" />
-                            {loc.hours}
-                          </span>
+                          <h4 className="type-subheading text-foreground">{primaryLocation.name}</h4>
+                          <p className="type-body-sm text-neutral-600 dark:text-zinc-400 mt-2 leading-relaxed">{primaryLocation.address}</p>
                         </div>
                       </div>
-                    </StaggerItem>
-                  ))}
-                </StaggerContainer>
+
+                      <div className="flex flex-col gap-2 pt-3 border-t border-card-border mt-auto">
+                        <span className="flex items-center gap-2 type-caption text-neutral-600 dark:text-zinc-500">
+                          <Phone size={11} className="text-brand-gold/70 shrink-0" />
+                          <a href={`tel:${primaryLocation.phone.replace(/\s/g, "")}`} className="hover:text-brand-gold transition-colors">
+                            {primaryLocation.phone}
+                          </a>
+                        </span>
+                        <span className="flex items-center gap-2 type-caption text-neutral-600 dark:text-zinc-500">
+                          <Clock size={11} className="text-brand-gold/70 shrink-0" />
+                          {primaryLocation.hours}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Google Maps Embed */}
+                  <div className="lg:col-span-7 min-h-[300px] lg:min-h-full rounded-xl overflow-hidden border border-card-border shadow-[0_8px_30px_rgba(0,0,0,0.2)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
+                    <iframe
+                      title="Antonioni Grounds Tiaong Flagship Map"
+                      src="https://maps.google.com/maps?q=Antonioni%20Grounds,%20Tiaong,%20Quezon&t=&z=16&ie=UTF8&iwloc=&output=embed"
+                      className="w-full h-full min-h-[300px] border-0 grayscale opacity-80 contrast-125 dark:invert dark:opacity-75"
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

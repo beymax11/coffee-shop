@@ -19,7 +19,7 @@ export function AboutView() {
     },
     {
       title: "Aesthetic Quietude",
-      desc: "Our global salons are designed as sensory sanctuaries. Blending Japanese minimalism with matte-black glassmorphism, we provide a silent space to appreciate coffee.",
+      desc: "Our global coffee houses are designed as sensory sanctuaries. Blending Japanese minimalism with matte-black glassmorphism, we provide a silent space to appreciate coffee.",
       icon: ShieldCheck,
     }
   ];
@@ -27,7 +27,7 @@ export function AboutView() {
   const timeline = [
     {
       year: "2023",
-      title: "Salon Zero: Tokyo",
+      title: "Grounds Zero: Tokyo",
       desc: "Established our initial coffee studio in Aoyama, Tokyo, focusing exclusively on hand-poured geisha microlots."
     },
     {
@@ -37,7 +37,7 @@ export function AboutView() {
     },
     {
       year: "2025",
-      title: "L'OR Privé Launch",
+      title: "Antonioni Privé Launch",
       desc: "Introduced our bespoke mobile coffee cart catering services for gala events across New York, Paris, and Tokyo."
     },
     {
@@ -72,19 +72,19 @@ export function AboutView() {
         {/* Cinematic Header Section */}
         <div className="relative h-[400px] w-full flex items-center justify-center overflow-hidden mb-20">
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-30"
+            className="absolute inset-0 bg-cover bg-center opacity-15 dark:opacity-30"
             style={{
               backgroundImage: "url('https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=1600&auto=format&fit=crop')",
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-black/60 transition-colors duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 dark:via-background/40 to-background/20 dark:to-black/60 transition-colors duration-500" />
 
           <div className="relative z-10 text-center max-w-2xl px-6 space-y-4">
             <span className="type-eyebrow">Antonioni Grounds Story</span>
             <h1 className="type-h1 text-foreground leading-tight">
               Our Heritage & Philosophy
             </h1>
-            <p className="type-body text-neutral-500 dark:text-zinc-400 max-w-md mx-auto">
+            <p className="type-body text-neutral-600 dark:text-zinc-400 max-w-md mx-auto">
               Coffee as a translation of volcanic soil. Handcrafted roasting executed with culinary precision and architectural restraint.
             </p>
           </div>
@@ -99,10 +99,10 @@ export function AboutView() {
               <h2 className="type-h2 text-foreground leading-snug">
                 Tracing Volcanoes & Single-Family Farms
               </h2>
-              <p className="type-body text-neutral-500 dark:text-zinc-400">
+              <p className="type-body text-neutral-600 dark:text-zinc-400">
                 Every bean has a coordinates footprint. We source our coffee from single-family microlots nestled on high-altitude volcanic mountains. In Boquete, Panama, we partner with the Altieri family, whose Geisha crops benefit from dense volcanic soil and mist breezes. In Sidama, Ethiopia, we work with smallholder collectives who slow-dry cherries on raised bamboo beds.
               </p>
-              <p className="type-body text-neutral-500 dark:text-zinc-400">
+              <p className="type-body text-neutral-600 dark:text-zinc-400">
                 By purchasing direct and avoiding bulk trade, we preserve the unique genetic flavors of each estate—bringing you cup experiences that resemble orange jasmine blossom and sweet peach honey.
               </p>
             </div>
@@ -127,12 +127,15 @@ export function AboutView() {
               {values.map((v, i) => {
                 const Icon = v.icon;
                 return (
-                  <StaggerItem key={i} className="rounded-xl border border-card-border bg-card p-8 space-y-4 hover:border-brand-gold/20 transition-all">
+                  <StaggerItem
+                    key={i}
+                    className="rounded-xl border border-card-border bg-card p-8 space-y-4 hover:border-brand-gold/30 hover:shadow-lg hover:shadow-brand-gold/5 dark:hover:shadow-none hover:-translate-y-1 transition-all duration-300"
+                  >
                     <div className="rounded-full bg-brand-gold/10 p-3 text-brand-gold w-fit">
                       <Icon size={20} />
                     </div>
                     <h3 className="type-subheading text-foreground">{v.title}</h3>
-                    <p className="type-body text-neutral-500 dark:text-zinc-400">{v.desc}</p>
+                    <p className="type-body text-neutral-600 dark:text-zinc-400">{v.desc}</p>
                   </StaggerItem>
                 );
               })}
@@ -144,7 +147,7 @@ export function AboutView() {
             <div className="space-y-6 lg:sticky lg:top-28">
               <span className="type-eyebrow">The Chronicles</span>
               <h2 className="type-h2 text-foreground">Chronological Growth</h2>
-              <p className="type-body text-neutral-500 dark:text-zinc-400">
+              <p className="type-body text-neutral-600 dark:text-zinc-400">
                 From a private 4-seat espresso counter in Aoyama, Tokyo, to private fashion galas across Paris and a global roasting lab. Our path has always prioritized premium, slow curation over mass expansion.
               </p>
 
@@ -159,22 +162,22 @@ export function AboutView() {
               </div>
             </div>
 
-            <div className="border-l border-card-border pl-8 space-y-12">
+            <div className="border-l-2 border-brand-gold/15 dark:border-card-border pl-8 space-y-12">
               {timeline.map((item, idx) => (
                 <div key={idx} className="relative space-y-2">
                   {/* Dot */}
-                  <div className="absolute -left-[37px] top-1 h-3.5 w-3.5 rounded-full border-2 border-brand-gold bg-background" />
+                  <div className="absolute -left-[38px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-brand-gold bg-background" />
 
                   <span className="type-eyebrow">{item.year}</span>
                   <h4 className="type-subheading text-foreground">{item.title}</h4>
-                  <p className="type-body text-neutral-500 dark:text-zinc-400">{item.desc}</p>
+                  <p className="type-body text-neutral-600 dark:text-zinc-400">{item.desc}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Section 4: Roasting Process steps */}
-          <div className="rounded-2xl border border-card-border bg-card p-8 md:p-12 relative overflow-hidden glassmorphism-gold">
+          <div className="rounded-2xl p-8 md:p-12 relative overflow-hidden glassmorphism-gold">
             <div className="absolute -bottom-1/4 -left-1/4 w-80 h-80 bg-brand-gold/5 blur-[90px] rounded-full pointer-events-none" />
 
             <div className="text-center max-w-xl mx-auto mb-12">
@@ -185,9 +188,9 @@ export function AboutView() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {processes.map((p, idx) => (
                 <div key={idx} className="space-y-3 relative">
-                  <span className="type-step text-brand-gold/20 block">{p.step}</span>
-                  <h4 className="type-label text-foreground">{p.title}</h4>
-                  <p className="type-caption text-neutral-500 dark:text-zinc-500">{p.desc}</p>
+                  <span className="type-step text-brand-gold/35 dark:text-brand-gold/20 block">{p.step}</span>
+                  <h4 className="type-subheading text-foreground mt-2">{p.title}</h4>
+                  <p className="type-body-sm text-neutral-600 dark:text-zinc-400">{p.desc}</p>
                 </div>
               ))}
             </div>

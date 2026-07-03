@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar } from "lucide-react";
+import { Calendar, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -89,7 +89,7 @@ export const HomeHero: React.FC = () => {
         >
           <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse shrink-0" />
           <span className="type-eyebrow tracking-[0.25em] text-xs font-semibold text-brand-gold/90">
-            Welcome to the Golden Ritual
+            Welcome to Antonioni Grounds
           </span>
         </motion.div>
 
@@ -98,9 +98,9 @@ export const HomeHero: React.FC = () => {
           className="type-display text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] font-serif leading-[1.12] tracking-tight"
           variants={heroItem}
         >
-          Redefining the{" "}
-          <span className="hero-gradient-text block sm:inline-block">
-            Coffee Experience
+          Where Every Cup{" "}
+          <span className="text-brand-gold block sm:inline-block">
+            Finds Its Story
           </span>
         </motion.h1>
 
@@ -109,8 +109,7 @@ export const HomeHero: React.FC = () => {
           variants={heroItem}
           className="type-body mt-6 text-zinc-300/90 max-w-lg drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-base md:text-[1.05rem]"
         >
-          Indulge in our carefully curated, slow-roasted single-origin coffees and custom artisan
-          patisserie. Set in a sensory lounge designed for tranquility.
+          Experience handcrafted coffee, thoughtfully prepared with quality beans, warm hospitality, and a space made for meaningful moments.
         </motion.p>
 
         {/* CTAs */}
@@ -120,13 +119,13 @@ export const HomeHero: React.FC = () => {
         >
           <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
             <Link
-              href="/menu"
+              href="/loyalty"
               className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-brand-gold px-8 py-4 text-black font-semibold transition-all duration-300 hover:bg-brand-gold-hover hover:shadow-[0_0_30px_rgba(197,168,128,0.25)]"
             >
               <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
               <span className="relative flex items-center gap-2">
-                Explore Salon Menu
-                <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1" />
+                Digital Loyalty Card
+                <CreditCard size={15} className="transition-transform duration-300 group-hover:scale-110" />
               </span>
             </Link>
           </motion.div>
@@ -143,17 +142,6 @@ export const HomeHero: React.FC = () => {
               Reserve Event Cart
             </Link>
           </motion.div>
-        </motion.div>
-
-        {/* Tertiary CTA - Clean & Subtitle-like */}
-        <motion.div variants={heroItem} className="pt-6">
-          <Link
-            href="/loyalty"
-            className="type-ui inline-flex items-center gap-2 text-zinc-400 hover:text-brand-gold transition-colors duration-300 text-xs tracking-wider"
-          >
-            <span>Digital Loyalty Card</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse" />
-          </Link>
         </motion.div>
         </div>
       </motion.div>

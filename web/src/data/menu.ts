@@ -63,7 +63,7 @@ export const menuItems: MenuItem[] = [
   // Signature Drinks
   {
     id: "m-the-elixir-gold",
-    name: "L'OR NOIR Golden Elixir",
+    name: "Antonioni Golden Elixir",
     description: "Slow-drip Kyoto cold brew combined with saffron-infused honey, dark amber maple, and a splash of oat milk. Finished with a gold luster dust.",
     price: 14.5,
     rating: 5.0,
@@ -82,6 +82,17 @@ export const menuItems: MenuItem[] = [
     category: "Signature Drinks",
     tags: ["Exclusive", "Premium"],
     notes: "Rich, umami, and sophisticated."
+  },
+  {
+    id: "m-la-notte-shakerato",
+    name: "La Notte Espresso Shakerato",
+    description: "Double shot of single-origin Panama Geisha espresso shaken with wild orange blossom honey and fresh rosemary essence, served over hand-cut ice spheres.",
+    price: 13.5,
+    rating: 4.9,
+    image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=600&auto=format&fit=crop",
+    category: "Signature Drinks",
+    tags: ["Cinematic", "Exclusive"],
+    notes: "Inspired by Antonioni's masterpiece. Clean, bittersweet, and visually striking."
   },
 
   // Non-Coffee

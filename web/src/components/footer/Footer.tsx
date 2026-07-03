@@ -76,8 +76,8 @@ export const Footer: React.FC = () => {
               <h4 className="type-label text-foreground">Location</h4>
               <address className="not-italic space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
                 <p className="text-neutral-800 dark:text-zinc-300 font-medium">Antonioni Grounds</p>
-                <p>55 Water St, Brooklyn, NY 11201</p>
-                <p>United States</p>
+                <p>J.P Rizal Street, Poblacion 3</p>
+                <p>Tiaong, 4325 Quezon, Philippines</p>
               </address>
             </div>
 

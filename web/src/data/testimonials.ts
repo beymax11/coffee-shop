@@ -9,7 +9,7 @@ export const testimonials: Testimonial[] = [
   {
     name: "Eleanor Vance",
     role: "Lifestyle Critic",
-    quote: "L'OR NOIR isn't just a coffee shop; it's a sensory lounge. The Gold Leaf Latté is an absolute masterpiece of both taste and presentation.",
+    quote: "Antonioni Grounds isn't just a coffee shop; it's a sensory lounge. The Gold Leaf Latté is an absolute masterpiece of both taste and presentation.",
     rating: 5,
   },
   {

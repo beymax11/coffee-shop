@@ -75,7 +75,7 @@ export function LoginView() {
           db.saveLoyaltyMember(newMember);
           localStorage.setItem("customer_session", trimmedEmail);
           localStorage.removeItem("admin_session");
-          setSuccessMessage("Account created (Mock). Redirecting to your salon...");
+          setSuccessMessage("Account created (Mock). Redirecting to Antonioni Grounds...");
           setIsSuccess(true);
           window.dispatchEvent(new Event("storage"));
           setTimeout(() => {
@@ -96,7 +96,7 @@ export function LoginView() {
             router.push("/admin");
           }, 1200);
         } else {
-          setSuccessMessage("Welcome back. Redirecting to your salon (Mock)...");
+          setSuccessMessage("Welcome back. Redirecting to Antonioni Grounds (Mock)...");
           setIsSuccess(true);
           localStorage.removeItem("admin_session");
 
@@ -224,7 +224,7 @@ export function LoginView() {
             router.push("/admin");
           }, 1200);
         } else {
-          setSuccessMessage("Welcome back. Redirecting to your salon...");
+          setSuccessMessage("Welcome back. Redirecting to Antonioni Grounds...");
           setIsSuccess(true);
           localStorage.removeItem("admin_session");
 
@@ -282,10 +282,10 @@ export function LoginView() {
             <FadeUp className="flex flex-col justify-between rounded-2xl border border-card-border bg-card p-10 glassmorphism-gold shadow-xl">
               <div>
                 <span className="type-eyebrow">Member Access</span>
-                <h1 className="type-h1 text-foreground mt-2">L&apos;OR NOIR Reserve</h1>
+                <h1 className="type-h1 text-foreground mt-2">Antonioni Grounds Reserve</h1>
                 <div className="h-[1px] w-12 bg-brand-gold mt-4" />
                 <p className="type-body text-neutral-500 dark:text-zinc-400 mt-6 leading-relaxed">
-                  Sign in to manage your bean subscriptions, view order history, and access exclusive salon reservations.
+                  Sign in to manage your bean subscriptions, view order history, and access exclusive table reservations.
                 </p>
               </div>
 
@@ -300,12 +300,12 @@ export function LoginView() {
                 </div>
                 <div className="flex items-center gap-3 text-neutral-500 dark:text-zinc-400 type-body-sm">
                   <Coffee className="text-brand-gold shrink-0" size={18} />
-                  <span>Complimentary salon tastings at all locations</span>
+                  <span>Complimentary tastings at all locations</span>
                 </div>
               </div>
 
                <p className="type-caption text-neutral-400 dark:text-zinc-600 mt-10">
-                New to L&apos;OR NOIR?{" "}
+                New to Antonioni Grounds?{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -327,7 +327,7 @@ export function LoginView() {
                   <h2 className="type-h2 text-foreground">{isSignUp ? "Register" : "Sign In"}</h2>
                   <p className="type-body text-neutral-500 dark:text-zinc-400 mt-2">
                     {isSignUp
-                      ? "Create your reserve credentials to join L'OR NOIR."
+                      ? "Create your reserve credentials to join Antonioni Grounds."
                       : "Enter your credentials to access your reserve account."}
                   </p>
                 </div>
@@ -476,7 +476,7 @@ export function LoginView() {
                     >
                       {isSignUp
                         ? "Already have a reserve account? Sign In"
-                        : "New to L'OR NOIR? Create your account"}
+                        : "New to Antonioni Grounds? Create your account"}
                     </button>
                   </div>
 

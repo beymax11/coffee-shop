@@ -19,7 +19,7 @@ const DEFAULT_RESERVATIONS: Reservation[] = [
     date: "2026-07-05",
     time: "14:00",
     guestCount: 2,
-    location: "Salon Prime",
+    location: "Antonioni Brooklyn",
     notes: "Celebrating anniversary. Prefer window seat."
   },
   {
@@ -40,7 +40,7 @@ const DEFAULT_LOYALTY_MEMBERS: LoyaltyMember[] = [
     id: "LN-882-901",
     name: "Alexander Vance",
     email: "alexander@vance.net",
-    stamps: 5,
+    stamps: 1,
     points: 720,
     joinedAt: "2026-06-15"
   },
@@ -92,7 +92,25 @@ export const db = {
     if (isBrowser && !localStorage.getItem("menu_items")) {
       setLocalStorageItem("menu_items", defaultMenuItems);
     }
-    return getLocalStorageItem("menu_items", defaultMenuItems);
+    const items = getLocalStorageItem("menu_items", defaultMenuItems);
+
+    // Auto-merge logic: if defaults have items not present in localStorage, merge them.
+    // This allows new signature drinks or modified defaults to sync automatically.
+    if (isBrowser && Array.isArray(items)) {
+      let updated = false;
+      const merged = [...items];
+      defaultMenuItems.forEach((defItem) => {
+        if (!merged.some((item) => item.id === defItem.id)) {
+          merged.push(defItem);
+          updated = true;
+        }
+      });
+      if (updated) {
+        setLocalStorageItem("menu_items", merged);
+        return merged;
+      }
+    }
+    return items;
   },
 
   saveMenuItem(item: MenuItem): void {

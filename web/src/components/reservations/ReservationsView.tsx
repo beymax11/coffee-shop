@@ -43,6 +43,20 @@ export function ReservationsView() {
   useEffect(() => {
     setIsMounted(true);
     setTicketId(`LN-${Math.floor(100000 + Math.random() * 900000)}`);
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const typeParam = params.get("type");
+      if (typeParam === "cart" || typeParam === "table") {
+        const selectedType = typeParam === "cart" ? "Coffee Cart Booking" : "Table Reservation";
+        setFormData((prev) => ({
+          ...prev,
+          eventType: selectedType,
+          location: selectedType === "Table Reservation" ? "Antonioni Grounds Reserve (New York / Tokyo)" : prev.location,
+        }));
+        setStep(2);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -83,8 +97,8 @@ export function ReservationsView() {
     {
       type: "Table Reservation",
       title: "Lounge Table Reservation",
-      category: "In-House Salon",
-      desc: "Reserve a private alcove in our luxury matte-black salon. Perfect for intimate coffee appreciation, quiet meetings, or personal rituals.",
+      category: "In-House Café",
+      desc: "Reserve a private table in our luxury matte-black café. Perfect for premium coffee tastings, quiet meetings, or personal coffee rituals.",
       features: ["1 - 4 guests capacity", "Complimentary welcome pour", "Full patisserie menu access"],
       pricing: "$45 / Table",
       icon: Coffee,
@@ -147,8 +161,8 @@ export function ReservationsView() {
     setFormData({
       ...formData,
       eventType: type,
-      // Default location to "L'OR NOIR Salon" if booking a table
-      location: type === "Table Reservation" ? "L'OR NOIR Salon (New York / Tokyo)" : formData.location,
+      // Default location to "Antonioni Grounds Café" if booking a table
+      location: type === "Table Reservation" ? "Antonioni Grounds Reserve (New York / Tokyo)" : formData.location,
     });
     setErrors({ ...errors, eventType: undefined });
   };
@@ -250,8 +264,7 @@ export function ReservationsView() {
           {step < 4 ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
               
-              {/* Left Column: Bespoke Experience Header */}
-              <div className="lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-white/5 lg:py-4 print:hidden">
+              <div className="lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden">
                 <span className="text-[10px] uppercase font-bold tracking-[0.35em] text-emerald-500/90 block mb-3 font-sans">Bespoke Experience</span>
                 <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-2">
                   Secure Your Ritual
@@ -311,10 +324,10 @@ export function ReservationsView() {
                           >
                             <span className={`font-serif text-[13px] tracking-widest ${
                               isCurrent 
-                                ? "text-emerald-400 font-medium scale-105" 
+                                ? "text-emerald-600 dark:text-emerald-400 font-medium scale-105" 
                                 : isPassed 
-                                  ? "text-[#D4C5B9]" 
-                                  : "text-zinc-600"
+                                  ? "text-[#8B5E3C] dark:text-[#D4C5B9]" 
+                                  : "text-zinc-500 dark:text-zinc-600"
                             } transition-all duration-300`}>
                               0{item.num}
                             </span>
@@ -322,24 +335,24 @@ export function ReservationsView() {
                               isCurrent 
                                 ? "text-foreground" 
                                 : isPassed 
-                                  ? "text-zinc-400" 
-                                  : "text-zinc-600"
+                                  ? "text-zinc-500 dark:text-zinc-400" 
+                                  : "text-zinc-500 dark:text-zinc-600"
                             } transition-all duration-300`}>
                               {item.label}
                             </span>
                             <div className={`h-[2px] w-6 mt-2 rounded-full transition-all duration-500 ${
                               isCurrent 
-                                ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] w-10" 
+                                ? "bg-emerald-600 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] dark:shadow-[0_0_8px_rgba(16,185,129,0.8)] w-10" 
                                 : isPassed 
                                   ? "bg-[#8B5E3C]" 
-                                  : "bg-white/5"
+                                  : "bg-zinc-200 dark:bg-white/5"
                             }`} />
                           </button>
                           
                           {idx < 2 && (
                             <div className="flex-1 flex justify-center items-center px-4 -mt-5">
                               <div className={`h-[1px] w-full transition-all duration-700 ${
-                                step > item.num ? "bg-[#8B5E3C]/40" : "bg-white/5"
+                                step > item.num ? "bg-[#8B5E3C]/40" : "bg-zinc-200 dark:bg-white/5"
                               }`} />
                             </div>
                           )}
@@ -366,7 +379,7 @@ export function ReservationsView() {
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-6"
                       >
-                        <div className="border-b border-white/5 pb-4 mb-6">
+                        <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
                           <h3 className="text-xl font-serif text-foreground tracking-wide">Select Experience Type</h3>
                           <p className="text-xs text-zinc-500 mt-1 font-light">Choose how you wish to spend your time with us.</p>
                         </div>
@@ -386,8 +399,8 @@ export function ReservationsView() {
                                 className={`rounded-xl border p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[310px] h-auto select-none ${
                                   isSelected
                                     ? isTable
-                                      ? "bg-gradient-to-br from-[#07130E]/95 to-[#0F261B]/95 border-emerald-500/80 text-foreground shadow-[0_10px_30px_rgba(46,90,68,0.25)]"
-                                      : "bg-gradient-to-br from-[#120B07]/95 to-[#22150D]/95 border-[#8B5E3C]/80 text-foreground shadow-[0_10px_30px_rgba(139,94,60,0.25)]"
+                                      ? "bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1] border-emerald-600/50 shadow-[0_10px_30px_rgba(46,90,68,0.12)] text-foreground dark:from-[#07130E]/95 dark:to-[#0F261B]/95 dark:border-emerald-500/80 dark:shadow-[0_10px_30px_rgba(46,90,68,0.25)]"
+                                      : "bg-gradient-to-br from-[#FAF5F0] to-[#F1E8DF] border-[#8B5E3C]/60 shadow-[0_10px_30px_rgba(139,94,60,0.12)] text-foreground dark:from-[#120B07]/95 dark:to-[#22150D]/95 dark:border-[#8B5E3C]/80 dark:shadow-[0_10px_30px_rgba(139,94,60,0.25)]"
                                     : "bg-card border-card-border text-neutral-500 hover:border-brand-gold/30 hover:bg-background"
                                 }`}
                               >
@@ -397,9 +410,9 @@ export function ReservationsView() {
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all ${
                                       isSelected
                                         ? isTable
-                                          ? "bg-[#2E5A44]/20 text-emerald-400 border-emerald-500/40"
-                                          : "bg-[#8B5E3C]/20 text-[#EADBC8] border-[#8B5E3C]/40"
-                                        : "bg-white/5 text-zinc-500 border-white/5"
+                                          ? "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-[#2E5A44]/20 dark:text-emerald-400 dark:border-emerald-500/40"
+                                          : "bg-[#8B5E3C]/10 border-[#8B5E3C]/30 text-[#8B5E3C] dark:bg-[#8B5E3C]/20 dark:text-[#EADBC8] dark:border-[#8B5E3C]/40"
+                                        : "bg-zinc-100 dark:bg-white/5 text-zinc-500 border-zinc-200 dark:border-white/5"
                                     }`}>
                                       <Icon size={18} />
                                     </div>
@@ -407,9 +420,9 @@ export function ReservationsView() {
                                       <span className={`text-[8px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full border ${
                                         isSelected
                                           ? isTable
-                                            ? "text-emerald-400 bg-emerald-950/20 border-emerald-500/30"
-                                            : "text-[#EADBC8] bg-[#8B5E3C]/10 border-[#8B5E3C]/30"
-                                          : "text-zinc-500 border-white/5 bg-white/5"
+                                            ? "text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/20 dark:border-emerald-500/30"
+                                            : "text-[#8B5E3C] bg-[#8B5E3C]/10 border-[#8B5E3C]/20 dark:text-[#EADBC8] dark:bg-[#8B5E3C]/10 dark:border-[#8B5E3C]/30"
+                                          : "text-zinc-500 border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5"
                                       }`}>
                                         {item.category}
                                       </span>
@@ -423,34 +436,34 @@ export function ReservationsView() {
                                       <span className={`font-serif text-xs italic ${
                                         isSelected 
                                           ? isTable 
-                                            ? "text-emerald-400" 
-                                            : "text-[#EADBC8]" 
+                                            ? "text-emerald-700 dark:text-emerald-400" 
+                                            : "text-[#8B5E3C] dark:text-[#EADBC8]" 
                                           : "text-zinc-500"
                                       }`}>
                                         {item.pricing}
                                       </span>
                                     </div>
-                                    <p className="font-sans text-[11px] text-zinc-400 font-light mt-1.5 leading-relaxed">{item.desc}</p>
+                                    <p className="font-sans text-[11px] text-zinc-600 dark:text-zinc-400 font-light mt-1.5 leading-relaxed">{item.desc}</p>
                                   </div>
 
                                   {/* Features list */}
-                                  <ul className="space-y-1.5 pt-3 border-t border-white/5">
+                                  <ul className="space-y-1.5 pt-3 border-t border-zinc-200 dark:border-white/5">
                                     {item.features.map((feat) => (
-                                      <li key={feat} className="flex items-center gap-2 font-sans text-[10px] text-zinc-400 font-light">
-                                        <span className={`w-1 h-1 rounded-full ${isSelected ? isTable ? "bg-emerald-400" : "bg-[#8B5E3C]" : "bg-zinc-600"}`} />
+                                      <li key={feat} className="flex items-center gap-2 font-sans text-[10px] text-zinc-600 dark:text-zinc-400 font-light">
+                                        <span className={`w-1 h-1 rounded-full ${isSelected ? isTable ? "bg-emerald-600 dark:bg-emerald-400" : "bg-[#8B5E3C]" : "bg-zinc-400 dark:bg-zinc-600"}`} />
                                         {feat}
                                       </li>
                                     ))}
                                   </ul>
                                 </div>
 
-                                <div className="flex justify-end pt-4 border-t border-white/5 mt-4">
+                                <div className="flex justify-end pt-4 border-t border-zinc-200 dark:border-white/5 mt-4">
                                   <span className={`font-sans text-[9px] uppercase tracking-widest font-bold ${
                                     isSelected
                                       ? isTable
-                                        ? "text-emerald-400"
-                                        : "text-[#EADBC8]"
-                                      : "text-zinc-600"
+                                        ? "text-emerald-700 dark:text-emerald-400"
+                                        : "text-[#8B5E3C] dark:text-[#EADBC8]"
+                                      : "text-zinc-500 dark:text-zinc-600"
                                   }`}>
                                     {isSelected ? "● Selected" : "Choose"}
                                   </span>
@@ -460,7 +473,7 @@ export function ReservationsView() {
                           })}
                         </div>
 
-                        <div className="flex justify-end pt-6 border-t border-white/5">
+                        <div className="flex justify-end pt-6 border-t border-zinc-200 dark:border-white/5">
                           <button
                             type="button"
                             onClick={handleNext}
@@ -481,7 +494,7 @@ export function ReservationsView() {
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-6"
                       >
-                        <div className="border-b border-white/5 pb-4 mb-6">
+                        <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
                           <h3 className="text-xl font-serif text-foreground tracking-wide">Date & Booking Details</h3>
                           <p className="text-xs text-zinc-500 mt-1 font-light">Provide the specific coordinates of your visit.</p>
                         </div>
@@ -489,7 +502,7 @@ export function ReservationsView() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-background-alt/40 p-6 rounded-xl border border-card-border backdrop-blur-sm">
                           {/* Date Picker */}
                           <div className="space-y-2 col-span-1">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#D4C5B9] block pl-1">
+                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
                               Select Date
                             </label>
                             <div className="relative group">
@@ -509,7 +522,7 @@ export function ReservationsView() {
 
                           {/* Guest Count Selector */}
                           <div className="space-y-2 col-span-1">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#D4C5B9] block pl-1">
+                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
                               Guest Count
                             </label>
                             <div className="flex items-center gap-2 mt-1">
@@ -544,8 +557,8 @@ export function ReservationsView() {
                                   className={`px-2.5 py-1 rounded-full text-[10px] font-sans border transition-all duration-300 ${
                                     formData.guestCount === num
                                       ? formData.eventType === "Table Reservation"
-                                        ? "bg-[#2E5A44]/25 border-emerald-500/80 text-emerald-400 font-semibold"
-                                        : "bg-[#8B5E3C]/25 border-[#8B5E3C]/80 text-[#EADBC8] font-semibold"
+                                        ? "bg-[#2E5A44]/25 border-emerald-500/80 text-emerald-700 dark:text-emerald-400 font-semibold"
+                                        : "bg-[#8B5E3C]/25 border-[#8B5E3C]/80 text-[#8B5E3C] dark:text-[#EADBC8] font-semibold"
                                       : "bg-card border-card-border text-neutral-500 hover:border-brand-gold/30 hover:text-foreground"
                                   }`}
                                 >
@@ -557,7 +570,7 @@ export function ReservationsView() {
 
                           {/* Time Slots Grid (Replaced standard dropdown) */}
                           <div className="space-y-2 col-span-1 md:col-span-2">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#D4C5B9] block pl-1">
+                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
                               Preferred Time Slot
                             </label>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-1.5">
@@ -572,8 +585,8 @@ export function ReservationsView() {
                                     className={`px-3 py-3 rounded-lg text-xs font-sans border transition-all duration-300 text-center flex items-center justify-center min-h-[44px] ${
                                       isSelected
                                         ? isTable
-                                          ? "bg-[#2E5A44]/25 border-emerald-500 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] font-semibold"
-                                          : "bg-[#8B5E3C]/25 border-[#8B5E3C] text-[#EADBC8] shadow-[0_0_12px_rgba(139,94,60,0.15)] font-semibold"
+                                          ? "bg-[#2E5A44]/25 border-emerald-500 text-emerald-700 dark:text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] font-semibold"
+                                          : "bg-[#8B5E3C]/25 border-[#8B5E3C] text-[#8B5E3C] dark:text-[#EADBC8] shadow-[0_0_12px_rgba(139,94,60,0.15)] font-semibold"
                                         : "bg-card border-card-border text-neutral-500 hover:border-brand-gold/30 hover:bg-background"
                                     }`}
                                   >
@@ -587,7 +600,7 @@ export function ReservationsView() {
 
                           {/* Venue / Location Address */}
                           <div className="space-y-2 col-span-1 md:col-span-2">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#D4C5B9] block pl-1">
+                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
                               Location
                             </label>
                             <div className="relative group">
@@ -598,9 +611,9 @@ export function ReservationsView() {
                                 <input
                                    type="text"
                                    disabled
-                                   value="L'OR NOIR Luxury Salon Lounge"
+                                   value="Antonioni Grounds Luxury Reserve Lounge"
                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-zinc-500 cursor-not-allowed"
-                                />
+                                 />
                               ) : (
                                 <input
                                   type="text"
@@ -616,11 +629,11 @@ export function ReservationsView() {
                           </div>
                         </div>
 
-                        <div className="flex justify-between pt-6 border-t border-white/5">
+                        <div className="flex justify-between pt-6 border-t border-zinc-200 dark:border-white/5">
                           <button
                             type="button"
                             onClick={handleBack}
-                            className="flex items-center gap-1.5 rounded-full border border-[#8B5E3C]/20 bg-[#8B5E3C]/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-[#D4C5B9] hover:bg-[#8B5E3C]/10 transition-all active:scale-95"
+                            className="flex items-center gap-1.5 rounded-full border border-[#8B5E3C]/20 bg-[#8B5E3C]/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-[#8B5E3C] dark:text-[#D4C5B9] hover:bg-[#8B5E3C]/10 transition-all active:scale-95"
                           >
                             <ChevronLeft size={14} />
                             Back
@@ -645,7 +658,7 @@ export function ReservationsView() {
                         exit={{ opacity: 0, y: -10 }}
                         className="space-y-6"
                       >
-                        <div className="border-b border-white/5 pb-4 mb-6">
+                        <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
                           <h3 className="text-xl font-serif text-foreground tracking-wide">Contact Information & Review</h3>
                           <p className="text-xs text-zinc-500 mt-1 font-light">Confirm your contact coordinate details before booking.</p>
                         </div>
@@ -654,7 +667,7 @@ export function ReservationsView() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Full Name */}
                             <div>
-                              <label className="type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] text-[#D4C5B9]">Full Name</label>
+                              <label className="type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9]">Full Name</label>
                               <div className="relative">
                                 <User className="absolute left-3 top-[15px] text-zinc-500" size={16} />
                                 <input
@@ -671,7 +684,7 @@ export function ReservationsView() {
                             
                             {/* Email */}
                             <div>
-                              <label className="type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] text-[#D4C5B9]">Email Address</label>
+                              <label className="type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9]">Email Address</label>
                               <div className="relative">
                                 <Mail className="absolute left-3 top-[15px] text-zinc-500" size={16} />
                                 <input
@@ -689,7 +702,7 @@ export function ReservationsView() {
 
                           {/* Phone */}
                           <div className="space-y-2">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#D4C5B9] block pl-1">
+                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
                               Phone Number
                             </label>
                             <div className="relative group">
@@ -710,7 +723,7 @@ export function ReservationsView() {
 
                           {/* Additional Notes */}
                           <div className="space-y-2">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#D4C5B9] block pl-1">
+                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
                               Special Requests / Notes
                             </label>
                             <div className="relative group">
@@ -731,10 +744,10 @@ export function ReservationsView() {
                         {/* Summary Block */}
                         <div className="rounded-xl border border-card-border bg-card p-6 space-y-4 mt-8 relative overflow-hidden">
                           {/* Inner emerald decorative line */}
-                          <div className="absolute inset-2 border border-emerald-950/20 rounded-lg pointer-events-none" />
-                          <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
-                            <h4 className="font-sans text-[10px] uppercase font-bold tracking-[0.25em] text-emerald-400">Review Booking Details</h4>
-                            <span className="font-serif text-[11px] text-[#D4C5B9] italic">Summary</span>
+                          <div className="absolute inset-2 border border-emerald-500/10 dark:border-emerald-950/20 rounded-lg pointer-events-none" />
+                          <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/5 pb-3 relative z-10">
+                            <h4 className="font-sans text-[10px] uppercase font-bold tracking-[0.25em] text-emerald-600 dark:text-emerald-400">Review Booking Details</h4>
+                            <span className="font-serif text-[11px] text-[#8B5E3C] dark:text-[#D4C5B9] italic">Summary</span>
                           </div>
                           
                           <div className="space-y-3.5 pt-2 relative z-10">
@@ -747,7 +760,7 @@ export function ReservationsView() {
                             ].map((row, idx) => (
                               <div key={idx} className="flex justify-between items-baseline gap-4 text-xs">
                                 <span className="font-sans text-zinc-500 font-light whitespace-nowrap">{row.label}</span>
-                                <span className={`font-serif text-right ${row.highlight ? "text-emerald-400 font-semibold" : "text-foreground font-medium"}`}>
+                                <span className={`font-serif text-right ${row.highlight ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-foreground font-medium"}`}>
                                   {row.value || "—"}
                                 </span>
                               </div>
@@ -755,11 +768,11 @@ export function ReservationsView() {
                           </div>
                         </div>
 
-                        <div className="flex justify-between pt-6 border-t border-white/5 mt-8">
+                        <div className="flex justify-between pt-6 border-t border-zinc-200 dark:border-white/5 mt-8">
                           <button
                             type="button"
                             onClick={handleBack}
-                            className="flex items-center gap-1.5 rounded-full border border-[#8B5E3C]/20 bg-[#8B5E3C]/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-[#D4C5B9] hover:bg-[#8B5E3C]/10 transition-all active:scale-95"
+                            className="flex items-center gap-1.5 rounded-full border border-[#8B5E3C]/20 bg-[#8B5E3C]/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-[#8B5E3C] dark:text-[#D4C5B9] hover:bg-[#8B5E3C]/10 transition-all active:scale-95"
                           >
                             <ChevronLeft size={14} />
                             Back
@@ -789,13 +802,13 @@ export function ReservationsView() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center space-y-6 print:space-y-0"
                 >
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#2E5A44]/10 border border-[#2E5A44]/30 text-emerald-400 shadow-[0_0_20px_rgba(46,90,68,0.2)] print:hidden">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#2E5A44]/10 border border-[#2E5A44]/30 text-emerald-600 dark:text-emerald-400 shadow-[0_0_20px_rgba(46,90,68,0.2)] print:hidden">
                     <CheckCircle2 size={36} className="stroke-[1.5]" />
                   </div>
 
                   <div className="space-y-2 print:hidden">
                     <h3 className="text-3xl font-serif text-foreground tracking-wide font-semibold">Reservation Confirmed</h3>
-                    <p className="font-sans text-sm text-zinc-400 font-light leading-relaxed max-w-md mx-auto">
+                    <p className="font-sans text-sm text-zinc-600 dark:text-zinc-400 font-light leading-relaxed max-w-md mx-auto">
                       Thank you for choosing L&apos;OR NOIR. An elegant confirmation docket and calendar invite have been dispatched to <strong className="text-foreground font-medium">{formData.email}</strong>.
                     </p>
                   </div>
@@ -817,51 +830,51 @@ export function ReservationsView() {
                     {/* Monogram water mark */}
                     <div className="absolute -right-6 -bottom-6 text-[#2E5A44]/10 pointer-events-none text-9xl font-serif select-none font-bold italic print:text-zinc-100">AG</div>
 
-                    <div className="flex justify-between items-center border-b border-white/5 print:border-zinc-200 pb-3">
+                    <div className="flex justify-between items-center border-b border-zinc-200 dark:border-white/5 pb-3">
                       <div>
                         <span className="font-sans text-[9px] uppercase tracking-widest text-zinc-500 print:text-zinc-500 block">Reservation Docket</span>
-                        <h4 className="font-mono text-sm text-white print:text-black mt-1 tracking-wider">#{ticketId || "LN-XXXXXX"}</h4>
+                        <h4 className="font-mono text-sm text-foreground print:text-black mt-1 tracking-wider">#{ticketId || "LN-XXXXXX"}</h4>
                       </div>
-                      <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-emerald-400 bg-[#2E5A44]/10 border border-[#2E5A44]/30 px-2.5 py-1 rounded font-bold shadow-[0_0_10px_rgba(16,185,129,0.1)] print:text-black print:bg-zinc-100 print:border-zinc-300 print:shadow-none">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)] print:bg-zinc-500 print:animate-none print:shadow-none" />
+                      <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-[#2E5A44]/10 border border-[#2E5A44]/30 px-2.5 py-1 rounded font-bold shadow-[0_0_10px_rgba(16,185,129,0.1)] print:text-black print:bg-zinc-100 print:border-zinc-300 print:shadow-none">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)] print:bg-zinc-500 print:animate-none print:shadow-none" />
                         PENDING APPROVAL
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-4 pt-2 font-sans text-zinc-400 print:text-zinc-800">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-4 pt-2 font-sans text-zinc-600 dark:text-zinc-400 print:text-zinc-800">
                       <div>
                         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Guest Name</span>
-                        <span className="font-serif text-sm text-white print:text-black font-medium mt-0.5 block">{formData.fullName}</span>
+                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.fullName}</span>
                       </div>
                       <div>
                         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Contact Phone</span>
-                        <span className="font-serif text-sm text-white print:text-black font-medium mt-0.5 block">{formData.phone}</span>
+                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.phone}</span>
                       </div>
                       <div>
                         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Experience</span>
-                        <span className="font-serif text-sm text-white print:text-black font-medium mt-0.5 block">{formData.eventType}</span>
+                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.eventType}</span>
                       </div>
                       <div>
                         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Schedule</span>
-                        <span className="font-serif text-sm text-white print:text-black font-medium mt-0.5 block">{formData.date} at {formData.time}</span>
+                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.date} at {formData.time}</span>
                       </div>
                       <div className="col-span-2">
                         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Venue / Sourced Location</span>
-                        <span className="font-serif text-sm text-white print:text-black font-medium mt-0.5 block">{formData.location}</span>
+                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.location}</span>
                       </div>
                       {formData.notes && (
-                        <div className="col-span-2 border-t border-white/5 print:border-zinc-200 pt-3">
+                        <div className="col-span-2 border-t border-zinc-200 dark:border-white/5 print:border-zinc-200 pt-3">
                           <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Special Requests</span>
-                          <span className="font-sans text-xs text-zinc-400 print:text-zinc-700 italic font-light leading-relaxed block mt-1.5">{formData.notes}</span>
+                          <span className="font-sans text-xs text-zinc-500 dark:text-zinc-400 print:text-zinc-700 italic font-light leading-relaxed block mt-1.5">{formData.notes}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Decorative barcode at the bottom */}
-                    <div className="flex flex-col items-center pt-6 border-t border-dashed border-white/10 print:border-zinc-200 mt-8 select-none">
+                    <div className="flex flex-col items-center pt-6 border-t border-dashed border-zinc-200 dark:border-white/10 print:border-zinc-200 mt-8 select-none">
                       <div className="relative w-48 h-7 overflow-hidden opacity-60 print:opacity-100">
                         {/* Barcode line pattern */}
-                        <div className="h-full w-full bg-[repeating-linear-gradient(90deg,#F5F5F0_0px,#F5F5F0_2px,transparent_2px,transparent_5px,#F5F5F0_5px,#F5F5F0_6px,transparent_6px,transparent_10px)] print:bg-[repeating-linear-gradient(90deg,#000_0px,#000_2px,transparent_2px,transparent_5px,#000_5px,#000_6px,transparent_6px,transparent_10px)]" />
+                        <div className="h-full w-full bg-[repeating-linear-gradient(90deg,var(--foreground)_0px,var(--foreground)_2px,transparent_2px,transparent_5px,var(--foreground)_5px,var(--foreground)_6px,transparent_6px,transparent_10px)]" />
                         {/* Red Laser Line */}
                         <motion.div 
                           className="absolute left-0 right-0 h-[2px] bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] print:hidden"
@@ -877,7 +890,7 @@ export function ReservationsView() {
                     <button
                       type="button"
                       onClick={() => window.print()}
-                      className="rounded-full border border-[#8B5E3C]/30 bg-[#8B5E3C]/10 px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-[#EADBC8] hover:bg-[#8B5E3C]/20 transition-all active:scale-95 flex items-center gap-1.5"
+                      className="rounded-full border border-[#8B5E3C]/30 bg-[#8B5E3C]/10 px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-[#8B5E3C] dark:text-[#EADBC8] hover:bg-[#8B5E3C]/20 transition-all active:scale-95 flex items-center gap-1.5"
                     >
                       <Printer size={13} />
                       Print Docket
@@ -885,7 +898,7 @@ export function ReservationsView() {
                     <button
                       type="button"
                       onClick={() => setStep(1)}
-                      className="rounded-full border border-white/10 bg-white/5 px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-zinc-300 hover:bg-white/10 transition-all active:scale-95"
+                      className="rounded-full border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-white/5 px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 transition-all active:scale-95"
                     >
                       Book Another
                     </button>

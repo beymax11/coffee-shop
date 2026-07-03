@@ -1,4 +1,4 @@
-/* Custom keyframe and utility animations for L'OR NOIR */
+/* Custom keyframe and utility animations for Antonioni Grounds */
 
 @keyframes soft-pulse {
   0%, 100% {
@@ -42,9 +42,8 @@
   background: linear-gradient(
     105deg,
     var(--brand-gold) 0%,
-    var(--brand-beige) 35%,
-    #fff 55%,
-    var(--brand-gold-hover) 75%,
+    var(--brand-espresso) 35%,
+    var(--brand-gold-hover) 65%,
     var(--brand-gold) 100%
   );
   background-size: 200% auto;
@@ -52,6 +51,17 @@
   background-clip: text;
   color: transparent;
   animation: hero-gradient-shift 6s ease-in-out infinite;
+}
+
+.dark .hero-gradient-text {
+  background: linear-gradient(
+    105deg,
+    var(--brand-gold) 0%,
+    var(--brand-beige) 35%,
+    #fff 55%,
+    var(--brand-gold-hover) 75%,
+    var(--brand-gold) 100%
+  );
 }
 
 /* Legacy shimmer utility (used outside hero) */

@@ -4,8 +4,10 @@ import React, { useState } from "react";
 import { PageTransition } from "@/components/animations";
 import { HomeHero } from "@/components/hero/HomeHero";
 import { RoastingExperience } from "@/components/sections/RoastingExperience";
+import { LoyaltyPreviewSection } from "@/components/sections/LoyaltyPreviewSection";
 import { SignatureShowcase } from "@/components/sections/SignatureShowcase";
 import { EventShowcase } from "@/components/sections/EventShowcase";
+import { EventsUpdates } from "@/components/sections/EventsUpdates";
 import { LifestyleGrid } from "@/components/sections/LifestyleGrid";
 import { QuickViewModal } from "@/components/shared/QuickViewModal";
 import { MenuItem } from "@/types";
@@ -23,8 +25,10 @@ export function HomeView() {
     <PageTransition>
       <HomeHero />
       <RoastingExperience />
+      <LoyaltyPreviewSection />
       <SignatureShowcase onQuickView={handleQuickView} />
       <EventShowcase />
+      <EventsUpdates />
       <LifestyleGrid />
       <QuickViewModal
         isOpen={isQuickViewOpen}
@@ -34,3 +38,4 @@ export function HomeView() {
     </PageTransition>
   );
 }
+

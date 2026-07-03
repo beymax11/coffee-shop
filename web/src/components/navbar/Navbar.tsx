@@ -279,7 +279,7 @@ export const Navbar: React.FC = () => {
                             setIsProfileOpen(true);
                             setIsMobileMenuOpen(false);
                           }}
-                          className="flex items-center gap-2 text-left type-nav text-sm text-zinc-400 hover:text-white transition-colors py-1"
+                          className="flex items-center gap-2 text-left type-nav text-sm text-neutral-500 dark:text-zinc-400 hover:text-brand-gold transition-colors py-1 cursor-pointer"
                         >
                           <UserRound size={16} />
                           My Profile
@@ -287,7 +287,7 @@ export const Navbar: React.FC = () => {
                         <button
                           onClick={handleLogout}
                           disabled={isLoggingOut}
-                          className="flex items-center gap-2 text-left type-nav text-sm text-zinc-400 hover:text-red-400 transition-colors py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center gap-2 text-left type-nav text-sm text-neutral-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors py-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {isLoggingOut ? (
                             <Loader2 size={16} className="animate-spin text-zinc-400" />
@@ -352,7 +352,7 @@ export const Navbar: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsProfileOpen(false)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              className="absolute inset-0 bg-black/75 dark:bg-black/85 backdrop-blur-md"
             />
 
             {/* Modal Body */}
@@ -361,74 +361,120 @@ export const Navbar: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ type: "spring", duration: 0.4 }}
-              className="relative w-full max-w-md overflow-hidden rounded-2xl border border-card-border bg-card p-6 shadow-2xl glassmorphism-gold"
+              className="relative w-full max-w-md overflow-hidden rounded-2xl p-6 shadow-2xl glassmorphism-gold"
             >
               {/* Close Button */}
               <button
                 onClick={() => setIsProfileOpen(false)}
                 disabled={isLoggingOut}
-                className="absolute right-4 top-4 rounded-full border border-card-border bg-card/50 p-1.5 text-zinc-400 hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute right-4 top-4 rounded-full border border-card-border bg-background/50 dark:bg-zinc-900/50 p-1.5 text-zinc-400 hover:text-brand-gold dark:hover:text-brand-gold hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Close Profile"
               >
                 <X size={16} />
               </button>
 
               {/* Title / Header */}
               <div className="flex flex-col items-center text-center mt-2 mb-6">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-brand-gold font-sans font-bold">
+                <span className="text-[9px] uppercase tracking-[0.3em] text-brand-gold/80 font-sans font-bold">
                   Antonioni Grounds
                 </span>
-                <h3 className="type-h3 text-foreground mt-1 font-serif italic text-lg">Profile</h3>
-                <div className="h-[1px] w-12 bg-gradient-to-r from-transparent via-brand-gold to-transparent mt-3" />
+                <h3 className="text-foreground mt-1 font-serif italic text-2xl font-light tracking-wide">Profile</h3>
+                <div className="h-[1px] w-16 bg-gradient-to-r from-transparent via-brand-gold/40 to-transparent mt-2.5" />
               </div>
 
               {/* Digital Membership Card */}
-              <div className="relative overflow-hidden rounded-2xl border border-brand-gold/30 bg-gradient-to-br from-[#1c1917] via-[#0c0a09] to-[#1c1917] p-6 shadow-[0_15px_35px_rgba(0,0,0,0.8)] mb-6 font-sans">
+              <div className="relative overflow-hidden rounded-2xl border border-brand-gold/30 dark:border-brand-gold/20 bg-gradient-to-br from-[#FAF7F2] via-[#F4ECE1] to-[#EADBC8] dark:from-[#1E1B18] dark:via-[#0F0D0C] dark:to-[#1E1B18] p-6 shadow-[0_12px_25px_rgba(45,31,24,0.05)] dark:shadow-[0_15px_35px_rgba(0,0,0,0.6)] mb-6 font-sans">
+                {/* Gold Accent Stripe */}
+                <div className="absolute top-0 left-0 bottom-0 w-1 bg-brand-gold/40" />
+
                 {/* Decorative card glow */}
-                <div className="absolute -right-20 -top-20 w-44 h-44 rounded-full bg-brand-gold/5 blur-3xl pointer-events-none" />
-                <div className="absolute -left-20 -bottom-20 w-44 h-44 rounded-full bg-brand-gold/5 blur-3xl pointer-events-none" />
+                <div className="absolute -right-20 -top-20 w-44 h-44 rounded-full bg-brand-gold/10 dark:bg-brand-gold/5 blur-3xl pointer-events-none" />
+                <div className="absolute -left-20 -bottom-20 w-44 h-44 rounded-full bg-brand-gold/10 dark:bg-brand-gold/5 blur-3xl pointer-events-none" />
+
+                {/* Card Top: Card Identity */}
+                <div className="flex justify-between items-start mb-6">
+                  <span className="text-[9px] uppercase tracking-[0.2em] font-sans font-bold text-brand-gold/80 dark:text-brand-gold/70">
+                    Reserve Member
+                  </span>
+                  <Coffee size={14} className="text-brand-gold/60" />
+                </div>
 
                 {/* Card Middle: Profile Details */}
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full border-2 border-brand-gold/40 bg-zinc-900/90 flex items-center justify-center text-brand-gold text-xl font-serif font-bold shadow-[0_0_15px_rgba(197,168,128,0.2)] select-none">
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-14 h-14 rounded-full border-2 border-brand-gold/40 bg-brand-espresso dark:bg-zinc-900/90 flex items-center justify-center text-brand-gold text-xl font-serif font-bold shadow-[0_4px_12px_rgba(197,168,128,0.15)] dark:shadow-[0_0_15px_rgba(197,168,128,0.2)] select-none">
                     {customer.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-base font-bold text-white tracking-wide font-serif truncate">
+                    <h4 className="text-base font-bold text-brand-espresso dark:text-zinc-100 tracking-wide font-serif truncate">
                       {customer.name}
                     </h4>
-                    <p className="text-xs text-zinc-400 truncate font-sans font-medium">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate font-sans font-medium">
                       {customer.email}
                     </p>
                   </div>
                 </div>
 
                 {/* Card Bottom: Member Serial */}
-                <div className="mt-6 border-t border-white/5 pt-4">
-                  <span className="text-[8px] uppercase tracking-wider text-zinc-500 font-sans block mb-0.5">
-                    Member Serial
+                <div className="mt-6 border-t border-brand-espresso/10 dark:border-white/5 pt-4 flex justify-between items-end relative z-10">
+                  <div>
+                    <span className="text-[8px] uppercase tracking-wider text-zinc-500 dark:text-zinc-500 font-sans block mb-0.5">
+                      Member Serial
+                    </span>
+                    <button
+                      onClick={() => handleCopy(customer.id)}
+                      className="group flex items-center gap-1.5 text-xs font-mono font-medium text-brand-espresso dark:text-zinc-300 hover:text-brand-gold dark:hover:text-brand-gold transition-colors cursor-pointer"
+                    >
+                      <span>{customer.id}</span>
+                      {copied ? (
+                        <Check size={10} className="text-emerald-600 dark:text-emerald-400 font-bold" />
+                      ) : (
+                        <Copy size={10} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </button>
+                  </div>
+                  <span className="text-[9px] font-serif italic text-brand-gold/70 tracking-wider">
+                    Antonioni Grounds
                   </span>
-                  <button
-                    onClick={() => handleCopy(customer.id)}
-                    className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors font-mono cursor-pointer"
-                  >
-                    <span>{customer.id}</span>
-                    {copied ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} />}
-                  </button>
                 </div>
               </div>
 
                {/* Account Overview Details */}
               <div className="space-y-4 mb-6">
-                <div className="grid grid-cols-2 gap-4 rounded-xl border border-card-border bg-background-alt p-4 font-sans text-xs">
+                <div className="grid grid-cols-2 gap-3.5 rounded-xl border border-card-border bg-background-alt/30 dark:bg-brand-charcoal/20 p-4 font-sans text-xs">
                   <div>
-                    <span className="text-zinc-500 block mb-1">Registration Date</span>
-                    <span className="text-foreground font-medium">{formatDate(customer.joinedAt)}</span>
+                    <span className="text-neutral-500 dark:text-zinc-500 block mb-0.5 uppercase tracking-wider text-[9px] font-bold">
+                      Stamps Earned
+                    </span>
+                    <span className="text-foreground font-bold font-mono text-xs flex items-center gap-1">
+                      <Coffee size={12} className="text-brand-gold shrink-0" />
+                      {customer.stamps} / 9 Stamps
+                    </span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 block mb-1">Account Status</span>
-                    <span className="text-emerald-400 font-medium flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Active Member
+                    <span className="text-neutral-500 dark:text-zinc-500 block mb-0.5 uppercase tracking-wider text-[9px] font-bold">
+                      Points Balance
+                    </span>
+                    <span className="text-foreground font-bold font-mono text-xs flex items-center gap-1">
+                      <Sparkles size={12} className="text-brand-gold shrink-0 animate-pulse" />
+                      {customer.points} pts
+                    </span>
+                  </div>
+                  <div className="col-span-2 h-[1px] bg-card-border my-0.5" />
+                  <div>
+                    <span className="text-neutral-500 dark:text-zinc-500 block mb-0.5 uppercase tracking-wider text-[9px] font-bold">
+                      Registration Date
+                    </span>
+                    <span className="text-foreground font-medium font-mono text-xs">
+                      {formatDate(customer.joinedAt)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-neutral-500 dark:text-zinc-500 block mb-0.5 uppercase tracking-wider text-[9px] font-bold">
+                      Account Status
+                    </span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                      Active Reserve Member
                     </span>
                   </div>
                 </div>
@@ -439,7 +485,7 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={() => setIsProfileOpen(false)}
                   disabled={isLoggingOut}
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-brand-gold py-2.5 text-xs font-semibold text-black hover:bg-brand-gold-hover transition-colors gold-glow active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-brand-gold py-2.5 text-xs font-semibold text-black hover:bg-brand-gold-hover hover:scale-[1.01] active:scale-[0.98] transition-all duration-200 gold-glow cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Close Profile
                 </button>
@@ -447,7 +493,7 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="w-full flex items-center justify-center gap-2 rounded-full border border-card-border bg-background-alt py-2.5 text-xs font-semibold text-zinc-500 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all duration-300 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 rounded-full border border-card-border bg-background-alt/50 dark:bg-white/5 py-2.5 text-xs font-semibold text-neutral-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:border-red-200 dark:hover:border-red-500/20 hover:scale-[1.01] active:scale-[0.98] transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoggingOut ? (
                     <Loader2 size={12} className="animate-spin text-zinc-400" />

@@ -68,8 +68,8 @@ export const EventsUpdates: React.FC = () => {
   return (
     <section className="py-24 bg-background border-t border-card-border relative transition-colors duration-500 overflow-hidden">
       {/* Decorative ambient gold glows */}
-      <div className="absolute top-1/4 -right-48 w-96 h-96 bg-brand-gold/5 rounded-full filter blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 -left-48 w-96 h-96 bg-brand-gold/5 rounded-full filter blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 -right-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 -left-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         
@@ -103,7 +103,7 @@ export const EventsUpdates: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent sm:bg-gradient-to-r pointer-events-none" />
                     
                     {/* Floating Icon Badge */}
-                    <div className="absolute top-4 left-4 p-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-brand-gold">
+                    <div className="absolute top-4 left-4 p-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-emerald-600 dark:text-emerald-400">
                       <Icon size={18} />
                     </div>
                   </div>
@@ -112,7 +112,7 @@ export const EventsUpdates: React.FC = () => {
                   <div className="flex-1 p-6 md:p-8 flex flex-col justify-between space-y-4">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] tracking-[0.25em] font-sans font-bold uppercase text-brand-gold">
+                        <span className="text-[10px] tracking-[0.25em] font-sans font-bold uppercase text-emerald-600 dark:text-emerald-400">
                           {event.category}
                         </span>
                         <span className="h-1 w-1 rounded-full bg-neutral-300 dark:bg-zinc-700 hidden sm:inline" />
@@ -121,7 +121,7 @@ export const EventsUpdates: React.FC = () => {
                         </span>
                       </div>
                       
-                      <h3 className="type-h3 text-foreground font-bold group-hover:text-brand-gold transition-colors duration-300">
+                      <h3 className="type-h3 text-foreground font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">
                         {event.title}
                       </h3>
                       
@@ -133,12 +133,12 @@ export const EventsUpdates: React.FC = () => {
                     <div className="pt-2 border-t border-card-border/50">
                       <Link
                         href={event.link}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-foreground hover:text-brand-gold transition-colors duration-300 group/link"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-foreground hover:text-emerald-500 transition-colors duration-300 group/link"
                       >
                         {event.linkLabel}
                         <ArrowUpRight
                           size={14}
-                          className="transition-transform duration-300 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 text-brand-gold"
+                          className="transition-transform duration-300 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 text-emerald-500"
                         />
                       </Link>
                     </div>

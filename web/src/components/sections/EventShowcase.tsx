@@ -62,8 +62,8 @@ export const EventShowcase: React.FC = () => {
   return (
     <section className="py-24 bg-background relative transition-colors duration-500 overflow-hidden">
       {/* Decorative ambient gold glows */}
-      <div className="absolute top-1/3 -left-48 w-96 h-96 bg-brand-gold/5 rounded-full filter blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/3 -right-48 w-96 h-96 bg-brand-gold/5 rounded-full filter blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/3 -left-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/3 -right-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         
@@ -89,7 +89,7 @@ export const EventShowcase: React.FC = () => {
                   onClick={() => setActiveIndex(index)}
                   className={`relative rounded-full px-5 py-2 type-ui transition-all duration-300 cursor-pointer ${
                     isActive
-                      ? "text-black font-bold z-10"
+                      ? "text-white font-bold z-10"
                       : "text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-zinc-200"
                   }`}
                 >
@@ -97,7 +97,7 @@ export const EventShowcase: React.FC = () => {
                   {isActive && (
                     <motion.div
                       layoutId="activeEventTab"
-                      className="absolute inset-0 bg-brand-gold rounded-full -z-10 shadow-md"
+                      className="absolute inset-0 bg-[#2E5A44] rounded-full -z-10 shadow-md"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
@@ -108,9 +108,9 @@ export const EventShowcase: React.FC = () => {
         </div>
 
         {/* Showcase Container */}
-        <div className="rounded-2xl border border-card-border bg-card p-8 md:p-12 relative overflow-hidden flex flex-col lg:flex-row items-center gap-12 glassmorphism-gold shadow-2xl">
+        <div className="rounded-2xl border border-card-border bg-card p-8 md:p-12 relative overflow-hidden flex flex-col lg:flex-row items-center gap-12 glassmorphism-green shadow-2xl">
           {/* Internal background glowing ball */}
-          <div className="absolute -top-1/4 -right-1/4 w-[350px] h-[350px] bg-brand-gold/5 blur-[100px] rounded-full pointer-events-none" />
+          <div className="absolute -top-1/4 -right-1/4 w-[350px] h-[350px] bg-[#2E5A44]/5 blur-[100px] rounded-full pointer-events-none" />
 
           {/* Left Content Column */}
           <div className="flex-1 space-y-6 w-full">
@@ -124,7 +124,7 @@ export const EventShowcase: React.FC = () => {
                 className="space-y-6"
               >
                 <div>
-                  <span className="type-eyebrow text-brand-gold font-bold">
+                  <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 font-bold">
                     {activeExp.eyebrow} Experience
                   </span>
                   <h3 className="type-h2 text-foreground leading-tight mt-1">
@@ -138,13 +138,13 @@ export const EventShowcase: React.FC = () => {
 
                 {/* Event Features */}
                 <div className="space-y-3 pt-2">
-                  <span className="text-[10px] tracking-[0.2em] font-sans font-bold uppercase text-brand-gold/80 block">
+                  <span className="text-[10px] tracking-[0.2em] font-sans font-bold uppercase text-emerald-600 dark:text-emerald-400 block">
                     Experience Highlights
                   </span>
                   <ul className="space-y-2.5">
                     {activeExp.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-3 text-neutral-500 dark:text-zinc-400 type-body-sm">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-gold/10 text-brand-gold border border-brand-gold/20 mt-0.5">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2E5A44]/10 text-[#2E5A44] dark:text-emerald-400 border border-emerald-500/20 mt-0.5">
                           <Check size={11} className="stroke-[3]" />
                         </span>
                         <span>{feature}</span>
@@ -170,7 +170,7 @@ export const EventShowcase: React.FC = () => {
                 <div className="pt-4">
                   <Link
                     href={`/reservations?type=${activeExp.id}`}
-                    className="type-ui group relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-brand-gold px-8 py-3.5 text-black font-semibold transition-all duration-300 hover:bg-brand-gold-hover hover:shadow-[0_0_30px_rgba(197,168,128,0.25)] active:scale-95 cursor-pointer"
+                    className="type-ui group relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-3.5 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] active:scale-95 cursor-pointer"
                   >
                     <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
                     <span className="relative flex items-center gap-2">
@@ -185,7 +185,7 @@ export const EventShowcase: React.FC = () => {
 
           {/* Right Image Column */}
           <div className="w-full lg:w-[450px] shrink-0 relative">
-            <div className="absolute -inset-2 bg-brand-gold/5 rounded-2xl filter blur-md pointer-events-none" />
+            <div className="absolute -inset-2 bg-[#2E5A44]/5 rounded-2xl filter blur-md pointer-events-none" />
             
             <div className="relative h-[340px] md:h-[400px] w-full rounded-xl overflow-hidden border border-card-border bg-neutral-900 shadow-lg">
               <AnimatePresence mode="wait">

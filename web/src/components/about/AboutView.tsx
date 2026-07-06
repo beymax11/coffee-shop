@@ -80,7 +80,7 @@ export function AboutView() {
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 dark:via-background/40 to-background/20 dark:to-black/60 transition-colors duration-500" />
 
           <div className="relative z-10 text-center max-w-2xl px-6 space-y-4">
-            <span className="type-eyebrow">Antonioni Grounds Story</span>
+            <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Antonioni Grounds Story</span>
             <h1 className="type-h1 text-foreground leading-tight">
               Our Heritage & Philosophy
             </h1>
@@ -95,7 +95,7 @@ export function AboutView() {
           {/* Section 1: The Ritual Sourcing */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-6">
-              <span className="type-eyebrow">Origin Matters</span>
+              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Origin Matters</span>
               <h2 className="type-h2 text-foreground leading-snug">
                 Tracing Volcanoes & Single-Family Farms
               </h2>
@@ -119,7 +119,7 @@ export function AboutView() {
           {/* Section 2: Values Cards */}
           <div className="space-y-12">
             <div className="text-center max-w-xl mx-auto">
-              <span className="type-eyebrow font-sans">Corporate Ethics</span>
+              <span className="type-eyebrow font-sans text-emerald-600 dark:text-emerald-400">Corporate Ethics</span>
               <h2 className="type-h2 text-foreground mt-1">Our Core Pillars</h2>
             </div>
 
@@ -129,9 +129,9 @@ export function AboutView() {
                 return (
                   <StaggerItem
                     key={i}
-                    className="rounded-xl border border-card-border bg-card p-8 space-y-4 hover:border-brand-gold/30 hover:shadow-lg hover:shadow-brand-gold/5 dark:hover:shadow-none hover:-translate-y-1 transition-all duration-300"
+                    className="rounded-xl border border-card-border bg-card p-8 space-y-4 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 dark:hover:shadow-none hover:-translate-y-1 transition-all duration-300"
                   >
-                    <div className="rounded-full bg-brand-gold/10 p-3 text-brand-gold w-fit">
+                    <div className="rounded-full bg-[#2E5A44]/10 p-3 text-[#2E5A44] dark:text-emerald-400 w-fit">
                       <Icon size={20} />
                     </div>
                     <h3 className="type-subheading text-foreground">{v.title}</h3>
@@ -145,7 +145,7 @@ export function AboutView() {
           {/* Section 3: The Roasting Timeline */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
             <div className="space-y-6 lg:sticky lg:top-28">
-              <span className="type-eyebrow">The Chronicles</span>
+              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">The Chronicles</span>
               <h2 className="type-h2 text-foreground">Chronological Growth</h2>
               <p className="type-body text-neutral-600 dark:text-zinc-400">
                 From a private 4-seat espresso counter in Aoyama, Tokyo, to private fashion galas across Paris and a global roasting lab. Our path has always prioritized premium, slow curation over mass expansion.
@@ -154,7 +154,7 @@ export function AboutView() {
               <div className="pt-4">
                 <Link
                   href="/menu"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-brand-gold px-6 py-2.5 type-ui text-black hover:bg-brand-gold-hover transition-all gold-glow"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#2E5A44] px-6 py-2.5 type-ui text-white hover:bg-[#234533] transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)]"
                 >
                   Explore Current Menu
                   <ArrowRight size={14} />
@@ -162,13 +162,13 @@ export function AboutView() {
               </div>
             </div>
 
-            <div className="border-l-2 border-brand-gold/15 dark:border-card-border pl-8 space-y-12">
+            <div className="border-l-2 border-[#2E5A44]/20 dark:border-card-border pl-8 space-y-12">
               {timeline.map((item, idx) => (
                 <div key={idx} className="relative space-y-2">
                   {/* Dot */}
-                  <div className="absolute -left-[38px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-brand-gold bg-background" />
+                  <div className="absolute -left-[38px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-emerald-500 bg-background" />
 
-                  <span className="type-eyebrow">{item.year}</span>
+                  <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">{item.year}</span>
                   <h4 className="type-subheading text-foreground">{item.title}</h4>
                   <p className="type-body text-neutral-600 dark:text-zinc-400">{item.desc}</p>
                 </div>
@@ -177,18 +177,18 @@ export function AboutView() {
           </div>
 
           {/* Section 4: Roasting Process steps */}
-          <div className="rounded-2xl p-8 md:p-12 relative overflow-hidden glassmorphism-gold">
-            <div className="absolute -bottom-1/4 -left-1/4 w-80 h-80 bg-brand-gold/5 blur-[90px] rounded-full pointer-events-none" />
+          <div className="rounded-2xl p-8 md:p-12 relative overflow-hidden glassmorphism-green">
+            <div className="absolute -bottom-1/4 -left-1/4 w-80 h-80 bg-[#2E5A44]/5 blur-[90px] rounded-full pointer-events-none" />
 
             <div className="text-center max-w-xl mx-auto mb-12">
-              <span className="type-eyebrow">Sensory Science</span>
+              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Sensory Science</span>
               <h2 className="type-h2-alt text-foreground mt-1">The Coffee Ceremony</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {processes.map((p, idx) => (
                 <div key={idx} className="space-y-3 relative">
-                  <span className="type-step text-brand-gold/35 dark:text-brand-gold/20 block">{p.step}</span>
+                  <span className="type-step text-emerald-500/35 dark:text-emerald-500/20 block">{p.step}</span>
                   <h4 className="type-subheading text-foreground mt-2">{p.title}</h4>
                   <p className="type-body-sm text-neutral-600 dark:text-zinc-400">{p.desc}</p>
                 </div>

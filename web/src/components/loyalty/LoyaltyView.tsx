@@ -105,9 +105,9 @@ export function LoyaltyView() {
         {/* Subtle decorative background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {/* Glowing gold blobs */}
-          <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(197,168,128,0.07)_0%,transparent_70%)] blur-[120px]" />
-          <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(197,168,128,0.05)_0%,transparent_70%)] blur-[120px]" />
-          <div className="absolute top-[30%] left-[40%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle,rgba(197,168,128,0.03)_0%,transparent_70%)] blur-[100px]" />
+          <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.08)_0%,transparent_70%)] blur-[120px]" />
+          <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.06)_0%,transparent_70%)] blur-[120px]" />
+          <div className="absolute top-[30%] left-[40%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.04)_0%,transparent_70%)] blur-[100px]" />
 
           {/* Fine luxury grid lines overlay */}
           <div
@@ -126,8 +126,8 @@ export function LoyaltyView() {
 
 
           {isGuest ? (
-            <FadeUp className="max-w-md mx-auto rounded-2xl border border-card-border bg-card p-8 md:p-10 text-center glassmorphism-gold shadow-xl flex flex-col items-center">
-              <div className="rounded-full bg-brand-gold/10 p-4 text-brand-gold mb-6">
+            <FadeUp className="max-w-md mx-auto rounded-2xl border border-card-border bg-card p-8 md:p-10 text-center glassmorphism-green shadow-xl flex flex-col items-center">
+              <div className="rounded-full bg-[#2E5A44]/10 p-4 text-[#2E5A44] dark:text-emerald-400 mb-6">
                 <QrCode size={32} />
               </div>
               <h2 className="type-h3 text-foreground">Membership Access Required</h2>
@@ -137,7 +137,7 @@ export function LoyaltyView() {
               <div className="mt-8 w-full space-y-3">
                 <Link
                   href="/login"
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-brand-gold py-3 text-sm font-semibold text-black hover:bg-brand-gold-hover transition-colors gold-glow active:scale-95 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] py-3 text-sm font-semibold text-white hover:bg-[#234533] transition-colors shadow-[0_0_20px_rgba(46,90,68,0.25)] active:scale-95 cursor-pointer"
                 >
                   Sign In to Account
                 </Link>
@@ -167,11 +167,11 @@ export function LoyaltyView() {
                       WebkitBackfaceVisibility: "hidden"
                     }}
                   >
-                    <div className="relative overflow-hidden rounded-2xl border border-brand-gold/15 bg-gradient-to-br from-[#FCF9F5] to-[#EADBC8]/40 dark:from-[#1c1a16] dark:to-[#121212] p-8 glassmorphism-gold shadow-xl flex flex-col justify-start gap-4 h-full gold-glow">
+                    <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/40 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 p-8 glassmorphism-green shadow-xl flex flex-col justify-start gap-4 h-full">
                       {/* Front Card Header */}
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pr-12 gap-4">
                         <div>
-                          <h3 className="type-h3 text-foreground">Every stamp is a step toward another unforgettable brew.</h3>
+                          <h3 className="type-h3 text-emerald-600 dark:text-emerald-400">Every stamp is a step toward another unforgettable brew.</h3>
                           <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Buy 9 coffees, get the 10th complimentary.</p>
                         </div>
 
@@ -180,7 +180,7 @@ export function LoyaltyView() {
                             onClick={handleClaimReward}
                             className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 type-ui flex items-center gap-1.5 transition-all shadow-lg animate-pulse"
                           >
-                            <Gift size={14} />
+                            <Gift size={14} className="text-emerald-300" />
                             Claim Complimentary Geisha
                           </button>
                         )}
@@ -189,7 +189,7 @@ export function LoyaltyView() {
                       {/* Flip Icon Button */}
                       <button
                         onClick={() => setIsFlipped(true)}
-                        className="absolute top-8 right-8 rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-brand-gold hover:border-brand-gold/30 transition-all active:scale-95 z-20"
+                        className="absolute top-8 right-8 rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95 z-20"
                         title="View Membership Card"
                       >
                         <RotateCcw size={16} className="rotate-180" />
@@ -203,7 +203,7 @@ export function LoyaltyView() {
                             <div
                               key={idx}
                               className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-300 ${isStamped
-                                ? "bg-transparent border-brand-gold/40"
+                                ? "bg-transparent border-emerald-500/40"
                                 : "bg-zinc-100 border-zinc-200/80 dark:bg-[#181818] dark:border-white/5"
                                 }`}
                             >
@@ -235,7 +235,7 @@ export function LoyaltyView() {
                             : "bg-zinc-100 border-zinc-200/80 border-dashed text-zinc-400 dark:bg-[#181818] dark:border-white/10 dark:text-zinc-500"
                             }`}
                         >
-                          <Gift size={28} className={stamps >= 9 ? "animate-bounce text-emerald-600 dark:text-emerald-400" : ""} />
+                          <Gift size={28} className={stamps >= 9 ? "animate-bounce text-emerald-600 dark:text-emerald-400" : "text-emerald-600 dark:text-emerald-400"} />
                         </div>
                       </div>
 
@@ -268,10 +268,10 @@ export function LoyaltyView() {
                       transform: "rotateY(180deg)"
                     }}
                   >
-                    <div className="relative overflow-hidden rounded-2xl border border-brand-gold/15 bg-gradient-to-br from-[#FCF9F5] to-[#EADBC8]/40 dark:from-[#1c1a16] dark:to-[#121212] p-8 glassmorphism-gold shadow-xl flex flex-col justify-between h-full gold-glow">
+                    <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/40 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 p-8 glassmorphism-green shadow-xl flex flex-col justify-between h-full">
 
                       {/* Right side coffee photo cover */}
-                      <div className="absolute top-0 right-0 bottom-0 w-1/2 overflow-hidden border-l border-brand-gold/10 hidden sm:block">
+                      <div className="absolute top-0 right-0 bottom-0 w-1/2 overflow-hidden border-l border-[#2E5A44]/10 hidden sm:block">
                         <Image
                           src="/kape.jpg"
                           alt="Luxury Coffee"
@@ -279,13 +279,13 @@ export function LoyaltyView() {
                           className="object-cover opacity-90 hover:opacity-100 transition-opacity duration-300"
                         />
                         {/* Soft blend overlay gradient to card background */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#FCF9F5] dark:from-[#121212] via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#ECF7F2] dark:from-[#07130E] via-transparent to-transparent" />
                       </div>
 
                       {/* Content Column (occupying left half on desktop) */}
                       <div className="flex flex-col justify-start gap-3 h-full w-full sm:w-[48%] min-w-0 z-10 relative">
                         <div>
-                          <span className="text-[10px] tracking-[0.25em] text-brand-gold/90 font-bold uppercase block font-sans">Antonioni Grounds Reserve</span>
+                          <span className="text-[10px] tracking-[0.25em] text-[#2E5A44] dark:text-emerald-400 font-bold uppercase block font-sans">Antonioni Grounds Reserve</span>
                           <h2 className="type-h1 text-foreground mt-1">{memberName}</h2>
                           {isGuest && <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Guest Preview Card</p>}
                         </div>
@@ -298,7 +298,7 @@ export function LoyaltyView() {
                             className="w-32 h-32 sm:w-36 sm:h-36 bg-white p-2.5 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-inner shrink-0 group cursor-pointer"
                           >
                             {/* Gold scanning light simulation */}
-                            <div className="absolute left-0 right-0 h-1 bg-brand-gold opacity-75 shadow-[0_0_8px_#C5A880] animate-pulse z-10" style={{ animation: "scan 2.5s infinite ease-in-out" }} />
+                            <div className="absolute left-0 right-0 h-1 bg-emerald-500 opacity-75 shadow-[0_0_8px_#10B981] animate-pulse z-10" style={{ animation: "scan 2.5s infinite ease-in-out" }} />
 
                             {/* Virtual Stylized QR representation */}
                             <div className="w-full h-full flex flex-col justify-between select-none">
@@ -342,7 +342,7 @@ export function LoyaltyView() {
 
                             {/* Hover Overlay Expand Button */}
                             <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20">
-                              <button className="bg-brand-gold text-black rounded-full p-2.5 shadow-lg flex items-center justify-center hover:scale-110 transition-all hover:bg-brand-gold-hover active:scale-95">
+                              <button className="bg-[#2E5A44] text-white rounded-full p-2.5 shadow-lg flex items-center justify-center hover:scale-110 transition-all hover:bg-[#234533] active:scale-95">
                                 <Maximize2 size={16} />
                               </button>
                             </div>
@@ -356,7 +356,7 @@ export function LoyaltyView() {
                                 <span className="font-mono text-foreground text-xs tracking-wider">{memberId}</span>
                                 <button
                                   onClick={copyMemberId}
-                                  className="text-zinc-500 hover:text-brand-gold transition-colors"
+                                  className="text-zinc-500 hover:text-emerald-500 transition-colors"
                                   title="Copy ID"
                                 >
                                   {copiedId ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
@@ -369,7 +369,7 @@ export function LoyaltyView() {
                             </div>
                             <div className="space-y-0.5">
                               <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Loyalty Status</span>
-                              <span className="font-mono text-brand-gold text-xs font-bold">{stamps} / 10 Stamps</span>
+                              <span className="font-mono text-[#2E5A44] dark:text-emerald-400 text-xs font-bold">{stamps} / 10 Stamps</span>
                             </div>
                           </div>
                         </div>
@@ -389,7 +389,7 @@ export function LoyaltyView() {
                       {/* Flip Icon Button */}
                       <button
                         onClick={() => setIsFlipped(false)}
-                        className="absolute top-8 right-8 rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-brand-gold hover:border-brand-gold/30 transition-all active:scale-95 z-20"
+                        className="absolute top-8 right-8 rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95 z-20"
                         title="View Stamp Card"
                       >
                         <RotateCcw size={16} />
@@ -445,13 +445,13 @@ export function LoyaltyView() {
                 </div>
                 <div className="flex justify-between text-xs border-t border-card-border pt-2">
                   <span className="text-zinc-500">Points Awarded</span>
-                  <span className="text-brand-gold font-bold font-mono">+50 pts</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">+50 pts</span>
                 </div>
               </div>
 
               <button
                 onClick={() => setShowClaimSuccess(false)}
-                className="w-full rounded-full bg-brand-gold text-black py-2.5 type-ui hover:bg-brand-gold-hover transition-colors font-bold"
+                className="w-full rounded-full bg-[#2E5A44] text-white py-2.5 type-ui hover:bg-[#234533] transition-colors font-bold"
               >
                 Close Ticket
               </button>
@@ -486,13 +486,13 @@ export function LoyaltyView() {
                 <X size={20} />
               </button>
 
-              <span className="type-eyebrow text-brand-gold text-[10px] tracking-[0.25em] block mb-2">Member ID Scanner</span>
+              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 text-[10px] tracking-[0.25em] block mb-2">Member ID Scanner</span>
               <h3 className="type-h3 text-foreground font-serif text-center font-bold mb-6">Your Loyalty QR Code</h3>
 
               {/* Large QR Code Container */}
               <div className="w-48 h-48 bg-white p-3 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-lg border border-zinc-200/50">
                 {/* Gold scanning light simulation */}
-                <div className="absolute left-0 right-0 h-1 bg-brand-gold opacity-75 shadow-[0_0_8px_#C5A880] animate-pulse z-10" style={{ animation: "scan 2.5s infinite ease-in-out" }} />
+                <div className="absolute left-0 right-0 h-1 bg-emerald-500 opacity-75 shadow-[0_0_8px_#10B981] animate-pulse z-10" style={{ animation: "scan 2.5s infinite ease-in-out" }} />
                 
                 {/* Virtual Stylized QR representation */}
                 <div className="w-full h-full flex flex-col justify-between select-none">

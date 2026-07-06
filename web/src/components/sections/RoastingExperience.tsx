@@ -85,8 +85,8 @@ export const RoastingExperience: React.FC = () => {
   return (
     <section className="py-24 bg-background text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">
       {/* Background visual accents */}
-      <div className="absolute top-1/4 left-10 w-96 h-96 bg-brand-gold/5 rounded-full filter blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-brand-gold/5 rounded-full filter blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-10 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
@@ -94,7 +94,7 @@ export const RoastingExperience: React.FC = () => {
           {/* Left Col: Cinematic Image and Glass Card */}
           <div className="relative">
             {/* Glowing background container */}
-            <div className="absolute -inset-4 bg-brand-gold/5 rounded-3xl filter blur-xl opacity-75 pointer-events-none" />
+            <div className="absolute -inset-4 bg-[#2E5A44]/5 rounded-3xl filter blur-xl opacity-75 pointer-events-none" />
             
             <FadeUp className="relative h-[540px] md:h-[600px] rounded-2xl overflow-hidden border border-card-border shadow-2xl group bg-neutral-900">
               <AnimatePresence mode="wait">
@@ -115,10 +115,10 @@ export const RoastingExperience: React.FC = () => {
               {/* Overlay Glass Card */}
               <div className="absolute bottom-6 left-6 right-6 p-6 rounded-xl glassmorphism border border-black/5 dark:border-white/10 shadow-lg text-neutral-900 dark:text-white">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] tracking-[0.2em] font-sans font-bold uppercase text-brand-gold">
+                  <span className="text-[10px] tracking-[0.2em] font-sans font-bold uppercase text-emerald-600 dark:text-emerald-400">
                     {activeStep.label} metrics
                   </span>
-                  <div className="h-[1px] w-12 bg-brand-gold/40" />
+                  <div className="h-[1px] w-12 bg-emerald-500/40" />
                 </div>
                 
                 <div className="grid grid-cols-3 gap-4 pt-2">
@@ -138,8 +138,8 @@ export const RoastingExperience: React.FC = () => {
             <div className="space-y-4">
               <FadeUp>
                 <div className="flex items-center gap-2">
-                  <span className="type-eyebrow">The Antonioni Reserve</span>
-                  <div className="h-[1px] w-8 bg-brand-gold/30" />
+                  <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">The Antonioni Reserve</span>
+                  <div className="h-[1px] w-8 bg-[#2E5A44]/30" />
                 </div>
                 <h2 className="type-h2 text-foreground mt-2 leading-snug">
                   From Volcanic Soil to the Coffee Shop
@@ -160,7 +160,7 @@ export const RoastingExperience: React.FC = () => {
                     >
                       <span
                         className={`font-serif text-lg md:text-xl transition-all duration-300 ${
-                          isActive ? "text-brand-gold scale-105 font-bold" : "text-neutral-400 dark:text-zinc-500 hover:text-foreground"
+                          isActive ? "text-emerald-600 dark:text-emerald-400 scale-105 font-bold" : "text-neutral-400 dark:text-zinc-500 hover:text-foreground"
                         }`}
                       >
                         {step.number}
@@ -179,7 +179,7 @@ export const RoastingExperience: React.FC = () => {
                       {isActive && (
                         <motion.div
                           layoutId="activeStepIndicator"
-                          className="absolute bottom-0 left-0 right-0 h-[2px] bg-brand-gold"
+                          className="absolute bottom-0 left-0 right-0 h-[2px] bg-emerald-500"
                           transition={{ type: "spring", stiffness: 380, damping: 30 }}
                         />
                       )}
@@ -209,7 +209,7 @@ export const RoastingExperience: React.FC = () => {
 
                   {/* Informational Callout */}
                   <div className="flex items-start gap-3 p-4 rounded-xl border border-card-border bg-card/50 backdrop-blur-sm">
-                    <Info size={16} className="text-brand-gold mt-0.5 shrink-0" />
+                    <Info size={16} className="text-emerald-500 mt-0.5 shrink-0" />
                     <p className="type-caption text-xs text-neutral-500 dark:text-zinc-400">
                       {activeStep.notes}
                     </p>
@@ -223,7 +223,7 @@ export const RoastingExperience: React.FC = () => {
               <div className="flex items-center justify-between">
                 <Link
                   href="/about"
-                  className="inline-flex items-center gap-2 type-ui font-semibold text-brand-gold hover:text-brand-gold-hover group transition-colors duration-300"
+                  className="inline-flex items-center gap-2 type-ui font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 group transition-colors duration-300"
                 >
                   Explore Our Heritage
                   <ArrowRight size={14} className="group-hover:translate-x-1.5 transition-transform duration-300" />
@@ -231,13 +231,13 @@ export const RoastingExperience: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => setActiveStepIndex((prev) => (prev - 1 + STEPS.length) % STEPS.length)}
-                    className="p-2 rounded-full border border-card-border hover:border-brand-gold hover:text-brand-gold transition-all duration-300 text-neutral-400 dark:text-zinc-500 cursor-pointer flex items-center justify-center"
+                    className="p-2 rounded-full border border-card-border hover:border-emerald-500 hover:text-emerald-500 transition-all duration-300 text-neutral-400 dark:text-zinc-500 cursor-pointer flex items-center justify-center"
                   >
                     <ChevronRight size={16} className="rotate-180" />
                   </button>
                   <button 
                     onClick={() => setActiveStepIndex((prev) => (prev + 1) % STEPS.length)}
-                    className="p-2 rounded-full border border-card-border hover:border-brand-gold hover:text-brand-gold transition-all duration-300 text-neutral-400 dark:text-zinc-500 cursor-pointer flex items-center justify-center"
+                    className="p-2 rounded-full border border-card-border hover:border-emerald-500 hover:text-emerald-500 transition-all duration-300 text-neutral-400 dark:text-zinc-500 cursor-pointer flex items-center justify-center"
                   >
                     <ChevronRight size={16} />
                   </button>

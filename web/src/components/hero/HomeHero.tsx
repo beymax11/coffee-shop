@@ -64,12 +64,12 @@ export const HomeHero: React.FC = () => {
 
       {/* Ambient gold glow — anchored near left content */}
       <motion.div
-        className="absolute top-[18%] left-[8%] w-[280px] h-[280px] bg-brand-gold/10 blur-[100px] rounded-full"
+        className="absolute top-[18%] left-[8%] w-[280px] h-[280px] bg-[#2E5A44]/15 blur-[100px] rounded-full"
         animate={{ opacity: [0.35, 0.55, 0.35], scale: [1, 1.06, 1] }}
         transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute bottom-[20%] right-[12%] w-[320px] h-[320px] bg-brand-gold/6 blur-[110px] rounded-full"
+        className="absolute bottom-[20%] right-[12%] w-[320px] h-[320px] bg-[#2E5A44]/8 blur-[110px] rounded-full"
         animate={{ opacity: [0.2, 0.4, 0.2], scale: [1.04, 1, 1.04] }}
         transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
@@ -87,8 +87,8 @@ export const HomeHero: React.FC = () => {
           variants={heroItem}
           className="flex items-center justify-start gap-3 mb-6"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse shrink-0" />
-          <span className="type-eyebrow tracking-[0.25em] text-xs font-semibold text-brand-gold/90">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <span className="type-eyebrow tracking-[0.25em] text-xs font-semibold text-emerald-600 dark:text-emerald-400">
             Welcome to Antonioni Grounds
           </span>
         </motion.div>
@@ -99,7 +99,7 @@ export const HomeHero: React.FC = () => {
           variants={heroItem}
         >
           Where Every Cup{" "}
-          <span className="text-brand-gold block sm:inline-block">
+          <span className="text-emerald-600 dark:text-emerald-400 block sm:inline-block">
             Finds Its Story
           </span>
         </motion.h1>
@@ -120,7 +120,7 @@ export const HomeHero: React.FC = () => {
           <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
             <Link
               href="/loyalty"
-              className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-brand-gold px-8 py-4 text-black font-semibold transition-all duration-300 hover:bg-brand-gold-hover hover:shadow-[0_0_30px_rgba(197,168,128,0.25)]"
+              className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)]"
             >
               <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
               <span className="relative flex items-center gap-2">
@@ -133,11 +133,11 @@ export const HomeHero: React.FC = () => {
           <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
             <Link
               href="/reservations"
-              className="type-ui group w-full sm:w-auto flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-brand-gold/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)]"
+              className="type-ui group w-full sm:w-auto flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)]"
             >
               <Calendar
                 size={15}
-                className="text-brand-gold transition-transform duration-300 group-hover:scale-110"
+                className="text-emerald-500 transition-transform duration-300 group-hover:scale-110"
               />
               Reserve Event Cart
             </Link>
@@ -157,7 +157,7 @@ export const HomeHero: React.FC = () => {
           <motion.div
             animate={{ y: [0, 10, 0], opacity: [0.6, 1, 0.6] }}
             transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-            className="w-1 h-1.5 rounded-full bg-brand-gold"
+            className="w-1 h-1.5 rounded-full bg-emerald-500"
           />
         </div>
         <span className="type-micro">Scroll</span>

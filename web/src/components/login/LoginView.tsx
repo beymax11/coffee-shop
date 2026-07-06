@@ -21,6 +21,15 @@ export function LoginView() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "signup") {
+      setIsSignUp(true);
+    } else if (params.get("mode") === "login") {
+      setIsSignUp(false);
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;

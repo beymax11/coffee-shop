@@ -220,8 +220,8 @@ export const LifestyleGrid: React.FC = () => {
   return (
     <section className="py-24 bg-background border-t border-card-border transition-colors duration-500 relative overflow-hidden">
       {/* Dynamic Background accents */}
-      <div className="absolute top-1/3 right-0 w-80 h-80 bg-brand-gold/5 rounded-full filter blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/3 left-0 w-80 h-80 bg-brand-gold/5 rounded-full filter blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 right-0 w-80 h-80 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/3 left-0 w-80 h-80 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         {/* Section Header */}
@@ -230,8 +230,8 @@ export const LifestyleGrid: React.FC = () => {
           <h2 className="type-h2 text-foreground mt-2 font-serif">
             Antonioni Grounds Lifestyle
           </h2>
-          <p className="type-caption text-neutral-500 dark:text-zinc-500 mt-2">
-            Tag <span className="text-brand-gold font-bold">@antonioni_grounds</span> to be featured in our monthly selection.
+          <p className="type-caption text-zinc-500 dark:text-zinc-500 mt-2">
+            Tag <span className="text-emerald-600 dark:text-emerald-400 font-bold">@antonioni_grounds</span> to be featured in our monthly selection.
           </p>
         </div>
 
@@ -264,7 +264,7 @@ export const LifestyleGrid: React.FC = () => {
                     {/* Header */}
                     <div className="flex items-center justify-between transform -translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-brand-gold/20 border border-brand-gold/30 flex items-center justify-center text-[10px] font-bold text-brand-gold uppercase font-sans">
+                        <div className="w-6 h-6 rounded-full bg-[#2E5A44]/20 border border-[#2E5A44]/30 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase font-sans">
                           {post.username[0]}
                         </div>
                         <span className="text-[11px] font-bold text-white font-sans tracking-wide">
@@ -276,7 +276,7 @@ export const LifestyleGrid: React.FC = () => {
 
                     {/* Middle Icon */}
                     <div className="flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform duration-300 my-auto">
-                      <div className="w-11 h-11 rounded-full border border-brand-gold/40 bg-black/40 flex items-center justify-center text-brand-gold gold-glow-hover">
+                      <div className="w-11 h-11 rounded-full border border-emerald-500/40 bg-black/40 flex items-center justify-center text-emerald-500">
                         <InstagramIcon size={18} />
                       </div>
                     </div>
@@ -298,7 +298,7 @@ export const LifestyleGrid: React.FC = () => {
                             {commentsTotal}
                           </span>
                         </div>
-                        <span className="text-[10px] text-brand-gold font-sans font-bold flex items-center gap-0.5 hover:text-brand-gold-hover transition-colors">
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-sans font-bold flex items-center gap-0.5 hover:text-emerald-500 transition-colors">
                           View Post <ExternalLink size={9} />
                         </span>
                       </div>
@@ -321,7 +321,7 @@ export const LifestyleGrid: React.FC = () => {
               href="https://instagram.com" 
               target="_blank" 
               rel="noreferrer" 
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-gold to-brand-gold-hover hover:from-brand-gold-hover hover:to-brand-gold text-white font-sans text-xs font-bold tracking-wider uppercase rounded-lg shadow-md hover:shadow-brand-gold/10 transition-all duration-300 shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#2E5A44] to-[#234533] hover:from-[#234533] hover:to-[#2E5A44] text-white font-sans text-xs font-bold tracking-wider uppercase rounded-lg shadow-md hover:shadow-emerald-500/10 transition-all duration-300 shrink-0 cursor-pointer"
             >
               <InstagramIcon size={14} /> Follow @antonioni_grounds
             </a>
@@ -351,14 +351,14 @@ export const LifestyleGrid: React.FC = () => {
               {/* Previous / Next Arrows for Desktop */}
               <button 
                 onClick={handlePrevPost}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center hover:bg-black/75 hover:border-brand-gold transition-all z-20 cursor-pointer hidden md:flex"
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center hover:bg-black/75 hover:border-emerald-500 transition-all z-20 cursor-pointer hidden md:flex"
                 aria-label="Previous Post"
               >
                 <ChevronLeft size={20} />
               </button>
               <button 
                 onClick={handleNextPost}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center hover:bg-black/75 hover:border-brand-gold transition-all z-20 cursor-pointer hidden md:flex"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center hover:bg-black/75 hover:border-emerald-500 transition-all z-20 cursor-pointer hidden md:flex"
                 aria-label="Next Post"
               >
                 <ChevronRight size={20} />
@@ -368,7 +368,7 @@ export const LifestyleGrid: React.FC = () => {
               <div className="absolute top-4 right-4 z-20">
                 <button 
                   onClick={() => setSelectedPostIndex(null)}
-                  className="w-8 h-8 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center hover:bg-black/70 hover:text-brand-gold transition-all cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center hover:bg-black/70 hover:text-emerald-500 transition-all cursor-pointer"
                   aria-label="Close modal"
                 >
                   <X size={16} />
@@ -392,13 +392,13 @@ export const LifestyleGrid: React.FC = () => {
                 
                 {/* User Header */}
                 <div className="p-4 border-b border-card-border flex items-center gap-3 shrink-0">
-                  <div className="w-9 h-9 rounded-full bg-brand-gold/15 border border-brand-gold/20 flex items-center justify-center text-sm font-bold text-brand-gold uppercase font-sans">
+                  <div className="w-9 h-9 rounded-full bg-[#2E5A44]/15 border border-[#2E5A44]/20 flex items-center justify-center text-sm font-bold text-[#2E5A44] dark:text-emerald-400 uppercase font-sans">
                     {LIFESTYLE_POSTS[selectedPostIndex].username[0]}
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
                       <span className="text-xs font-bold font-sans">@{LIFESTYLE_POSTS[selectedPostIndex].username}</span>
-                      <span className="w-3.5 h-3.5 rounded-full bg-brand-gold text-white flex items-center justify-center text-[7px] font-bold">✓</span>
+                      <span className="w-3.5 h-3.5 rounded-full bg-[#2E5A44] text-white flex items-center justify-center text-[7px] font-bold">✓</span>
                     </div>
                     <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-sans">{LIFESTYLE_POSTS[selectedPostIndex].location}</span>
                   </div>
@@ -408,7 +408,7 @@ export const LifestyleGrid: React.FC = () => {
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs scrollbar-thin">
                   {/* Origin Caption */}
                   <div className="flex gap-3 items-start">
-                    <div className="w-7 h-7 rounded-full bg-brand-gold/10 border border-brand-gold/20 flex items-center justify-center text-[10px] font-bold text-brand-gold shrink-0 uppercase font-sans">
+                    <div className="w-7 h-7 rounded-full bg-[#2E5A44]/10 border border-[#2E5A44]/20 flex items-center justify-center text-[10px] font-bold text-[#2E5A44] dark:text-emerald-400 shrink-0 uppercase font-sans">
                       {LIFESTYLE_POSTS[selectedPostIndex].username[0]}
                     </div>
                     <div className="space-y-1">
@@ -461,12 +461,12 @@ export const LifestyleGrid: React.FC = () => {
                           className={likedPosts[LIFESTYLE_POSTS[selectedPostIndex].id] ? "fill-red-500 text-red-500" : ""} 
                         />
                       </button>
-                      <button className="hover:text-brand-gold transition-colors" aria-label="Comment on post">
+                      <button className="hover:text-emerald-500 transition-colors" aria-label="Comment on post">
                         <MessageCircle size={19} />
                       </button>
                       <button 
                         onClick={() => handleShare(LIFESTYLE_POSTS[selectedPostIndex!])}
-                        className="hover:text-brand-gold transition-colors relative cursor-pointer"
+                        className="hover:text-emerald-500 transition-colors relative cursor-pointer"
                         aria-label="Share post"
                       >
                         {copiedPostId === LIFESTYLE_POSTS[selectedPostIndex].id ? (
@@ -517,7 +517,7 @@ export const LifestyleGrid: React.FC = () => {
                     <button 
                       type="submit"
                       disabled={!commentInput.trim()}
-                      className="text-xs font-bold text-brand-gold disabled:opacity-40 hover:text-brand-gold-hover transition-colors px-2 cursor-pointer font-sans"
+                      className="text-xs font-bold text-emerald-600 dark:text-emerald-400 disabled:opacity-40 hover:text-emerald-500 transition-colors px-2 cursor-pointer font-sans"
                     >
                       Post
                     </button>

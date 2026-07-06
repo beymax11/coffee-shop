@@ -39,7 +39,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", duration: 0.5 }}
-            className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-card-border dark:border-white/10 bg-card dark:bg-[#121212] text-foreground dark:text-[#F5F5F0] shadow-2xl glassmorphism-gold"
+            className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-card-border dark:border-white/10 bg-card dark:bg-[#121212] text-foreground dark:text-[#F5F5F0] shadow-2xl glassmorphism-green"
           >
             {/* Close Button */}
             <button
@@ -63,7 +63,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                 {/* Floating Tags */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
                   {item.tags?.map((tag) => (
-                    <span key={tag} className="rounded bg-brand-gold/90 px-2 py-0.5 type-ui text-black">
+                    <span key={tag} className="rounded bg-[#2E5A44] px-2 py-0.5 type-ui text-white">
                       {tag}
                     </span>
                   ))}
@@ -82,11 +82,11 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
 
                   {/* Rating & Price */}
                   <div className="mt-4 flex items-center justify-between border-b border-card-border dark:border-white/5 pb-4">
-                    <span className="type-h3 text-brand-gold font-serif">
+                    <span className="type-h3 text-emerald-600 dark:text-emerald-400 font-serif">
                       ${item.price.toFixed(2)}
                     </span>
                     <div className="flex items-center gap-1">
-                      <Star size={16} className="fill-brand-gold text-brand-gold" />
+                      <Star size={16} className="fill-emerald-500 text-emerald-500" />
                       <span className="type-body-sm font-semibold">{item.rating}</span>
                       <span className="type-caption text-zinc-500">/ 5.0</span>
                     </div>
@@ -100,9 +100,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   {/* Barista Notes */}
                   {item.notes && (
                     <div className="mt-6 rounded-lg bg-background-alt/50 dark:bg-white/5 p-3 border border-card-border dark:border-white/5 flex items-start gap-2">
-                      <Coffee size={16} className="text-brand-gold mt-0.5 shrink-0" />
+                      <Coffee size={16} className="text-emerald-500 mt-0.5 shrink-0" />
                       <div className="type-body-sm text-zinc-600 dark:text-zinc-400">
-                        <strong className="text-brand-gold block font-semibold mb-0.5">Barista Note</strong>
+                        <strong className="text-emerald-600 dark:text-emerald-400 block font-semibold mb-0.5">Barista Note</strong>
                         {item.notes}
                       </div>
                     </div>
@@ -112,7 +112,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                 <div className="mt-8 flex items-center justify-end border-t border-card-border dark:border-white/5 pt-6">
                   <button
                     onClick={onClose}
-                    className="rounded-full border border-brand-gold/30 bg-brand-gold/5 px-6 py-2.5 type-ui text-brand-gold transition-all hover:bg-brand-gold hover:text-black active:scale-95 shadow-md hover:gold-glow"
+                    className="rounded-full border border-[#2E5A44]/30 bg-[#2E5A44]/5 px-6 py-2.5 type-ui text-emerald-600 dark:text-emerald-400 transition-all hover:bg-[#2E5A44] hover:text-white active:scale-95 shadow-md"
                   >
                     Close Details
                   </button>

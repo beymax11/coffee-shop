@@ -1,70 +1,86 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Coffee, Music, Sparkles, Calendar, ArrowUpRight } from "lucide-react";
-import { FadeUp, StaggerContainer, StaggerItem } from "@/components/animations";
+import { ArrowUpRight } from "lucide-react";
+import { StaggerContainer, StaggerItem } from "@/components/animations";
+import { EventItem } from "@/types";
+import { db } from "@/utils/db";
+import { supabase } from "@/utils/supabase";
 
-interface EventItem {
-  id: string;
-  category: string;
-  title: string;
-  description: string;
-  highlight: string;
-  image: string;
-  link: string;
-  linkLabel: string;
-  icon: React.ComponentType<{ className?: string; size?: number }>;
-}
-
-const EVENTS_DATA: EventItem[] = [
-  {
-    id: "new-drinks",
-    category: "Seasonal Menu",
-    title: "The Summer Alchemy Collection",
-    description: "Indulge in our new curated seasonal creations: the Smoked Rosemary Honey Latte, Yuzu Nitro Cold Brew, and Cardamom Espresso Tonic. Crafted by our master baristas to elevate your summer palette.",
-    highlight: "Available starting today",
-    image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=800&auto=format&fit=crop",
-    link: "/menu",
-    linkLabel: "Explore Seasonal Menu",
-    icon: Coffee,
-  },
-  {
-    id: "acoustic-night",
-    category: "Live Music Lounge",
-    title: "Saturday Sunset Sessions",
-    description: "Sip under the warm lights as local indie-acoustic acts perform live in our lounge. Unwind with our exclusive espresso cocktails and a signature patisserie tasting board.",
-    highlight: "Every Saturday, 6:00 PM - 9:00 PM",
-    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=800&auto=format&fit=crop",
-    link: "/reservations?type=table",
-    linkLabel: "Reserve Lounge Table",
-    icon: Music,
-  },
-  {
-    id: "limited-beans",
-    category: "Microlot Release",
-    title: "Yirgacheffe Kochere Anaerobic",
-    description: "An extremely rare, double-fermented microlot from Gedeo, Ethiopia. Notes of wild jasmine, white peach, and a sparkling citrus acidity. Hand-roasted in 5kg micro-batches.",
-    highlight: "Only 50 bags roasted weekly",
-    image: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=800&auto=format&fit=crop",
-    link: "/menu",
-    linkLabel: "View Coffee Menu",
-    icon: Sparkles,
-  },
-  {
-    id: "holiday-hours",
-    category: "Operating Hours",
-    title: "Upcoming Holiday Schedule",
-    description: "Please note our modified hours for the upcoming holidays. We want our hard-working baristas to spend time with their families, so we will operate on a half-day schedule.",
-    highlight: "Holidays: 8:00 AM - 4:00 PM",
-    image: "https://images.unsplash.com/photo-1544982503-9f984c14501a?q=80&w=800&auto=format&fit=crop",
-    link: "/contact",
-    linkLabel: "Contact & Locations",
-    icon: Calendar,
-  },
-];
 
 export const EventsUpdates: React.FC = () => {
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchEvents = async () => {
+    try {
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("events_updates")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (!error && data) {
+          const mapped = data.map((event: {
+            id: string;
+            category: string;
+            title: string;
+            description: string;
+            highlight: string;
+            image: string;
+            link: string;
+            link_label?: string;
+            linkLabel?: string;
+          }) => ({
+            id: event.id,
+            category: event.category,
+            title: event.title,
+            description: event.description,
+            highlight: event.highlight,
+            image: event.image,
+            link: event.link,
+            linkLabel: event.link_label || event.linkLabel || "Explore More"
+          }));
+          setEvents(mapped);
+          setLoading(false);
+          return;
+        } else if (error) {
+          console.error("Supabase select error for events updates section:", error);
+        }
+      }
+    } catch (err) {
+      console.error("Exception loading events updates section from Supabase:", err);
+    }
+    
+    // Fallback to local storage db
+    setEvents(db.getEvents());
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    Promise.resolve().then(() => fetchEvents());
+    const handleStorageChange = () => {
+      fetchEvents();
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-24 bg-background border-t border-card-border relative overflow-hidden min-h-[400px] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-green border-t-transparent" />
+          <p className="text-xs text-neutral-500 font-sans tracking-widest uppercase">Loading happenings...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (events.length === 0) {
+    return null; // Don't render anything if there are no events
+  }
+
   return (
     <section className="py-24 bg-background border-t border-card-border relative transition-colors duration-500 overflow-hidden">
       {/* Decorative ambient gold glows */}
@@ -86,8 +102,7 @@ export const EventsUpdates: React.FC = () => {
 
         {/* Staggered Grid of Events */}
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
-          {EVENTS_DATA.map((event) => {
-            const Icon = event.icon;
+          {events.map((event) => {
             return (
               <StaggerItem key={event.id}>
                 <div className="group rounded-2xl border border-card-border bg-card overflow-hidden glassmorphism shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col sm:flex-row h-full gold-glow-hover">
@@ -102,10 +117,6 @@ export const EventsUpdates: React.FC = () => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent sm:bg-gradient-to-r pointer-events-none" />
                     
-                    {/* Floating Icon Badge */}
-                    <div className="absolute top-4 left-4 p-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-emerald-600 dark:text-emerald-400">
-                      <Icon size={18} />
-                    </div>
                   </div>
 
                   {/* Content Column */}

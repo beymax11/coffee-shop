@@ -10,13 +10,14 @@ import {
   LogOut,
   ChevronLeft,
   Camera,
+  Megaphone,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/utils/supabase";
 
 interface SidebarProps {
-  activeTab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle";
-  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle") => void;
+  activeTab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events";
+  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events") => void;
   reservationsCount: number;
   onLogout: () => void;
   currentUserRole?: "admin" | "barista";
@@ -179,9 +180,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: "loyalty" as const, label: "Loyalty Logs", icon: CreditCard },
             { id: "users" as const, label: "Users & Roles", icon: Users },
             { id: "lifestyle" as const, label: "Lifestyle Posts", icon: Camera },
+            { id: "events" as const, label: "Events & Updates", icon: Megaphone },
           ].filter(tab => {
             if (currentUserRole === "barista") {
-              return tab.id !== "menu" && tab.id !== "users" && tab.id !== "lifestyle";
+              return tab.id !== "menu" && tab.id !== "users" && tab.id !== "lifestyle" && tab.id !== "events";
             }
             return true;
           }).map((tab) => {
@@ -272,9 +274,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: "loyalty" as const, label: "Loyalty", icon: CreditCard },
         { id: "users" as const, label: "Users", icon: Users },
         { id: "lifestyle" as const, label: "Lifestyle", icon: Camera },
+        { id: "events" as const, label: "Events", icon: Megaphone },
       ].filter(tab => {
         if (currentUserRole === "barista") {
-          return tab.id !== "menu" && tab.id !== "users" && tab.id !== "lifestyle";
+          return tab.id !== "menu" && tab.id !== "users" && tab.id !== "lifestyle" && tab.id !== "events";
         }
         return true;
       }).map((tab) => {

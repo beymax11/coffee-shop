@@ -1,4 +1,4 @@
-import { MenuItem, Reservation, LifestylePost } from "@/types";
+import { MenuItem, Reservation, LifestylePost, EventItem } from "@/types";
 import { menuItems as defaultMenuItems } from "@/data/menu";
 
 export interface LoyaltyMember {
@@ -121,6 +121,49 @@ const DEFAULT_LIFESTYLE_POSTS: LifestylePost[] = [
       { id: 2, username: "syphon_brew", text: "Beautiful bloom capture.", time: "2d ago" },
     ]
   }
+];
+
+const DEFAULT_EVENTS: EventItem[] = [
+  {
+    id: "new-drinks",
+    category: "Seasonal Menu",
+    title: "The Summer Alchemy Collection",
+    description: "Indulge in our new curated seasonal creations: the Smoked Rosemary Honey Latte, Yuzu Nitro Cold Brew, and Cardamom Espresso Tonic. Crafted by our master baristas to elevate your summer palette.",
+    highlight: "Available starting today",
+    image: "https://images.unsplash.com/photo-1517701604599-bb29b565090c?q=80&w=800&auto=format&fit=crop",
+    link: "/menu",
+    linkLabel: "Explore Seasonal Menu",
+  },
+  {
+    id: "acoustic-night",
+    category: "Live Music Lounge",
+    title: "Saturday Sunset Sessions",
+    description: "Sip under the warm lights as local indie-acoustic acts perform live in our lounge. Unwind with our exclusive espresso cocktails and a signature patisserie tasting board.",
+    highlight: "Every Saturday, 6:00 PM - 9:00 PM",
+    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=800&auto=format&fit=crop",
+    link: "/reservations?type=table",
+    linkLabel: "Reserve Lounge Table",
+  },
+  {
+    id: "limited-beans",
+    category: "Microlot Release",
+    title: "Yirgacheffe Kochere Anaerobic",
+    description: "An extremely rare, double-fermented microlot from Gedeo, Ethiopia. Notes of wild jasmine, white peach, and a sparkling citrus acidity. Hand-roasted in 5kg micro-batches.",
+    highlight: "Only 50 bags roasted weekly",
+    image: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=800&auto=format&fit=crop",
+    link: "/menu",
+    linkLabel: "View Coffee Menu",
+  },
+  {
+    id: "holiday-hours",
+    category: "Operating Hours",
+    title: "Upcoming Holiday Schedule",
+    description: "Please note our modified hours for the upcoming holidays. We want our hard-working baristas to spend time with their families, so we will operate on a half-day schedule.",
+    highlight: "Holidays: 8:00 AM - 4:00 PM",
+    image: "https://images.unsplash.com/photo-1544982503-9f984c14501a?q=80&w=800&auto=format&fit=crop",
+    link: "/contact",
+    linkLabel: "Contact & Locations",
+  },
 ];
 
 // Helper to check if localStorage is available
@@ -424,6 +467,79 @@ export const db = {
     }
   },
 
+  // --- EVENTS & ANNOUNCEMENTS ---
+  getEvents(): EventItem[] {
+    if (isBrowser && !localStorage.getItem("events_updates")) {
+      setLocalStorageItem("events_updates", DEFAULT_EVENTS);
+    }
+    return getLocalStorageItem("events_updates", DEFAULT_EVENTS);
+  },
+
+  getDefaultEvents(): EventItem[] {
+    return DEFAULT_EVENTS;
+  },
+
+  saveEvent(event: EventItem): void {
+    const events = this.getEvents();
+    const index = events.findIndex((e) => e.id === event.id);
+    if (index >= 0) {
+      events[index] = event;
+    } else {
+      events.push(event);
+    }
+    setLocalStorageItem("events_updates", events);
+    if (isBrowser) window.dispatchEvent(new Event("storage"));
+
+    // Sync to Supabase in background
+    if (isBrowser) {
+      import("./supabase").then(({ supabase }) => {
+        if (supabase) {
+          supabase
+            .from("events_updates")
+            .upsert({
+              id: event.id,
+              category: event.category,
+              title: event.title,
+              description: event.description,
+              highlight: event.highlight,
+              image: event.image,
+              link: event.link,
+              link_label: event.linkLabel,
+            })
+            .then(({ error }) => {
+              if (error) {
+                console.error("Error syncing event update to Supabase:", error);
+              }
+            });
+        }
+      });
+    }
+  },
+
+  deleteEvent(id: string): void {
+    const events = this.getEvents();
+    const filtered = events.filter((e) => e.id !== id);
+    setLocalStorageItem("events_updates", filtered);
+    if (isBrowser) window.dispatchEvent(new Event("storage"));
+
+    // Sync deletion to Supabase
+    if (isBrowser) {
+      import("./supabase").then(({ supabase }) => {
+        if (supabase) {
+          supabase
+            .from("events_updates")
+            .delete()
+            .eq("id", id)
+            .then(({ error }) => {
+              if (error) {
+                console.error("Error syncing event deletion to Supabase:", error);
+              }
+            });
+        }
+      });
+    }
+  },
+
   // --- DATABASE RESET ---
   resetDatabase(): void {
     if (!isBrowser) return;
@@ -432,12 +548,14 @@ export const db = {
     localStorage.removeItem("loyalty_members");
     localStorage.removeItem("mock_users");
     localStorage.removeItem("lifestyle_posts");
+    localStorage.removeItem("events_updates");
     // Reseed
     this.getMenuItems();
     this.getReservations();
     this.getLoyaltyMembers();
     this.getMockUsers();
     this.getLifestylePosts();
+    this.getEvents();
     window.dispatchEvent(new Event("storage"));
   }
 };

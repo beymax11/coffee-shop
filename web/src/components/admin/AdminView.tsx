@@ -20,13 +20,14 @@ import { LoyaltyModal } from "./LoyaltyModal";
 import { NotificationsDropdown } from "./NotificationsDropdown";
 import { UsersTab } from "./UsersTab";
 import { LifestyleTab } from "./LifestyleTab";
+import { EventsTab } from "./EventsTab";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 export const AdminView: React.FC = () => {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events">("dashboard");
 
   // Database States
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -169,7 +170,7 @@ export const AdminView: React.FC = () => {
 
   // Safeguard tab permissions for Baristas
   useEffect(() => {
-    if (currentUserRole === "barista" && (activeTab === "menu" || activeTab === "users" || activeTab === "lifestyle")) {
+    if (currentUserRole === "barista" && (activeTab === "menu" || activeTab === "users" || activeTab === "lifestyle" || activeTab === "events")) {
       setActiveTab("dashboard");
     }
   }, [activeTab, currentUserRole]);
@@ -529,8 +530,9 @@ export const AdminView: React.FC = () => {
   const handleAddMenuSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const isEditing = !!editingMenuItem;
+    const uniqueId = `m-${crypto.randomUUID()}`;
     const newItem: MenuItem = {
-      id: editingMenuItem ? editingMenuItem.id : `m-${Date.now()}`,
+      id: editingMenuItem ? editingMenuItem.id : uniqueId,
       name: menuForm.name,
       description: menuForm.description,
       price: Number(menuForm.price),
@@ -672,7 +674,7 @@ export const AdminView: React.FC = () => {
         <div className="film-grain pointer-events-none absolute inset-0 opacity-[0.04] mix-blend-overlay" />
         <div className="flex flex-col items-center gap-4 text-center z-10">
           <RefreshCw className="animate-spin text-brand-green h-10 w-10" />
-          <span className="type-eyebrow text-zinc-500 text-xs tracking-[0.2em]">Accessing Maître D' Console...</span>
+          <span className="type-eyebrow text-zinc-500 text-xs tracking-[0.2em]">Accessing Maître D&apos; Console...</span>
         </div>
       </div>
     );
@@ -712,12 +714,15 @@ export const AdminView: React.FC = () => {
               {activeTab === "loyalty" && "DIGITAL LOYALTY DIRECTORY"}
               {activeTab === "users" && "USER ACCOUNTS & ROLES"}
               {activeTab === "lifestyle" && "LIFESTYLE SELECTIONS"}
+              {activeTab === "events" && "EVENTS & ANNOUNCEMENTS"}
             </h1>
             <p className="type-caption text-neutral-500 mt-1 hidden sm:block">
               {activeTab === "users"
                 ? "Adjust account authorization roles, inspect client profiles, and manage system access."
                 : activeTab === "lifestyle"
                 ? "Curate and manage social media post selections featured on the lifestyle bento grid."
+                : activeTab === "events"
+                ? "Manage promotional events, holiday schedules, and seasonal menu announcements."
                 : "Manage menu inventory, client reservations, and card records."
               }
             </p>
@@ -848,6 +853,10 @@ export const AdminView: React.FC = () => {
 
               {activeTab === "lifestyle" && (
                 <LifestyleTab />
+              )}
+
+              {activeTab === "events" && (
+                <EventsTab />
               )}
             </motion.div>
           </AnimatePresence>

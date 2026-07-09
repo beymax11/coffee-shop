@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Sun, Moon } from "lucide-react";
-import { db, LoyaltyMember } from "@/utils/db";
+import { RefreshCw, Sun, Moon, Wrench, X } from "lucide-react";
+import { db, LoyaltyMember, UserProfile } from "@/utils/db";
 import { MenuItem, Reservation } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { getMaintenanceMode, setMaintenanceMode } from "@/utils/settings";
 
 // Import modular sub-components
 import { Sidebar } from "./Sidebar";
@@ -17,18 +18,22 @@ import { LoyaltyTab } from "./LoyaltyTab";
 import { MenuModal } from "./MenuModal";
 import { LoyaltyModal } from "./LoyaltyModal";
 import { NotificationsDropdown } from "./NotificationsDropdown";
+import { UsersTab } from "./UsersTab";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 export const AdminView: React.FC = () => {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users">("dashboard");
 
   // Database States
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loyaltyMembers, setLoyaltyMembers] = useState<LoyaltyMember[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
+  const [currentUserRole, setCurrentUserRole] = useState<"admin" | "barista">("admin");
 
   // Search/Filters
   const [menuSearch, setMenuSearch] = useState("");
@@ -90,6 +95,45 @@ export const AdminView: React.FC = () => {
     }
   };
 
+  // Maintenance state and toggle logic
+  const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
+  const [showMaintenanceConfirmModal, setShowMaintenanceConfirmModal] = useState(false);
+
+  useEffect(() => {
+    const loadMaintenance = async () => {
+      const active = await getMaintenanceMode();
+      setIsMaintenanceActive(active);
+    };
+
+    // Set initial value inside microtask to avoid synchronous setState warning
+    Promise.resolve().then(loadMaintenance);
+
+    const handleStorage = () => {
+      loadMaintenance();
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  const toggleMaintenance = () => {
+    if (!isMaintenanceActive) {
+      setShowMaintenanceConfirmModal(true);
+    } else {
+      setIsMaintenanceActive(false);
+      setMaintenanceMode(false);
+      toast.success("Maintenance mode deactivated. Customer access restored.");
+    }
+  };
+
+  const confirmActivateMaintenance = () => {
+    setIsMaintenanceActive(true);
+    setMaintenanceMode(true);
+    toast.error("Maintenance mode activated. Customer access is restricted.", {
+      description: "Customers will see a maintenance message after logging in.",
+    });
+    setShowMaintenanceConfirmModal(false);
+  };
+
   // 1. Auth check
   useEffect(() => {
     const session = localStorage.getItem("admin_session");
@@ -97,8 +141,37 @@ export const AdminView: React.FC = () => {
       router.push("/login");
     } else {
       setIsAuthenticated(true);
+      const adminProfileStr = localStorage.getItem("admin_profile");
+      if (adminProfileStr) {
+        try {
+          const adminProfile = JSON.parse(adminProfileStr);
+          if (adminProfile.email) {
+            setCurrentUserEmail(adminProfile.email);
+          }
+          if (adminProfile.role) {
+            setCurrentUserRole(adminProfile.role);
+          } else {
+            // Default fallback based on email
+            const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
+            if (adminProfile.email?.toLowerCase() === adminEmail.toLowerCase()) {
+              setCurrentUserRole("admin");
+            } else {
+              setCurrentUserRole("barista");
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing admin profile:", e);
+        }
+      }
     }
   }, [router]);
+
+  // Safeguard tab permissions for Baristas
+  useEffect(() => {
+    if (currentUserRole === "barista" && (activeTab === "menu" || activeTab === "users")) {
+      setActiveTab("dashboard");
+    }
+  }, [activeTab, currentUserRole]);
 
   // 2. Load DB
   useEffect(() => {
@@ -181,10 +254,52 @@ export const AdminView: React.FC = () => {
     }
   };
 
-  // Full load: local data + Supabase loyalty members
+  // Fetch all profiles from Supabase (unified list) or fallback to mock
+  const fetchUsers = async () => {
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching profiles from Supabase:", error);
+          setUsers(db.getMockUsers());
+          return;
+        }
+        
+        if (data) {
+          const mappedUsers: UserProfile[] = data.map((profile: any) => ({
+            id: profile.id,
+            name: profile.name || profile.username || "Unknown",
+            username: profile.username || undefined,
+            email: profile.email || "",
+            role: profile.role || "customer",
+            stamps: profile.stamps || 0,
+            points: profile.points || 0,
+            member_id: profile.member_id || undefined,
+            joinedAt: profile.created_at
+              ? new Date(profile.created_at).toISOString().split("T")[0]
+              : new Date().toISOString().split("T")[0]
+          }));
+          setUsers(mappedUsers);
+        }
+      } else {
+        setUsers(db.getMockUsers());
+      }
+    } catch (err) {
+      console.error("Error fetching profiles:", err);
+      setUsers(db.getMockUsers());
+    }
+  };
+
+  // Full load: local data + Supabase loyalty members + user profiles
   const loadAllData = async () => {
     loadLocalData();
     await fetchLoyaltyFromSupabase();
+    await fetchUsers();
   };
 
   const updateReservationStatus = (res: Reservation, newStatus: "Pending" | "Approved" | "Cancelled") => {
@@ -344,6 +459,68 @@ export const AdminView: React.FC = () => {
     db.deleteLoyaltyMember(id);
     setLoyaltyMembers(prev => prev.filter(m => m.id !== id));
     toast.success("Loyalty card deleted successfully!");
+  };
+
+  // --- USER MANAGEMENT HANDLERS ---
+  const handleUpdateUserRole = async (userId: string, newRole: "admin" | "barista" | "customer") => {
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ role: newRole })
+          .eq("id", userId);
+        
+        if (error) {
+          console.error("Supabase user role update error:", error);
+          toast.error("Failed to update user role in database.");
+          return;
+        }
+      } else {
+        // Mock mode update
+        const mockUsers = db.getMockUsers();
+        const user = mockUsers.find(u => u.id === userId);
+        if (user) {
+          user.role = newRole;
+          db.saveMockUser(user);
+        }
+      }
+      
+      toast.success("User role updated successfully.");
+      await fetchUsers();
+      await fetchLoyaltyFromSupabase(); // refresh loyalty to stay in sync
+    } catch (err) {
+      console.error("Error updating user role:", err);
+      toast.error("Failed to update user role.");
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const { error } = await supabase
+          .from("profiles")
+          .delete()
+          .eq("id", userId);
+        
+        if (error) {
+          console.error("Supabase user delete error:", error);
+          toast.error("Failed to delete user in database.");
+          return;
+        }
+      } else {
+        // Mock mode delete
+        db.deleteMockUser(userId);
+      }
+      
+      toast.success("User account deleted successfully.");
+      await fetchUsers();
+      await fetchLoyaltyFromSupabase();
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      toast.error("Failed to delete user.");
+    }
   };
 
   // --- CRUD HANDLERS ---
@@ -517,6 +694,7 @@ export const AdminView: React.FC = () => {
         setActiveTab={setActiveTab}
         reservationsCount={reservationsCount}
         onLogout={handleLogout}
+        currentUserRole={currentUserRole}
       />
 
       {/* Main Workspace */}
@@ -531,14 +709,31 @@ export const AdminView: React.FC = () => {
               {activeTab === "menu" && "MENU OFFERINGS"}
               {activeTab === "reservations" && "EXPERIENCE BOOKINGS"}
               {activeTab === "loyalty" && "DIGITAL LOYALTY DIRECTORY"}
+              {activeTab === "users" && "USER ACCOUNTS & ROLES"}
             </h1>
             <p className="type-caption text-neutral-500 mt-1">
-              Manage menu inventory, client reservations, and card records.
+              {activeTab === "users"
+                ? "Adjust account authorization roles, inspect client profiles, and manage system access."
+                : "Manage menu inventory, client reservations, and card records."
+              }
             </p>
           </div>
 
           {/* Top Right Actions: Theme Toggle and Notifications */}
           <div className="flex items-center gap-3 self-start md:self-center">
+             {/* Maintenance Toggle */}
+             <button
+               onClick={toggleMaintenance}
+               title={isMaintenanceActive ? "Deactivate Maintenance Mode" : "Activate Maintenance Mode"}
+               className={`p-2 rounded-full border transition-all duration-300 cursor-pointer flex items-center justify-center ${
+                 isMaintenanceActive
+                   ? "bg-rose-500 hover:bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-500/20 animate-pulse"
+                   : "bg-foreground/[0.03] border-card-border text-neutral-500 hover:text-foreground dark:text-zinc-500 dark:hover:text-white"
+               }`}
+             >
+               <Wrench size={18} />
+             </button>
+
             {/* Theme Toggle */}
             <div className="flex items-center gap-1 bg-foreground/[0.03] border border-card-border rounded-full p-1 shadow-sm">
               <button
@@ -578,6 +773,7 @@ export const AdminView: React.FC = () => {
             >
               {activeTab === "dashboard" && (
                 <DashboardTab
+                  currentUserRole={currentUserRole}
                   menuItemsCount={menuItemsCount}
                   reservationsCount={reservationsCount}
                   loyaltyMembersCount={loyaltyMembersCount}
@@ -636,6 +832,15 @@ export const AdminView: React.FC = () => {
                   onRevokeStamp={handleRevokeStamp}
                 />
               )}
+
+              {activeTab === "users" && (
+                <UsersTab
+                  users={users}
+                  currentUserEmail={currentUserEmail}
+                  onUpdateRole={handleUpdateUserRole}
+                  onDeleteUser={handleDeleteUser}
+                />
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -662,6 +867,68 @@ export const AdminView: React.FC = () => {
         setLoyaltyForm={setLoyaltyForm}
         onSubmit={handleAddLoyaltySubmit}
       />
+
+      <AnimatePresence>
+        {showMaintenanceConfirmModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMaintenanceConfirmModal(false)}
+              className="absolute inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-md"
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.4, ease: EASE }}
+              className="w-full max-w-md rounded-2xl border border-card-border bg-card p-8 shadow-2xl relative z-10 overflow-hidden"
+            >
+              {/* Ambient Glow */}
+              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-[25px] rounded-full pointer-events-none" />
+
+              <button
+                onClick={() => setShowMaintenanceConfirmModal(false)}
+                className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors duration-300 p-1.5 rounded-full cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="flex items-center gap-2 mb-6">
+                <Wrench size={16} className="text-rose-500 animate-pulse" />
+                <h3 className="type-h3 text-foreground font-serif font-bold tracking-tight">
+                  Activate Maintenance Mode?
+                </h3>
+              </div>
+
+              <p className="text-neutral-500 dark:text-zinc-400 text-sm leading-relaxed mb-6">
+                Are you sure you want to activate maintenance mode? This will restrict access for all logged-in customer accounts across the website and show them the maintenance screen. Admins and baristas will retain full access.
+              </p>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowMaintenanceConfirmModal(false)}
+                  className="px-4 py-2.5 text-xs tracking-wider uppercase border border-card-border hover:bg-foreground/5 transition-colors duration-300 rounded-lg cursor-pointer text-neutral-500 hover:text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmActivateMaintenance}
+                  className="px-4 py-2.5 text-xs tracking-wider uppercase bg-rose-500 hover:bg-rose-600 text-white transition-colors duration-300 rounded-lg shadow-md cursor-pointer animate-pulse"
+                >
+                  Activate Mode
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

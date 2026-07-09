@@ -119,14 +119,27 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
 
         const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
         const isAdmin = loginEmail.toLowerCase() === adminEmail.toLowerCase() && password === "admin123";
+        const isBarista = loginEmail.toLowerCase() === "barista@coffee.com" && password === "barista123";
 
-        if (isAdmin) {
+        // Find custom mock profile role updates (from Users tab)
+        const mockUsers = db.getMockUsers();
+        const matchedMockUser = mockUsers.find(
+          (u) => u.email.toLowerCase() === loginEmail.toLowerCase()
+        );
+        const isCustomStaff = matchedMockUser && (matchedMockUser.role === "admin" || matchedMockUser.role === "barista") && password === "staff123";
+
+        if (isAdmin || isBarista || isCustomStaff) {
+          const userRole = isAdmin ? "admin" : isBarista ? "barista" : (matchedMockUser?.role || "customer");
+          const userName = isAdmin ? "Maître D' Admin" : isBarista ? "Barista Staff" : (matchedMockUser?.name || "Staff");
+          const userEmail = isAdmin ? adminEmail : isBarista ? "barista@coffee.com" : (matchedMockUser?.email || "");
+
           setSuccessMessage("Access granted. Redirecting to admin panel (Mock)...");
           setIsSuccess(true);
           localStorage.setItem("admin_session", "true");
           localStorage.setItem("admin_profile", JSON.stringify({
-            name: "Maître D' Admin",
-            email: adminEmail
+            name: userName,
+            email: userEmail,
+            role: userRole
           }));
           localStorage.removeItem("customer_session");
           window.dispatchEvent(new Event("storage"));
@@ -272,17 +285,19 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
 
       const role = profile?.role || "customer";
       const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
-      const isAdmin = role === "admin" || loginEmail.toLowerCase() === adminEmail.toLowerCase();
+      const isStaff = role === "admin" || role === "barista" || loginEmail.toLowerCase() === adminEmail.toLowerCase();
 
-      if (isAdmin) {
-        setSuccessMessage("Access granted. Redirecting to admin panel...");
+      if (isStaff) {
+        const actualRole = (role === "admin" || loginEmail.toLowerCase() === adminEmail.toLowerCase()) ? "admin" : "barista";
+        setSuccessMessage("Access granted. Redirecting to console...");
         setIsSuccess(true);
         localStorage.setItem("admin_session", "true");
-        const adminName = profile?.name || user.user_metadata?.name || "Admin User";
+        const adminName = profile?.name || user.user_metadata?.name || (actualRole === "admin" ? "Admin User" : "Barista Staff");
         const emailToSave = profile?.email || user.email || loginEmail;
         localStorage.setItem("admin_profile", JSON.stringify({
           name: adminName,
-          email: emailToSave
+          email: emailToSave,
+          role: actualRole
         }));
         localStorage.removeItem("customer_session");
         window.dispatchEvent(new Event("storage"));

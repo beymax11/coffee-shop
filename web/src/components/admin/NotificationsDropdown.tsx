@@ -164,9 +164,9 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
       <button
         onClick={() => setIsOpen(!isOpen)}
         title="Notifications"
-        className="p-1.5 rounded-full transition-colors cursor-pointer text-neutral-500 hover:text-foreground dark:text-zinc-500 dark:hover:text-white hover:bg-foreground/[0.03] dark:hover:bg-white/[0.03] relative border border-transparent hover:border-card-border"
+        className="p-2 rounded-full transition-colors cursor-pointer text-neutral-500 hover:text-foreground dark:text-zinc-500 dark:hover:text-white hover:bg-foreground/[0.03] dark:hover:bg-white/[0.03] relative border border-transparent hover:border-card-border"
       >
-        <Bell size={14} className={unreadCount > 0 ? "animate-pulse" : ""} />
+        <Bell size={18} className={unreadCount > 0 ? "animate-pulse" : ""} />
         {unreadCount > 0 && (
           <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-red-500 ring-1 ring-background dark:ring-black" />
         )}

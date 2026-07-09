@@ -10,6 +10,18 @@ export interface LoyaltyMember {
   joinedAt: string;
 }
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  username?: string;
+  email: string;
+  role: "admin" | "barista" | "customer";
+  stamps?: number;
+  points?: number;
+  member_id?: string;
+  joinedAt?: string;
+}
+
 const DEFAULT_RESERVATIONS: Reservation[] = [
   {
     fullName: "Arthur Pendragon",
@@ -199,16 +211,84 @@ export const db = {
     }
   },
 
+  // --- MOCK USERS (for offline console management) ---
+  getMockUsers(): UserProfile[] {
+    if (!isBrowser) return [];
+    const localUsers = localStorage.getItem("mock_users");
+    if (localUsers) {
+      try {
+        return JSON.parse(localUsers);
+      } catch (e) {
+        console.error("Error parsing mock_users, resetting...", e);
+      }
+    }
+    
+    // Default seed
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
+    const seed: UserProfile[] = [
+      {
+        id: "admin-mock-1",
+        name: "Maître D' Admin",
+        username: "admin",
+        email: adminEmail,
+        role: "admin",
+        joinedAt: "2026-07-01",
+      }
+    ];
+
+    // Merge in current loyalty members as customers
+    const members = this.getLoyaltyMembers();
+    members.forEach((m) => {
+      seed.push({
+        id: m.id,
+        name: m.name,
+        username: m.email.split("@")[0],
+        email: m.email,
+        role: "customer",
+        stamps: m.stamps,
+        points: m.points,
+        member_id: m.id,
+        joinedAt: m.joinedAt || "2026-07-09",
+      });
+    });
+
+    setLocalStorageItem("mock_users", seed);
+    return seed;
+  },
+
+  saveMockUser(user: UserProfile): void {
+    if (!isBrowser) return;
+    const users = this.getMockUsers();
+    const index = users.findIndex((u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+    if (index >= 0) {
+      users[index] = { ...users[index], ...user };
+    } else {
+      users.push(user);
+    }
+    setLocalStorageItem("mock_users", users);
+    window.dispatchEvent(new Event("storage"));
+  },
+
+  deleteMockUser(id: string): void {
+    if (!isBrowser) return;
+    const users = this.getMockUsers();
+    const filtered = users.filter((u) => u.id !== id);
+    setLocalStorageItem("mock_users", filtered);
+    window.dispatchEvent(new Event("storage"));
+  },
+
   // --- DATABASE RESET ---
   resetDatabase(): void {
     if (!isBrowser) return;
     localStorage.removeItem("menu_items");
     localStorage.removeItem("reservations");
     localStorage.removeItem("loyalty_members");
+    localStorage.removeItem("mock_users");
     // Reseed
     this.getMenuItems();
     this.getReservations();
     this.getLoyaltyMembers();
+    this.getMockUsers();
     window.dispatchEvent(new Event("storage"));
   }
 };

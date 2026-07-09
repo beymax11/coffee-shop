@@ -11,9 +11,10 @@ interface DashboardTabProps {
   loyaltyMembersCount: number;
   recentReservations: Reservation[];
   reservationStatuses: Record<string, "Pending" | "Approved" | "Cancelled">;
-  onNavigate: (tab: "dashboard" | "menu" | "reservations" | "loyalty") => void;
+  onNavigate: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users") => void;
   onNewMenuItemClick: () => void;
   onRegisterLoyaltyClick: () => void;
+  currentUserRole?: "admin" | "barista";
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -40,6 +41,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   onNavigate,
   onNewMenuItemClick,
   onRegisterLoyaltyClick,
+  currentUserRole = "admin",
 }) => {
   return (
     <motion.div
@@ -49,20 +51,22 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       className="space-y-8"
     >
       {/* Stats Deck */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 ${currentUserRole === "admin" ? "md:grid-cols-3" : "md:grid-cols-2"} gap-6`}>
         {/* Menu Offerings Card */}
-        <motion.div
-          variants={itemVariants}
-          whileHover={{ y: -4, scale: 1.02 }}
-          className="rounded-2xl p-6 glassmorphism-green hover:border-brand-green/40 transition-all duration-300 shadow-xl relative overflow-hidden group cursor-pointer"
-          onClick={() => onNavigate("menu")}
-        >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-brand-green/5 blur-[30px] rounded-full pointer-events-none" />
-          <span className="type-eyebrow text-zinc-500 block text-[9px] tracking-[0.2em] font-semibold">MENU OFFERINGS</span>
-          <span className="type-stat text-brand-green dark:text-emerald-400 font-serif block mt-2 font-bold tracking-tight">{menuItemsCount}</span>
-          <span className="type-caption text-zinc-500 block mt-2">Active house blends & delicacies</span>
-          <Coffee className="absolute right-6 bottom-6 text-brand-green/10 group-hover:text-brand-green/20 transition-colors duration-300" size={40} />
-        </motion.div>
+        {currentUserRole === "admin" && (
+          <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -4, scale: 1.02 }}
+            className="rounded-2xl p-6 glassmorphism-green hover:border-brand-green/40 transition-all duration-300 shadow-xl relative overflow-hidden group cursor-pointer"
+            onClick={() => onNavigate("menu")}
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-green/5 blur-[30px] rounded-full pointer-events-none" />
+            <span className="type-eyebrow text-zinc-500 block text-[9px] tracking-[0.2em] font-semibold">MENU OFFERINGS</span>
+            <span className="type-stat text-brand-green dark:text-emerald-400 font-serif block mt-2 font-bold tracking-tight">{menuItemsCount}</span>
+            <span className="type-caption text-zinc-500 block mt-2">Active house blends & delicacies</span>
+            <Coffee className="absolute right-6 bottom-6 text-brand-green/10 group-hover:text-brand-green/20 transition-colors duration-300" size={40} />
+          </motion.div>
+        )}
 
         {/* Active Experiences Card */}
         <motion.div
@@ -168,13 +172,15 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           </div>
 
           <div className="space-y-3">
-            <button
-              onClick={onNewMenuItemClick}
-              className="w-full flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] py-3.5 type-ui text-[10px] text-white transition-all duration-300 font-bold tracking-wider cursor-pointer shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25"
-            >
-              <Plus size={13} />
-              New Menu Item
-            </button>
+            {currentUserRole === "admin" && (
+              <button
+                onClick={onNewMenuItemClick}
+                className="w-full flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] py-3.5 type-ui text-[10px] text-white transition-all duration-300 font-bold tracking-wider cursor-pointer shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25"
+              >
+                <Plus size={13} />
+                New Menu Item
+              </button>
+            )}
 
             <button
               onClick={onRegisterLoyaltyClick}

@@ -6,6 +6,7 @@ import {
   Coffee,
   Calendar,
   CreditCard,
+  Users,
   LogOut,
   ChevronLeft,
 } from "lucide-react";
@@ -13,10 +14,11 @@ import { motion } from "framer-motion";
 import { supabase } from "@/utils/supabase";
 
 interface SidebarProps {
-  activeTab: "dashboard" | "menu" | "reservations" | "loyalty";
-  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty") => void;
+  activeTab: "dashboard" | "menu" | "reservations" | "loyalty" | "users";
+  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users") => void;
   reservationsCount: number;
   onLogout: () => void;
+  currentUserRole?: "admin" | "barista";
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -24,6 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   reservationsCount,
   onLogout,
+  currentUserRole = "admin",
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [adminInfo, setAdminInfo] = useState({
@@ -172,7 +175,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: "menu" as const, label: "Menu Offerings", icon: Coffee },
             { id: "reservations" as const, label: "Reservations", icon: Calendar, badge: reservationsCount },
             { id: "loyalty" as const, label: "Loyalty Logs", icon: CreditCard },
-          ].map((tab) => {
+            { id: "users" as const, label: "Users & Roles", icon: Users },
+          ].filter(tab => {
+            if (currentUserRole === "barista") {
+              return tab.id !== "menu" && tab.id !== "users";
+            }
+            return true;
+          }).map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (

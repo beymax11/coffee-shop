@@ -51,7 +51,6 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<LoyaltyMember | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<LoyaltyMember | null>(null);
-  const [scanSelectId, setScanSelectId] = useState("");
   const [manualInputId, setManualInputId] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -178,7 +177,6 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             <button
               onClick={() => {
                 setErrorMsg(null);
-                setScanSelectId("");
                 setIsScanModalOpen(true);
               }}
               className="flex items-center gap-2 rounded-full bg-brand-green text-white px-6 py-3 type-ui text-xs hover:bg-brand-green-hover transition-all duration-300 font-bold shadow-lg shadow-brand-green/15 cursor-pointer green-glow"
@@ -357,7 +355,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
         }
       `}</style>
 
-      {/* QR Code Scanner simulation Modal */}
+      {/* QR Code Scanner Modal */}
       <AnimatePresence>
         {isScanModalOpen && (
           <motion.div
@@ -372,130 +370,46 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsScanModalOpen(false)}
-              className="absolute inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-md"
+              className="absolute inset-0 bg-black/85 backdrop-blur-md"
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-md rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-8 shadow-2xl relative z-10 overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: EASE }}
+              className="relative w-full max-w-md aspect-square rounded-2xl border border-neutral-800 bg-zinc-950 overflow-hidden shadow-2xl z-10 flex items-center justify-center"
             >
-              {/* Decorative Glow */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/10 blur-[40px] rounded-full pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/5 blur-[40px] rounded-full pointer-events-none" />
-
-              <button
-                onClick={() => setIsScanModalOpen(false)}
-                className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-all p-1.5 rounded-full cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-
-              <div className="flex items-center gap-2.5 mb-6">
-                <div className="p-2 rounded-xl bg-brand-green/10 text-brand-green">
-                  <Camera size={18} className="animate-pulse" />
+              {errorMsg && !streamRef.current ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-red-500 bg-black/95 z-10 space-y-2">
+                  <AlertTriangle className="text-red-500" size={32} />
+                  <p className="text-sm font-semibold">{errorMsg}</p>
                 </div>
-                <div>
-                  <h3 className="type-h3 text-foreground font-serif font-bold text-base">QR Code Scanner</h3>
-                  <p className="type-caption text-[10px] text-neutral-500 dark:text-zinc-400">Position the customer's QR code within the frame</p>
-                </div>
-              </div>
-
-              {/* Camera Simulation Viewfinder */}
-              <div className="relative h-48 rounded-xl bg-zinc-950 border border-card-border overflow-hidden flex flex-col items-center justify-center shadow-inner mb-6 group">
+              ) : (
                 <video
                   ref={videoRef}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="w-full h-full object-cover"
                   playsInline
                   muted
                 />
-                <canvas ref={canvasRef} className="hidden" />
+              )}
+              <canvas ref={canvasRef} className="hidden" />
 
-                {/* Scanner Grid Overlay */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:16px_16px] opacity-35" />
-                <div className="absolute inset-0 border border-emerald-500/10 bg-emerald-500/[0.01]" />
-                
-                {/* Viewfinder brackets */}
-                <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-brand-green green-glow" />
-                <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-brand-green green-glow" />
-                <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-brand-green green-glow" />
-                <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-brand-green green-glow" />
-
-                {/* Scanning line animation */}
-                <div
-                  className="absolute left-6 right-6 h-[1.5px] bg-brand-green shadow-[0_0_10px_#2E5A44] opacity-80"
-                  style={{
-                    animation: "scan 2.5s infinite ease-in-out"
-                  }}
-                />
-
-                <p className="type-caption text-brand-green font-mono text-[9px] tracking-widest animate-pulse absolute bottom-4 flex items-center gap-1.5 bg-black/80 px-3.5 py-1.5 rounded-full border border-brand-green/20 shadow-md">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green green-glow animate-ping" />
-                  CAMERA ACTIVE / SCANNING...
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold uppercase">
-                    Select Customer Card to Simulate Scan
-                  </label>
-                  <select
-                    value={scanSelectId}
-                    onChange={(e) => {
-                      setScanSelectId(e.target.value);
-                      setErrorMsg(null);
-                    }}
-                    className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background/80 text-xs cursor-pointer font-medium focus:ring-1 focus:ring-brand-green/20"
-                  >
-                    <option value="">Choose a customer QR code...</option>
-                    {loyaltyMembers.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.id})
-                      </option>
-                    ))}
-                    <option value="invalid">Invalid QR Code / Unregistered</option>
-                  </select>
+              {errorMsg && streamRef.current && (
+                <div className="absolute bottom-4 left-4 right-4 bg-red-950/90 border border-red-500/30 backdrop-blur-md px-4 py-2.5 rounded-xl flex items-center gap-2 text-red-200 text-xs font-semibold z-20 shadow-lg">
+                  <AlertTriangle className="text-red-400 shrink-0" size={14} />
+                  <span className="truncate">{errorMsg}</span>
                 </div>
+              )}
 
-                {errorMsg && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-red-500 dark:text-red-400 text-xs font-semibold flex items-center gap-1.5 mt-2 bg-red-500/5 border border-red-500/10 p-2.5 rounded-lg"
-                  >
-                    <X size={14} className="stroke-[3] bg-red-500/20 rounded-full p-0.5 text-red-500" />
-                    <span>{errorMsg}</span>
-                  </motion.div>
-                )}
-
-                <button
-                  onClick={() => {
-                    if (!scanSelectId) {
-                      setErrorMsg("Please select a QR simulation option.");
-                      return;
-                    }
-                    if (scanSelectId === "invalid") {
-                      setErrorMsg("Member not found. Please scan again.");
-                      return;
-                    }
-                    const member = loyaltyMembers.find(m => m.id.toLowerCase() === scanSelectId.toLowerCase());
-                    if (member) {
-                      setSelectedMember(member);
-                      setIsScanModalOpen(false);
-                      setIsConfirmModalOpen(true);
-                      setErrorMsg(null);
-                    } else {
-                      setErrorMsg("Member not found. Please scan again.");
-                    }
-                  }}
-                  className="w-full rounded-full bg-brand-green py-3.5 type-ui text-xs text-white hover:bg-brand-green-hover transition-all duration-300 font-bold shadow-lg shadow-brand-green/15 cursor-pointer green-glow hover:shadow-brand-green-hover/25"
-                >
-                  Simulate QR Scan
-                </button>
-              </div>
+              {/* Minimal close button overlay */}
+              <button
+                onClick={() => setIsScanModalOpen(false)}
+                className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 hover:bg-black/60 p-2 rounded-full cursor-pointer transition-colors backdrop-blur-sm z-20"
+                aria-label="Close scanner"
+              >
+                <X size={18} />
+              </button>
             </motion.div>
           </motion.div>
         )}

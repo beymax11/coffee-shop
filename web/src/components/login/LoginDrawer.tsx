@@ -344,7 +344,18 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
       }
     } catch (err: unknown) {
       console.error("Auth process error:", err);
-      const errorMessage = err instanceof Error ? err.message : "An error occurred during authentication.";
+      let errorMessage = err instanceof Error ? err.message : "An error occurred during authentication.";
+      
+      if (isSignUp && (
+        errorMessage.toLowerCase().includes("already registered") ||
+        errorMessage.toLowerCase().includes("already exists") ||
+        errorMessage.toLowerCase().includes("email_exists") ||
+        errorMessage.toLowerCase().includes("email already in use") ||
+        errorMessage.toLowerCase().includes("user_already_exists")
+      )) {
+        errorMessage = "This email was already pre-registered by a barista at the store. Please go to 'Sign In' and click 'Forgot password?' to claim your card.";
+      }
+      
       setErrorMsg(errorMessage);
     } finally {
       setIsSubmitting(false);

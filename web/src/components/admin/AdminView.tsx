@@ -137,6 +137,8 @@ export const AdminView: React.FC = () => {
   const fetchLoyaltyFromSupabase = async () => {
     try {
       const { supabase } = await import("@/utils/supabase");
+      const localMembers = db.getLoyaltyMembers();
+
       if (supabase) {
         const { data, error } = await supabase
           .from("profiles")
@@ -145,6 +147,7 @@ export const AdminView: React.FC = () => {
         
         if (error) {
           console.error("Supabase select error:", error);
+          setLoyaltyMembers(localMembers);
           return;
         }
         if (data) {
@@ -158,11 +161,23 @@ export const AdminView: React.FC = () => {
               ? new Date(profile.created_at).toISOString().split("T")[0]
               : new Date().toISOString().split("T")[0]
           }));
-          setLoyaltyMembers(supabaseMembers);
+
+          // Merge local members that do NOT exist in Supabase (e.g. offline walk-in members that aren't synced yet)
+          const mergedMembers = [...supabaseMembers];
+          localMembers.forEach((local) => {
+            if (!mergedMembers.some((s) => s.email.toLowerCase() === local.email.toLowerCase())) {
+              mergedMembers.push(local);
+            }
+          });
+
+          setLoyaltyMembers(mergedMembers);
         }
+      } else {
+        setLoyaltyMembers(localMembers);
       }
     } catch (err) {
       console.error("Error fetching loyalty profiles from Supabase:", err);
+      setLoyaltyMembers(db.getLoyaltyMembers());
     }
   };
 
@@ -389,18 +404,82 @@ export const AdminView: React.FC = () => {
   };
 
   // Loyalty Member
-  const handleAddLoyaltySubmit = (e: React.FormEvent) => {
+  const handleAddLoyaltySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const memberId = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+    const email = loyaltyForm.email.trim();
+    const name = loyaltyForm.name.trim();
+    const stamps = Number(loyaltyForm.stamps) || 0;
+
     const newMember: LoyaltyMember = {
-      id: `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`,
-      name: loyaltyForm.name,
-      email: loyaltyForm.email,
-      stamps: Number(loyaltyForm.stamps),
+      id: memberId,
+      name: name,
+      email: email,
+      stamps: stamps,
       points: 0,
       joinedAt: new Date().toISOString().split("T")[0]
     };
+
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const tempPassword = `CoffeeTemp_${Math.floor(100000 + Math.random() * 900000)}!`;
+        
+        // Try to sign up the customer as a user first
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: tempPassword,
+          options: {
+            data: {
+              name: name,
+              role: "customer"
+            }
+          }
+        });
+
+        if (signUpError) {
+          console.warn("Supabase signUp error (user might already exist):", signUpError.message);
+          
+          // User might already exist, so let's try to update their existing profile
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({
+              member_id: memberId,
+              stamps: stamps,
+              name: name
+            })
+            .eq("email", email.toLowerCase());
+
+          if (updateError) {
+            console.error("Failed to update existing profile in Supabase:", updateError.message);
+          } else {
+            console.log("Successfully updated existing profile with loyalty details.");
+          }
+        } else {
+          // SignUp succeeded. Wait for profile creation trigger.
+          const userId = signUpData.user?.id;
+          if (userId) {
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+            const { error: updateError } = await supabase
+              .from("profiles")
+              .update({
+                member_id: memberId,
+                stamps: stamps
+              })
+              .eq("id", userId);
+
+            if (updateError) {
+              console.error("Failed to update profile member_id after signUp:", updateError.message);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error during Supabase registration:", err);
+    }
+
     db.saveLoyaltyMember(newMember);
-    loadAllData();
+    await loadAllData();
     setShowAddLoyaltyModal(false);
     setLoyaltyForm({ name: "", email: "", stamps: 0 });
     toast.success(`Loyalty card registered for ${newMember.name}!`);

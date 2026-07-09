@@ -44,6 +44,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
 }) => {
   // Local state for scan & confirm flows
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [isScanSuccess, setIsScanSuccess] = useState(false);
   const [isEnterIdModalOpen, setIsEnterIdModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -63,9 +64,16 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameIdRef = useRef<number | null>(null);
+  const isScanSuccessRef = useRef(false);
+  const scanTimeoutRef = useRef<any>(null);
 
   // Stop camera helper
   const stopCamera = () => {
+    isScanSuccessRef.current = false;
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current);
+      scanTimeoutRef.current = null;
+    }
     if (animationFrameIdRef.current) {
       cancelAnimationFrame(animationFrameIdRef.current);
       animationFrameIdRef.current = null;
@@ -101,6 +109,8 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
 
     if (isScanModalOpen) {
       setErrorMsg(null);
+      setIsScanSuccess(false);
+      isScanSuccessRef.current = false;
       startCamera();
     } else {
       stopCamera();
@@ -112,6 +122,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
   }, [isScanModalOpen]);
 
   const scanTick = () => {
+    if (isScanSuccessRef.current) return;
     if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
       const canvas = canvasRef.current;
       if (canvas) {
@@ -133,9 +144,20 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
 
             if (member) {
               setSelectedMember(member);
-              setIsScanModalOpen(false);
-              setIsConfirmModalOpen(true);
-              stopCamera();
+              setIsScanSuccess(true);
+              isScanSuccessRef.current = true;
+              
+              if (animationFrameIdRef.current) {
+                cancelAnimationFrame(animationFrameIdRef.current);
+                animationFrameIdRef.current = null;
+              }
+
+              scanTimeoutRef.current = setTimeout(() => {
+                setIsScanModalOpen(false);
+                setIsScanSuccess(false);
+                setIsConfirmModalOpen(true);
+                stopCamera();
+              }, 2000);
               return;
             } else {
               setErrorMsg(`Unknown QR code / Member ID: "${scannedId}"`);
@@ -144,8 +166,8 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
         }
       }
     }
-    // Continue scanning if modal is still open
-    if (isScanModalOpen) {
+    // Continue scanning if modal is still open and not succeeded yet
+    if (isScanModalOpen && !isScanSuccessRef.current) {
       animationFrameIdRef.current = requestAnimationFrame(scanTick);
     }
   };
@@ -449,7 +471,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            className="fixed inset-0 z-[100] flex items-center justify-center"
           >
             <motion.div
               initial={{ opacity: 0 }}
@@ -464,7 +486,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 40 }}
               transition={{ duration: 0.35 }}
-              className="relative w-full sm:max-w-md aspect-square rounded-t-2xl sm:rounded-2xl border border-neutral-800 bg-zinc-950 overflow-hidden shadow-2xl z-10 flex items-center justify-center"
+              className="fixed lg:relative inset-0 lg:inset-auto w-full h-full lg:h-auto lg:max-w-md lg:aspect-square rounded-none lg:rounded-2xl border-none lg:border lg:border-neutral-800 bg-black lg:bg-zinc-950 overflow-hidden shadow-2xl z-10 flex items-center justify-center"
             >
               {errorMsg && !streamRef.current ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-red-500 bg-black/95 z-10 space-y-2">
@@ -481,6 +503,60 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
               )}
               <canvas ref={canvasRef} className="hidden" />
 
+              {/* Premium scanner overlay */}
+              {!errorMsg && (
+                <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center p-6">
+                  <div className={`text-center text-[10px] sm:text-[11px] font-semibold backdrop-blur-sm py-1.5 px-3 rounded-full w-fit mx-auto mb-8 pointer-events-none transition-all duration-300 ${
+                    isScanSuccess
+                      ? "text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 green-glow"
+                      : "text-white/80 bg-black/60"
+                  }`}>
+                    {isScanSuccess ? "Scanned successfully!" : "Align QR code inside the frame"}
+                  </div>
+                  
+                  {/* Scanner Frame Box Wrapper */}
+                  <div className="relative w-64 h-64 sm:w-72 sm:h-72 mx-auto flex items-center justify-center">
+                    {/* Shadow Mask to darken camera background outside the box */}
+                    <div className="absolute inset-0 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] rounded-2xl pointer-events-none" />
+                    
+                    {/* Scanning content box */}
+                    <div className={`absolute inset-0 border rounded-2xl flex items-center justify-center overflow-hidden transition-all duration-500 ${
+                      isScanSuccess
+                        ? "border-emerald-500 bg-emerald-950/15"
+                        : "border-brand-green/30"
+                    }`}>
+                      {/* Corner markers */}
+                      <div className={`absolute top-0 left-0 w-5 h-5 border-t-4 border-l-4 rounded-tl-md transition-colors duration-500 ${isScanSuccess ? "border-emerald-400" : "border-brand-green"}`} />
+                      <div className={`absolute top-0 right-0 w-5 h-5 border-t-4 border-r-4 rounded-tr-md transition-colors duration-500 ${isScanSuccess ? "border-emerald-400" : "border-brand-green"}`} />
+                      <div className={`absolute bottom-0 left-0 w-5 h-5 border-b-4 border-l-4 rounded-bl-md transition-colors duration-500 ${isScanSuccess ? "border-emerald-400" : "border-brand-green"}`} />
+                      <div className={`absolute bottom-0 right-0 w-5 h-5 border-b-4 border-r-4 rounded-br-md transition-colors duration-500 ${isScanSuccess ? "border-emerald-400" : "border-brand-green"}`} />
+                      
+                      {isScanSuccess ? (
+                        <motion.div
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1.1, opacity: 1 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                          className="flex flex-col items-center justify-center gap-2"
+                        >
+                          <div className="p-3 bg-emerald-500 rounded-full text-white shadow-lg shadow-emerald-500/30">
+                            <Check size={28} className="stroke-[3]" />
+                          </div>
+                          <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider animate-pulse mt-1">
+                            {selectedMember?.name}
+                          </span>
+                        </motion.div>
+                      ) : (
+                        <div className="absolute left-0 right-0 h-0.5 bg-brand-green/80 shadow-[0_0_8px_rgba(46,90,68,0.5)]" style={{ animation: "scan 2.5s infinite linear" }} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-8 text-white/40 text-[9px] uppercase tracking-wider text-center hidden sm:block">
+                    Antonioni Grounds Console
+                  </div>
+                </div>
+              )}
+
               {errorMsg && streamRef.current && (
                 <div className="absolute bottom-4 left-4 right-4 bg-red-950/90 border border-red-500/30 backdrop-blur-md px-4 py-2.5 rounded-xl flex items-center gap-2 text-red-200 text-xs font-semibold z-20 shadow-lg">
                   <AlertTriangle className="text-red-400 shrink-0" size={14} />
@@ -488,10 +564,11 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                 </div>
               )}
 
-              {/* Minimal close button overlay */}
+              {/* Minimal close button overlay with safe area margin */}
               <button
                 onClick={() => setIsScanModalOpen(false)}
-                className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 hover:bg-black/60 p-2 rounded-full cursor-pointer transition-colors backdrop-blur-sm z-20"
+                className="absolute top-4 right-4 text-white/70 hover:text-white bg-black/40 hover:bg-black/60 p-2.5 rounded-full cursor-pointer transition-colors backdrop-blur-sm z-20"
+                style={{ marginTop: "env(safe-area-inset-top)" }}
                 aria-label="Close scanner"
               >
                 <X size={18} />
@@ -680,7 +757,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                 </div>
 
                 {/* Stamp visual slot preview grid */}
-                <div className="grid grid-cols-9 gap-1.5 pt-2 border-t border-card-border/40">
+                <div className="grid grid-cols-9 gap-1 sm:gap-1.5 pt-2 border-t border-card-border/40">
                   {Array.from({ length: 9 }).map((_, idx) => {
                     const isStamped = idx < selectedMember.stamps;
                     const isNextToStamp = idx === selectedMember.stamps;
@@ -688,7 +765,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                     return (
                       <div
                         key={idx}
-                        className={`h-6 w-6 rounded-full border flex items-center justify-center text-[8px] transition-all duration-300 ${
+                        className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border flex items-center justify-center text-[8px] transition-all duration-300 ${
                           isStamped
                             ? "bg-brand-green/20 border-brand-green text-brand-green font-bold scale-105 shadow-sm shadow-brand-green/10"
                             : isNextToStamp
@@ -733,10 +810,10 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3">
                 <button
                   onClick={() => setIsConfirmModalOpen(false)}
-                  className="flex-1 rounded-full border border-card-border bg-foreground/[0.02] hover:bg-foreground/[0.06] text-neutral-500 dark:text-zinc-300 hover:text-white py-3 text-xs font-bold transition-all cursor-pointer"
+                  className="w-full sm:flex-1 rounded-full border border-card-border bg-foreground/[0.02] hover:bg-foreground/[0.06] text-neutral-500 dark:text-zinc-300 hover:text-white py-3 text-xs font-bold transition-all cursor-pointer min-h-[44px]"
                 >
                   Cancel
                 </button>
@@ -746,7 +823,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                     setIsConfirmModalOpen(false);
                   }}
                   disabled={selectedMember.stamps >= 9}
-                  className="flex-1 rounded-full bg-brand-green py-3 text-xs text-white hover:bg-brand-green-hover transition-all duration-300 font-bold disabled:opacity-40 disabled:pointer-events-none cursor-pointer green-glow shadow-md shadow-brand-green/20"
+                  className="w-full sm:flex-1 rounded-full bg-brand-green py-3 text-xs text-white hover:bg-brand-green-hover transition-all duration-300 font-bold disabled:opacity-40 disabled:pointer-events-none cursor-pointer green-glow shadow-md shadow-brand-green/20 min-h-[44px]"
                 >
                   {selectedMember.stamps >= 9 ? "Card Full (9/9)" : "Award 1 Stamp"}
                 </button>

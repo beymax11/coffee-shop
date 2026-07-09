@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Mail, Lock, Eye, EyeOff, LogIn, Check, Loader2, UserRound, UserPlus } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, LogIn, Check, Loader2, UserRound, UserPlus, AtSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
@@ -16,6 +16,7 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
   const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -44,6 +45,19 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
     e.preventDefault();
     if (!email || !password) return;
     if (isSignUp && !name) return;
+    if (isSignUp && !username) return;
+
+    if (isSignUp) {
+      const trimmedUsername = username.trim();
+      if (trimmedUsername.length < 3) {
+        setErrorMsg("Username must be at least 3 characters long.");
+        return;
+      }
+      if (!/^[a-zA-Z0-9_.]+$/.test(trimmedUsername)) {
+        setErrorMsg("Username can only contain alphanumeric characters, underscores, and dots.");
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     setErrorMsg("");
@@ -165,6 +179,7 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
           options: {
             data: {
               name: name.trim(),
+              username: username.trim().toLowerCase(),
               role: "customer",
             },
           },
@@ -418,6 +433,39 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
                             placeholder="Juan Dela Cruz"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
+                            disabled={isSubmitting || isSuccess}
+                            className="w-full rounded-lg border border-card-border bg-background-alt/50 py-3 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 disabled:opacity-50"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Username Field (sign-up only) */}
+                  <AnimatePresence initial={false}>
+                    {isSignUp && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-2 overflow-hidden"
+                      >
+                        <label htmlFor="drawer-login-username" className="type-label block text-xs">
+                          Username
+                        </label>
+                        <div className="group relative">
+                          <AtSign
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none transition-colors duration-300 group-focus-within:text-emerald-500"
+                            size={16}
+                          />
+                          <input
+                            id="drawer-login-username"
+                            type="text"
+                            required={isSignUp}
+                            autoComplete="username"
+                            placeholder="juandelacruz"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             disabled={isSubmitting || isSuccess}
                             className="w-full rounded-lg border border-card-border bg-background-alt/50 py-3 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 disabled:opacity-50"
                           />

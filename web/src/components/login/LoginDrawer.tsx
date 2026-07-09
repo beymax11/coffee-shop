@@ -107,6 +107,7 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
           });
           localStorage.setItem("customer_session", trimmedEmail);
           localStorage.removeItem("admin_session");
+          localStorage.removeItem("admin_profile");
           setSuccessMessage("Account created. Welcome to Antonioni Grounds...");
           setIsSuccess(true);
           window.dispatchEvent(new Event("storage"));
@@ -123,6 +124,10 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
           setSuccessMessage("Access granted. Redirecting to admin panel (Mock)...");
           setIsSuccess(true);
           localStorage.setItem("admin_session", "true");
+          localStorage.setItem("admin_profile", JSON.stringify({
+            name: "Maître D' Admin",
+            email: adminEmail
+          }));
           localStorage.removeItem("customer_session");
           window.dispatchEvent(new Event("storage"));
           setTimeout(() => {
@@ -133,6 +138,7 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
           setSuccessMessage("Welcome back. Logging you in...");
           setIsSuccess(true);
           localStorage.removeItem("admin_session");
+          localStorage.removeItem("admin_profile");
 
           // Find or create mock member
           const members = db.getLoyaltyMembers();
@@ -226,6 +232,7 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
             // Logged in immediately (email confirmation disabled in Supabase settings)
             localStorage.setItem("customer_session", trimmedEmail);
             localStorage.removeItem("admin_session");
+            localStorage.removeItem("admin_profile");
             setSuccessMessage("Account created successfully! Welcome...");
             setIsSuccess(true);
             window.dispatchEvent(new Event("storage"));
@@ -271,6 +278,12 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
         setSuccessMessage("Access granted. Redirecting to admin panel...");
         setIsSuccess(true);
         localStorage.setItem("admin_session", "true");
+        const adminName = profile?.name || user.user_metadata?.name || "Admin User";
+        const emailToSave = profile?.email || user.email || loginEmail;
+        localStorage.setItem("admin_profile", JSON.stringify({
+          name: adminName,
+          email: emailToSave
+        }));
         localStorage.removeItem("customer_session");
         window.dispatchEvent(new Event("storage"));
         setTimeout(() => {
@@ -281,6 +294,7 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
         setSuccessMessage("Welcome back. Logging you in...");
         setIsSuccess(true);
         localStorage.removeItem("admin_session");
+        localStorage.removeItem("admin_profile");
 
         // Sync data from profiles back to local storage loyalty DB
         const members = db.getLoyaltyMembers();

@@ -54,6 +54,10 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
   const [manualInputId, setManualInputId] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Local state for filters and sorting
+  const [stampFilter, setStampFilter] = useState<"all" | "none" | "has" | "reward">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "highest" | "lowest" | "alphabetical">("newest");
+
   // Camera scanning refs
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -146,13 +150,47 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
     }
   };
 
-  // Filtered members list
-  const filteredLoyalty = loyaltyMembers.filter((member) => {
-    return (
-      member.name.toLowerCase().includes(loyaltySearch.toLowerCase()) ||
-      member.email.toLowerCase().includes(loyaltySearch.toLowerCase())
-    );
-  });
+  // Filtered and sorted members list
+  const filteredLoyalty = loyaltyMembers
+    .filter((member) => {
+      // Search filter (name, email, and ID)
+      const matchesSearch =
+        member.name.toLowerCase().includes(loyaltySearch.toLowerCase()) ||
+        member.email.toLowerCase().includes(loyaltySearch.toLowerCase()) ||
+        member.id.toLowerCase().includes(loyaltySearch.toLowerCase());
+
+      // Stamp filter
+      let matchesStamp = true;
+      if (stampFilter === "none") {
+        matchesStamp = member.stamps === 0;
+      } else if (stampFilter === "has") {
+        matchesStamp = member.stamps > 0;
+      } else if (stampFilter === "reward") {
+        matchesStamp = member.stamps === 9;
+      }
+
+      return matchesSearch && matchesStamp;
+    })
+    .sort((a, b) => {
+      if (sortBy === "alphabetical") {
+        return a.name.localeCompare(b.name);
+      }
+      if (sortBy === "highest") {
+        return b.stamps - a.stamps;
+      }
+      if (sortBy === "lowest") {
+        return a.stamps - b.stamps;
+      }
+      if (sortBy === "oldest") {
+        const timeA = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
+        const timeB = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
+        return timeA - timeB;
+      }
+      // default: newest
+      const timeA = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
+      const timeB = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
+      return timeB - timeA;
+    });
 
   return (
     <div className="space-y-6">
@@ -200,25 +238,73 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
       </div>
 
       {/* Filter Deck */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
-          <input
-            type="text"
-            placeholder="Search members by email or name..."
-            value={loyaltySearch}
-            onChange={(e) => setLoyaltySearch(e.target.value)}
-            className="w-full rounded-full border border-card-border bg-background/40 py-2.5 pl-10 pr-4 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background/80 focus:ring-1 focus:ring-brand-green/20"
-          />
+      <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
+            <input
+              type="text"
+              placeholder="Search members by email, name or ID..."
+              value={loyaltySearch}
+              onChange={(e) => setLoyaltySearch(e.target.value)}
+              className="w-full rounded-full border border-card-border bg-background/40 py-2.5 pl-10 pr-4 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background/80 focus:ring-1 focus:ring-brand-green/20"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="type-ui text-[9px] text-neutral-500 dark:text-zinc-400 font-bold uppercase tracking-wider">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="rounded-full border border-card-border bg-background/40 px-3.5 py-1.5 type-ui text-[9px] text-foreground dark:text-zinc-300 outline-none cursor-pointer transition-all duration-300 focus:border-brand-green/60 focus:bg-background/80"
+              >
+                <option value="newest" className="bg-card text-foreground">Newest Joined</option>
+                <option value="oldest" className="bg-card text-foreground">Oldest Joined</option>
+                <option value="highest" className="bg-card text-foreground">Highest Stamps</option>
+                <option value="lowest" className="bg-card text-foreground">Lowest Stamps</option>
+                <option value="alphabetical" className="bg-card text-foreground">Name (A-Z)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={onOpenRegisterModal}
+              className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 type-ui text-[9px] text-white transition-all duration-300 font-bold shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25 cursor-pointer shrink-0"
+            >
+              <Plus size={13} />
+              Register Member
+            </button>
+          </div>
         </div>
 
-        <button
-          onClick={onOpenRegisterModal}
-          className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 type-ui text-[9px] text-white transition-all duration-300 font-bold shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25 cursor-pointer shrink-0"
-        >
-          <Plus size={13} />
-          Register Member
-        </button>
+        {/* Filter buttons */}
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-card-border/40 pt-3">
+          <span className="type-ui text-[9px] text-neutral-500 dark:text-zinc-400 font-bold uppercase tracking-wider mr-2">Filter by stamps:</span>
+          {(
+            [
+              { value: "all", label: "All Members" },
+              { value: "none", label: "No Stamps" },
+              { value: "has", label: "Has Stamps" },
+              { value: "reward", label: "Reward Unlocked" },
+            ] as const
+          ).map((opt) => {
+            const isActive = stampFilter === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => setStampFilter(opt.value)}
+                className={`rounded-full px-3.5 py-1.5 type-ui text-[9px] tracking-wider border cursor-pointer transition-all duration-300 ${
+                  isActive
+                    ? "bg-brand-green border-brand-green text-white font-semibold shadow-[0_2px_10px_rgba(46,90,68,0.2)]"
+                    : "bg-foreground/[0.02] border-card-border/50 text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Member Directory Grid */}

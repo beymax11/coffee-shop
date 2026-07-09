@@ -34,35 +34,74 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Sync state with localStorage on client mount
   useEffect(() => {
+    // Load from localStorage if present (for mock and instant load cache)
+    const savedProfile = localStorage.getItem("admin_profile");
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        if (parsed.name && parsed.email) {
+          const nameParts = parsed.name.trim().split(/\s+/);
+          let initials = "AD";
+          if (nameParts.length > 0) {
+            if (nameParts.length >= 2) {
+              initials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+            } else if (nameParts[0].length > 0) {
+              initials = nameParts[0].slice(0, 2).toUpperCase();
+            }
+          }
+          setAdminInfo({
+            name: parsed.name,
+            email: parsed.email,
+            initials
+          });
+        }
+      } catch (err) {
+        console.error("Error parsing saved admin profile:", err);
+      }
+    }
+
     // Fetch logged in admin info if Supabase is active
     const fetchAdminInfo = async () => {
       if (!supabase) return;
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("name, username, email")
-            .eq("id", user.id)
-            .single();
+          let name = "Admin User";
+          let email = user.email || "admin@coffee.com";
+          
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("name, username, email")
+              .eq("id", user.id)
+              .single();
 
-          if (profile) {
-            const name = profile.name || profile.username || "Admin User";
-            const email = profile.email || user.email || "admin@coffee.com";
-            
-            // Generate initials from name
-            const nameParts = name.trim().split(/\s+/);
-            let initials = "AD";
-            if (nameParts.length > 0) {
-              if (nameParts.length >= 2) {
-                initials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
-              } else if (nameParts[0].length > 0) {
-                initials = nameParts[0].slice(0, 2).toUpperCase();
-              }
+            if (profile) {
+              name = profile.name || profile.username || name;
+              email = profile.email || email;
+            } else if (user.user_metadata) {
+              name = user.user_metadata.name || user.user_metadata.username || name;
             }
-            
-            setAdminInfo({ name, email, initials });
+          } catch (profileErr) {
+            // Profile table might not have this user, fallback to user_metadata
+            if (user.user_metadata) {
+              name = user.user_metadata.name || user.user_metadata.username || name;
+            }
           }
+          
+          // Generate initials from name
+          const nameParts = name.trim().split(/\s+/);
+          let initials = "AD";
+          if (nameParts.length > 0) {
+            if (nameParts.length >= 2) {
+              initials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+            } else if (nameParts[0].length > 0) {
+              initials = nameParts[0].slice(0, 2).toUpperCase();
+            }
+          }
+          
+          setAdminInfo({ name, email, initials });
+          localStorage.setItem("admin_profile", JSON.stringify({ name, email }));
         }
       } catch (err) {
         console.error("Error fetching admin profile in Sidebar:", err);

@@ -203,6 +203,7 @@ export const AdminView: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("admin_session");
+    localStorage.removeItem("admin_profile");
     router.push("/login");
   };
 

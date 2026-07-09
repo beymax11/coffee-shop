@@ -283,7 +283,7 @@ export function LoyaltyView() {
                       </div>
 
                       {/* Content Column (occupying left half on desktop) */}
-                      <div className="flex flex-col justify-start gap-3 h-full w-full sm:w-[48%] min-w-0 z-10 relative">
+                      <div className="flex flex-col justify-start gap-3 h-full w-full sm:w-[48%] min-w-0 z-10 relative pb-14">
                         <div>
                           <span className="text-[10px] tracking-[0.25em] text-[#2E5A44] dark:text-emerald-400 font-bold uppercase block font-sans">Antonioni Grounds Reserve</span>
                           <h2 className="type-h1 text-foreground mt-1">{memberName}</h2>
@@ -372,6 +372,20 @@ export function LoyaltyView() {
                               <span className="font-mono text-[#2E5A44] dark:text-emerald-400 text-xs font-bold">{stamps} / 10 Stamps</span>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Reward Preview Strip */}
+                        <div className="mt-auto rounded-xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5 px-4 py-3">
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Your Reward at 10 Stamps</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Coffee size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <span className="text-foreground font-semibold text-xs">Complimentary Geisha Pour Over</span>
+                          </div>
+                          <p className="text-[9px] text-zinc-500 dark:text-zinc-400 mt-1">
+                            {stamps >= 9
+                              ? "Ready to claim!"
+                              : `${9 - stamps} more stamp${9 - stamps === 1 ? "" : "s"} to unlock`}
+                          </p>
                         </div>
                       </div>
 

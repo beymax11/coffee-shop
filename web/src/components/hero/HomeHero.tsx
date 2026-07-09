@@ -26,16 +26,6 @@ const heroItem = {
   },
 };
 
-const headlineLine = {
-  hidden: { opacity: 0, y: 32, clipPath: "inset(100% 0 0 0)" },
-  show: {
-    opacity: 1,
-    y: 0,
-    clipPath: "inset(0% 0 0 0)",
-    transition: { duration: 0.9, ease: EASE },
-  },
-};
-
 const ctaHover = { scale: 1.03, transition: { duration: 0.25, ease: EASE } };
 const ctaTap = { scale: 0.97 };
 
@@ -74,6 +64,16 @@ export const HomeHero: React.FC = () => {
         transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
 
+      {/* Film grain */}
+      <div
+        aria-hidden="true"
+        className="film-grain pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay"
+      />
+
+      {/* Cinematic vertical edge lines */}
+      <div className="pointer-events-none absolute inset-y-0 left-12 w-px bg-white/[0.06] hidden xl:block" />
+      <div className="pointer-events-none absolute inset-y-0 right-12 w-px bg-white/[0.06] hidden xl:block" />
+
       {/* Content */}
       <motion.div
         className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 lg:px-16 text-left"
@@ -82,69 +82,75 @@ export const HomeHero: React.FC = () => {
         animate="show"
       >
         <div className="max-w-xl md:max-w-2xl">
-        {/* Eyebrow badge */}
-        <motion.div
-          variants={heroItem}
-          className="flex items-center justify-start gap-3 mb-6"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span className="type-eyebrow tracking-[0.25em] text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-            Welcome to Antonioni Grounds
-          </span>
-        </motion.div>
-
-        {/* Headline */}
-        <motion.h1
-          className="type-display text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] font-serif leading-[1.12] tracking-tight"
-          variants={heroItem}
-        >
-          Where Every Cup{" "}
-          <span className="text-emerald-600 dark:text-emerald-400 block sm:inline-block">
-            Finds Its Story
-          </span>
-        </motion.h1>
-
-        {/* Subcopy */}
-        <motion.p
-          variants={heroItem}
-          className="type-body mt-6 text-zinc-300/90 max-w-lg drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-base md:text-[1.05rem]"
-        >
-          Experience handcrafted coffee, thoughtfully prepared with quality beans, warm hospitality, and a space made for meaningful moments.
-        </motion.p>
-
-        {/* CTAs */}
-        <motion.div
-          variants={heroItem}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-4 pt-9"
-        >
-          <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
-            <Link
-              href="/loyalty"
-              className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)]"
-            >
-              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
-              <span className="relative flex items-center gap-2">
-                Digital Loyalty Card
-                <CreditCard size={15} className="transition-transform duration-300 group-hover:scale-110" />
-              </span>
-            </Link>
+          {/* Eyebrow badge */}
+          <motion.div
+            variants={heroItem}
+            className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-[#2E5A44]/10 px-4 py-1.5 backdrop-blur-md"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="type-eyebrow tracking-[0.25em] font-semibold text-emerald-400">
+              Welcome to Antonioni Grounds
+            </span>
           </motion.div>
 
-          <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
-            <Link
-              href="/reservations"
-              className="type-ui group w-full sm:w-auto flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)]"
-            >
-              <Calendar
-                size={15}
-                className="text-emerald-500 transition-transform duration-300 group-hover:scale-110"
-              />
-              Reserve Event Cart
-            </Link>
+          {/* Headline */}
+          <motion.h1
+            className="type-display text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] font-serif leading-[1.12] tracking-tight"
+            variants={heroItem}
+          >
+            Where Every Cup{" "}
+            <span className="text-emerald-400 italic block sm:inline-block">
+              Finds Its Story
+            </span>
+          </motion.h1>
+
+          {/* Subcopy */}
+          <motion.p
+            variants={heroItem}
+            className="type-body mt-6 text-zinc-300/90 max-w-lg drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-base md:text-[1.05rem]"
+          >
+            Experience handcrafted coffee, thoughtfully prepared with quality beans, warm hospitality, and a space made for meaningful moments.
+          </motion.p>
+
+          {/* CTAs */}
+          <motion.div
+            variants={heroItem}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-4 pt-9"
+          >
+            <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
+              <Link
+                href="/loyalty"
+                className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)]"
+              >
+                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
+                <span className="relative flex items-center gap-2">
+                  Digital Loyalty Card
+                  <CreditCard size={15} className="transition-transform duration-300 group-hover:scale-110" />
+                </span>
+              </Link>
+            </motion.div>
+
+            <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
+              <Link
+                href="/reservations"
+                className="type-ui group w-full sm:w-auto flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)]"
+              >
+                <Calendar
+                  size={15}
+                  className="text-emerald-500 transition-transform duration-300 group-hover:scale-110"
+                />
+                Reserve Event Cart
+              </Link>
+            </motion.div>
           </motion.div>
-        </motion.div>
         </div>
       </motion.div>
+
+      {/* Bottom blend into next section */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 md:h-40 bg-gradient-to-t from-background to-transparent" />
+
+      {/* Seam hairline */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
 
       {/* Scroll hint */}
       <motion.div
@@ -157,7 +163,7 @@ export const HomeHero: React.FC = () => {
           <motion.div
             animate={{ y: [0, 10, 0], opacity: [0.6, 1, 0.6] }}
             transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-            className="w-1 h-1.5 rounded-full bg-emerald-500"
+            className="w-1 h-1.5 rounded-full bg-emerald-400"
           />
         </div>
         <span className="type-micro">Scroll</span>

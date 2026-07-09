@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { db, LoyaltyMember } from "@/utils/db";
 import { NotificationDropdown } from "./NotificationDropdown";
 import { ProfileModal } from "./ProfileModal";
-import { LoginDrawer } from "./LoginDrawer";
+import { LoginDrawer } from "@/components/login/LoginDrawer";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();

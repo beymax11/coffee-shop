@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LoginView } from "@/components/login/LoginView";
+import { LoginPageClient } from "@/components/login/LoginPageClient";
 
 export const metadata: Metadata = {
   title: "Sign In | Antonioni Grounds",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return <LoginView />;
+  return <LoginPageClient />;
 }

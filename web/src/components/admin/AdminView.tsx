@@ -19,13 +19,14 @@ import { MenuModal } from "./MenuModal";
 import { LoyaltyModal } from "./LoyaltyModal";
 import { NotificationsDropdown } from "./NotificationsDropdown";
 import { UsersTab } from "./UsersTab";
+import { LifestyleTab } from "./LifestyleTab";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 export const AdminView: React.FC = () => {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle">("dashboard");
 
   // Database States
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -168,7 +169,7 @@ export const AdminView: React.FC = () => {
 
   // Safeguard tab permissions for Baristas
   useEffect(() => {
-    if (currentUserRole === "barista" && (activeTab === "menu" || activeTab === "users")) {
+    if (currentUserRole === "barista" && (activeTab === "menu" || activeTab === "users" || activeTab === "lifestyle")) {
       setActiveTab("dashboard");
     }
   }, [activeTab, currentUserRole]);
@@ -710,10 +711,13 @@ export const AdminView: React.FC = () => {
               {activeTab === "reservations" && "EXPERIENCE BOOKINGS"}
               {activeTab === "loyalty" && "DIGITAL LOYALTY DIRECTORY"}
               {activeTab === "users" && "USER ACCOUNTS & ROLES"}
+              {activeTab === "lifestyle" && "LIFESTYLE SELECTIONS"}
             </h1>
             <p className="type-caption text-neutral-500 mt-1 hidden sm:block">
               {activeTab === "users"
                 ? "Adjust account authorization roles, inspect client profiles, and manage system access."
+                : activeTab === "lifestyle"
+                ? "Curate and manage social media post selections featured on the lifestyle bento grid."
                 : "Manage menu inventory, client reservations, and card records."
               }
             </p>
@@ -840,6 +844,10 @@ export const AdminView: React.FC = () => {
                   onUpdateRole={handleUpdateUserRole}
                   onDeleteUser={handleDeleteUser}
                 />
+              )}
+
+              {activeTab === "lifestyle" && (
+                <LifestyleTab />
               )}
             </motion.div>
           </AnimatePresence>

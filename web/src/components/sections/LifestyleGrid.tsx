@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { FadeUp } from "@/components/animations";
+import { db } from "@/utils/db";
+import { supabase } from "@/utils/supabase";
 import { 
   Heart, 
   MessageCircle, 
@@ -10,9 +12,11 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Check, 
-  ExternalLink 
+  ExternalLink,
+  Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 // Custom SVG Instagram Icon to ensure compatibility across all environments
 const InstagramIcon: React.FC<{ className?: string; size?: number }> = ({ className = "", size = 20 }) => (
@@ -34,6 +38,20 @@ const InstagramIcon: React.FC<{ className?: string; size?: number }> = ({ classN
   </svg>
 );
 
+// Helper to highlight hashtags in captions
+const renderCaptionWithHashtags = (text: string) => {
+  return text.split(/(\s+)/).map((word, i) => {
+    if (word.startsWith("#")) {
+      return (
+        <span key={i} className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+          {word}
+        </span>
+      );
+    }
+    return word;
+  });
+};
+
 interface Comment {
   id: number;
   username: string;
@@ -48,92 +66,95 @@ interface Post {
   likes: number;
   commentsCount: number;
   caption: string;
-  time: string;
+  date: string;
   comments: Comment[];
   location: string;
+  status?: string;
 }
 
-// Curated Instagram-style Lifestyle Posts representing the Antonioni Grounds theme
-const LIFESTYLE_POSTS: Post[] = [
-  {
-    id: 1,
-    imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=800&auto=format&fit=crop",
-    username: "caffeine.journal",
-    likes: 432,
-    commentsCount: 3,
-    caption: "Morning rituals at Antonioni Grounds. That golden hour sunlight hitting the perfect brew. ☕️✨ #antonionilifestyle #coffeeaesthetic #morningglow",
-    time: "2 hours ago",
-    location: "Antonioni Grounds • Tokyo",
-    comments: [
-      { id: 1, username: "espresso.chaser", text: "This lighting is absolutely gorgeous! 😍", time: "1h ago" },
-      { id: 2, username: "brew_master", text: "Is that the Panama Geisha?", time: "45m ago" },
-      { id: 3, username: "antonioni_grounds", text: "It is! Sourced directly from Boquete estate.", time: "30m ago" },
-    ]
-  },
-  {
-    id: 2,
-    imageUrl: "https://images.unsplash.com/photo-1507133750040-4a8f57021571?q=80&w=600&auto=format&fit=crop",
-    username: "espresso_aficionado",
-    likes: 198,
-    commentsCount: 2,
-    caption: "First crack micro-lots. The craftsmanship here is unmatched. You can taste the strawberry notes immediately. 🍓☕️ #craftcoffee #specialtycoffee",
-    time: "5 hours ago",
-    location: "Antonioni HQ • Brooklyn",
-    comments: [
-      { id: 1, username: "bean_selector", text: "Light roast is the way to go.", time: "4h ago" },
-      { id: 2, username: "coffeelover_ny", text: "Heading to Brooklyn headquarters tomorrow!", time: "2h ago" },
-    ]
-  },
-  {
-    id: 3,
-    imageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=600&auto=format&fit=crop",
-    username: "tokyo.coffee.guide",
-    likes: 312,
-    commentsCount: 2,
-    caption: "Found my new favorite coffee sanctuary. Japanese minimalism meets Brooklyn roasting. 🇯🇵🇺🇸 Absolute peace. #tokyocafe #minimalism #coffeeplease",
-    time: "1 day ago",
-    location: "Antonioni Grounds • Tokyo",
-    comments: [
-      { id: 1, username: "travel_eats", text: "Adding this to my itinerary for next month!", time: "18h ago" },
-      { id: 2, username: "minimalist_vibes", text: "That interior is so soothing.", time: "12h ago" },
-    ]
-  },
-  {
-    id: 4,
-    imageUrl: "https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=600&auto=format&fit=crop",
-    username: "barista.artisan",
-    likes: 285,
-    commentsCount: 2,
-    caption: "Golden extraction. Water temperature at exactly 92°C for that crisp fruit sweetness. Precision makes perfection. 🌡️☕️ #baristalife #espresso #extraction",
-    time: "2 days ago",
-    location: "Antonioni Grounds • NY",
-    comments: [
-      { id: 1, username: "extraction_nerd", text: "What brew ratio are you running here?", time: "1d ago" },
-      { id: 2, username: "barista.artisan", text: "1:16 ratio, perfect balance.", time: "1d ago" },
-    ]
-  },
-  {
-    id: 5,
-    imageUrl: "https://images.unsplash.com/photo-1498804103079-a6351b050096?q=80&w=600&auto=format&fit=crop",
-    username: "antonioni_grounds",
-    likes: 512,
-    commentsCount: 2,
-    caption: "Slow drip chemistry. Witness the bloom of our Ethiopian heirloom microlot. Carbon dioxide escaping, unlocking floral aromatics. 🌸🧪 #dripcoffee #scentofcoffee",
-    time: "3 days ago",
-    location: "Antonioni Grounds • Paris",
-    comments: [
-      { id: 1, username: "fragrance_lover", text: "I can smell this photo! 🌸", time: "2d ago" },
-      { id: 2, username: "syphon_brew", text: "Beautiful bloom capture.", time: "2d ago" },
-    ]
-  }
-];
+
 
 export const LifestyleGrid: React.FC = () => {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const LIFESTYLE_POSTS = posts.slice(0, 5);
+
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+  const loadPosts = async () => {
+    let email: string | null = null;
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          email = session.user.email || null;
+          setCurrentUserEmail(email);
+        }
+      } catch (e) {
+        console.error("Auth session error:", e);
+      }
+
+      const { data, error } = await supabase
+        .from("lifestyle_posts")
+        .select(`
+          *,
+          comments:lifestyle_comments(*),
+          likes_list:lifestyle_likes(*)
+        `)
+        .eq("status", "posted")
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        const liked: Record<number, boolean> = {};
+        const postsData = data.map((post: any) => {
+          const list = post.likes_list || [];
+          if (email && list.some((l: any) => l.user_email === email)) {
+            liked[post.id] = true;
+          }
+          return {
+            ...post,
+            likes: list.length,
+            comments: post.comments || []
+          };
+        });
+        setLikedPosts(liked);
+        setPosts(postsData as unknown as Post[]);
+        return;
+      } else if (error) {
+        console.error("Error fetching lifestyle posts from Supabase:", error);
+      }
+    }
+    const localPosts = (db.getLifestylePosts() as unknown as Post[]).filter(p => !p.status || p.status === "posted");
+    setPosts(localPosts);
+  };
+
+  useEffect(() => {
+    loadPosts();
+    const handleStorageChange = () => {
+      loadPosts();
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   const [selectedPostIndex, setSelectedPostIndex] = useState<number | null>(null);
+  const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
+
+  useEffect(() => {
+    setIsCaptionExpanded(false);
+  }, [selectedPostIndex]);
+
   const [likedPosts, setLikedPosts] = useState<Record<number, boolean>>({});
   const [extraComments, setExtraComments] = useState<Record<number, Comment[]>>({});
   const [commentInput, setCommentInput] = useState("");
   const [copiedPostId, setCopiedPostId] = useState<number | null>(null);
+
+  // Derived state (placed after state declarations to avoid TDZ errors)
+  const selectedPost = selectedPostIndex !== null ? LIFESTYLE_POSTS[selectedPostIndex] : null;
+  const caption = selectedPost ? selectedPost.caption : "";
+  const isLong = caption.length > 75;
+  const displayCaption = isCaptionExpanded || !isLong 
+    ? caption 
+    : caption.slice(0, 75) + "...";
 
   // Keyboard navigation for Lightbox modal
   useEffect(() => {
@@ -167,15 +188,107 @@ export const LifestyleGrid: React.FC = () => {
     };
   }, [selectedPostIndex]);
 
-  const handleLikeToggle = (postId: number) => {
+  const handleLikeToggle = async (postId: number) => {
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast.error("Please login to like this post.");
+          return;
+        }
+        
+        const user = session.user;
+        const email = user.email!;
+        const name = user.user_metadata?.name || email.split("@")[0];
+        
+        const currentlyLiked = likedPosts[postId];
+        
+        if (currentlyLiked) {
+          // Unlike
+          const { error } = await supabase
+            .from("lifestyle_likes")
+            .delete()
+            .eq("post_id", postId)
+            .eq("user_email", email);
+          if (error) {
+            toast.error("Error unliking post: " + error.message);
+            return;
+          }
+        } else {
+          // Like
+          const { error } = await supabase
+            .from("lifestyle_likes")
+            .insert({
+              post_id: postId,
+              user_id: user.id,
+              user_email: email,
+              username: name
+            });
+          if (error) {
+            toast.error("Error liking post: " + error.message);
+            return;
+          }
+        }
+        
+        loadPosts();
+        return;
+      } catch (err: any) {
+        console.error(err);
+        toast.error("An error occurred: " + err.message);
+        return;
+      }
+    }
+
+    // Offline Fallback
     setLikedPosts(prev => ({
       ...prev,
       [postId]: !prev[postId]
     }));
   };
 
-  const handleAddComment = (postId: number) => {
+  const handleAddComment = async (postId: number) => {
     if (!commentInput.trim()) return;
+
+    if (supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast.error("Please login to write a comment.");
+          return;
+        }
+
+        const user = session.user;
+        const email = user.email!;
+        const name = user.user_metadata?.name || email.split("@")[0];
+
+        const { error } = await supabase
+          .from("lifestyle_comments")
+          .insert({
+            post_id: postId,
+            user_id: user.id,
+            user_email: email,
+            username: name,
+            text: commentInput.trim(),
+            time: "Just now"
+          });
+
+        if (error) {
+          toast.error("Failed to post comment: " + error.message);
+          return;
+        }
+
+        setCommentInput("");
+        toast.success("Comment posted successfully!");
+        loadPosts();
+        return;
+      } catch (err: any) {
+        console.error(err);
+        toast.error("An error occurred: " + err.message);
+        return;
+      }
+    }
+
+    // Offline Fallback
     const newComment: Comment = {
       id: Date.now(),
       username: "visitor.guest",
@@ -217,6 +330,8 @@ export const LifestyleGrid: React.FC = () => {
     }
   };
 
+  if (posts.length === 0) return null;
+
   return (
     <section className="py-24 bg-background border-t border-card-border transition-colors duration-500 relative overflow-hidden">
       {/* Dynamic Background accents */}
@@ -236,11 +351,11 @@ export const LifestyleGrid: React.FC = () => {
         </div>
 
         {/* Asymmetric Bento Grid Layout */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 auto-rows-[1fr]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 md:grid-rows-[252px_252px] auto-rows-[1fr]">
           {LIFESTYLE_POSTS.map((post, idx) => {
             const isLarge = idx === 0;
             const commentsTotal = post.comments.length + (extraComments[post.id]?.length || 0);
-            const displayLikes = post.likes + (likedPosts[post.id] ? 1 : 0);
+            const displayLikes = post.likes + (supabase ? 0 : (likedPosts[post.id] ? 1 : 0));
 
             return (
               <FadeUp 
@@ -271,13 +386,13 @@ export const LifestyleGrid: React.FC = () => {
                           @{post.username}
                         </span>
                       </div>
-                      <span className="text-[9px] text-zinc-400 font-sans">{post.time}</span>
+                      <span className="text-[9px] text-zinc-400 font-sans">{post.date}</span>
                     </div>
 
                     {/* Middle Icon */}
                     <div className="flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform duration-300 my-auto">
                       <div className="w-11 h-11 rounded-full border border-emerald-500/40 bg-black/40 flex items-center justify-center text-emerald-500">
-                        <InstagramIcon size={18} />
+                        <Eye size={18} />
                       </div>
                     </div>
 
@@ -331,7 +446,7 @@ export const LifestyleGrid: React.FC = () => {
 
       {/* Lightbox Modal Component */}
       <AnimatePresence>
-        {selectedPostIndex !== null && (
+        {selectedPostIndex !== null && LIFESTYLE_POSTS[selectedPostIndex] && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -391,38 +506,40 @@ export const LifestyleGrid: React.FC = () => {
               <div className="w-full md:w-2/5 h-[60%] md:h-full flex flex-col justify-between bg-card text-foreground">
                 
                 {/* User Header */}
-                <div className="p-4 border-b border-card-border flex items-center gap-3 shrink-0">
-                  <div className="w-9 h-9 rounded-full bg-[#2E5A44]/15 border border-[#2E5A44]/20 flex items-center justify-center text-sm font-bold text-[#2E5A44] dark:text-emerald-400 uppercase font-sans">
+                <div className="p-4 border-b border-card-border flex items-start gap-3 shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-[#2E5A44]/15 border border-[#2E5A44]/20 flex items-center justify-center text-sm font-bold text-[#2E5A44] dark:text-emerald-400 uppercase font-sans shrink-0 mt-0.5">
                     {LIFESTYLE_POSTS[selectedPostIndex].username[0]}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-bold font-sans">@{LIFESTYLE_POSTS[selectedPostIndex].username}</span>
-                      <span className="w-3.5 h-3.5 rounded-full bg-[#2E5A44] text-white flex items-center justify-center text-[7px] font-bold">✓</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold font-sans">@{LIFESTYLE_POSTS[selectedPostIndex].username}</span>
+                        <span className="w-3.5 h-3.5 rounded-full bg-[#2E5A44] text-white flex items-center justify-center text-[7px] font-bold">✓</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[9px] text-zinc-400 dark:text-zinc-500 font-sans">
+                        <span>{LIFESTYLE_POSTS[selectedPostIndex].location}</span>
+                        <span>•</span>
+                        <span>{LIFESTYLE_POSTS[selectedPostIndex].date}</span>
+                      </div>
                     </div>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-sans">{LIFESTYLE_POSTS[selectedPostIndex].location}</span>
+                    
+                    {/* Caption inline with Username */}
+                    <p className="text-[11.5px] leading-relaxed text-zinc-300 font-sans font-medium mt-1 select-text">
+                      {renderCaptionWithHashtags(displayCaption)}
+                      {isLong && (
+                        <button
+                          onClick={() => setIsCaptionExpanded(!isCaptionExpanded)}
+                          className="text-brand-green dark:text-emerald-400 font-bold ml-1 hover:underline focus:outline-none cursor-pointer text-[10px]"
+                        >
+                          {isCaptionExpanded ? "show less" : "see more"}
+                        </button>
+                      )}
+                    </p>
                   </div>
                 </div>
 
-                {/* Comments & Caption Scroll Area */}
+                {/* Comments Scroll Area */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs scrollbar-thin">
-                  {/* Origin Caption */}
-                  <div className="flex gap-3 items-start">
-                    <div className="w-7 h-7 rounded-full bg-[#2E5A44]/10 border border-[#2E5A44]/20 flex items-center justify-center text-[10px] font-bold text-[#2E5A44] dark:text-emerald-400 shrink-0 uppercase font-sans">
-                      {LIFESTYLE_POSTS[selectedPostIndex].username[0]}
-                    </div>
-                    <div className="space-y-1">
-                      <p className="leading-relaxed">
-                        <span className="font-bold mr-1.5 font-sans">@{LIFESTYLE_POSTS[selectedPostIndex].username}</span>
-                        {LIFESTYLE_POSTS[selectedPostIndex].caption}
-                      </p>
-                      <p className="text-[9px] text-zinc-400 dark:text-zinc-500 font-sans font-medium">
-                        {LIFESTYLE_POSTS[selectedPostIndex].time}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="h-[1px] bg-card-border" />
 
                   {/* Comment Thread */}
                   <div className="space-y-4">
@@ -491,10 +608,7 @@ export const LifestyleGrid: React.FC = () => {
 
                     <div className="text-right select-none font-sans">
                       <p className="text-xs font-bold text-foreground">
-                        {LIFESTYLE_POSTS[selectedPostIndex].likes + (likedPosts[LIFESTYLE_POSTS[selectedPostIndex].id] ? 1 : 0)} likes
-                      </p>
-                      <p className="text-[9px] text-zinc-400 dark:text-zinc-500 tracking-wider uppercase mt-0.5">
-                        {LIFESTYLE_POSTS[selectedPostIndex].time}
+                        {LIFESTYLE_POSTS[selectedPostIndex].likes + (supabase ? 0 : (likedPosts[LIFESTYLE_POSTS[selectedPostIndex].id] ? 1 : 0))} likes
                       </p>
                     </div>
                   </div>

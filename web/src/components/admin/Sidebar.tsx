@@ -9,13 +9,14 @@ import {
   Users,
   LogOut,
   ChevronLeft,
+  Camera,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/utils/supabase";
 
 interface SidebarProps {
-  activeTab: "dashboard" | "menu" | "reservations" | "loyalty" | "users";
-  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users") => void;
+  activeTab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle";
+  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle") => void;
   reservationsCount: number;
   onLogout: () => void;
   currentUserRole?: "admin" | "barista";
@@ -177,9 +178,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: "reservations" as const, label: "Reservations", icon: Calendar, badge: reservationsCount },
             { id: "loyalty" as const, label: "Loyalty Logs", icon: CreditCard },
             { id: "users" as const, label: "Users & Roles", icon: Users },
+            { id: "lifestyle" as const, label: "Lifestyle Posts", icon: Camera },
           ].filter(tab => {
             if (currentUserRole === "barista") {
-              return tab.id !== "menu" && tab.id !== "users";
+              return tab.id !== "menu" && tab.id !== "users" && tab.id !== "lifestyle";
             }
             return true;
           }).map((tab) => {
@@ -269,9 +271,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: "reservations" as const, label: "Bookings", icon: Calendar, badge: reservationsCount },
         { id: "loyalty" as const, label: "Loyalty", icon: CreditCard },
         { id: "users" as const, label: "Users", icon: Users },
+        { id: "lifestyle" as const, label: "Lifestyle", icon: Camera },
       ].filter(tab => {
         if (currentUserRole === "barista") {
-          return tab.id !== "menu" && tab.id !== "users";
+          return tab.id !== "menu" && tab.id !== "users" && tab.id !== "lifestyle";
         }
         return true;
       }).map((tab) => {

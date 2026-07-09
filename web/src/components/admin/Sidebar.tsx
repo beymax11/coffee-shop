@@ -127,10 +127,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
+    <>
     <motion.aside
       animate={{ width: isCollapsed ? 80 : 256 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="h-full border-r border-card-border bg-card/95 backdrop-blur-md flex flex-col justify-between shrink-0 relative z-20 overflow-visible"
+      className="hidden md:flex h-full border-r border-card-border bg-card/95 backdrop-blur-md flex-col justify-between shrink-0 relative z-20 overflow-visible"
     >
       {/* Collapse Toggle Button */}
       <button
@@ -257,5 +258,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
     </motion.aside>
+
+    {/* Mobile Bottom Navigation Bar — visible only on mobile (md:hidden) */}
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-card-border bg-card/95 backdrop-blur-xl flex items-stretch"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      {[
+        { id: "dashboard" as const, label: "Home", icon: LayoutDashboard },
+        { id: "menu" as const, label: "Menu", icon: Coffee },
+        { id: "reservations" as const, label: "Bookings", icon: Calendar, badge: reservationsCount },
+        { id: "loyalty" as const, label: "Loyalty", icon: CreditCard },
+        { id: "users" as const, label: "Users", icon: Users },
+      ].filter(tab => {
+        if (currentUserRole === "barista") {
+          return tab.id !== "menu" && tab.id !== "users";
+        }
+        return true;
+      }).map((tab) => {
+        const Icon = tab.icon;
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 relative transition-colors ${
+              isActive
+                ? "text-brand-green"
+                : "text-neutral-500 dark:text-zinc-500"
+            }`}
+          >
+            {isActive && (
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-brand-green" />
+            )}
+            <div className="relative">
+              <Icon size={18} />
+              {tab.badge && tab.badge > 0 && (
+                <span className="absolute -top-1.5 -right-2 h-3.5 w-3.5 rounded-full bg-brand-green text-white text-[7px] font-bold flex items-center justify-center">
+                  {tab.badge > 9 ? "9+" : tab.badge}
+                </span>
+              )}
+            </div>
+            <span className={`text-[9px] tracking-wide font-medium ${
+              isActive ? "text-brand-green" : "text-neutral-500 dark:text-zinc-500"
+            }`}>{tab.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+    </>
   );
 };

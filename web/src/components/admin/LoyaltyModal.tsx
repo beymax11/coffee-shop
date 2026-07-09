@@ -34,7 +34,7 @@ export const LoyaltyModal: React.FC<LoyaltyModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -46,11 +46,12 @@ export const LoyaltyModal: React.FC<LoyaltyModalProps> = ({
 
           {/* Modal Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            transition={{ duration: 0.4, ease: EASE }}
-            className="w-full max-w-md rounded-2xl border border-card-border bg-card p-8 shadow-2xl relative z-10 overflow-hidden"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ duration: 0.35, ease: EASE }}
+            className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-card-border bg-card p-6 sm:p-8 shadow-2xl relative z-10 overflow-hidden max-h-[92dvh] overflow-y-auto"
+            style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
           >
             {/* Ambient Green Glow inside modal */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-green/5 blur-[25px] rounded-full pointer-events-none" />

@@ -180,7 +180,7 @@ export const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute right-0 mt-2 w-80 max-h-[400px] overflow-hidden rounded-2xl border border-card-border bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col z-50"
+            className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-80 max-h-[min(400px,60dvh)] overflow-hidden rounded-2xl border border-card-border bg-card/95 backdrop-blur-xl shadow-2xl flex flex-col z-[60]"
           >
             {/* Header */}
             <div className="p-3 px-4 border-b border-card-border flex items-center justify-between bg-background-alt/30">

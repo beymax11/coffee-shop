@@ -53,8 +53,8 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Filter Deck */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
-        <span className="type-body-sm text-neutral-500 dark:text-zinc-400 font-semibold pl-2">Filter bookings by status:</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
+        <span className="type-body-sm text-neutral-500 dark:text-zinc-400 font-semibold pl-2 text-xs">Filter bookings by status:</span>
 
         <div className="flex gap-1.5 flex-wrap">
           {filterStates.map((status) => {
@@ -63,7 +63,7 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
               <button
                 key={status}
                 onClick={() => setReservationFilter(status)}
-                className={`rounded-full px-4 py-1.5 type-ui text-[9px] tracking-wider border cursor-pointer transition-all duration-300 ${
+                className={`rounded-full px-3 sm:px-4 py-1.5 type-ui text-[9px] tracking-wider border cursor-pointer transition-all duration-300 min-h-[36px] ${
                   isActive
                     ? "bg-brand-green border-brand-green text-white font-semibold shadow-[0_2px_10px_rgba(46,90,68,0.2)]"
                     : "bg-foreground/[0.02] border-card-border/50 text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
@@ -81,7 +81,7 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6"
       >
         {filteredReservations.map((res, index) => {
           const key = `${res.fullName}-${res.date}-${res.time}`;

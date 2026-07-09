@@ -139,7 +139,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
       >
         {[
           { label: "Total Accounts", value: totalUsers, icon: Users, color: "text-brand-green bg-brand-green/10" },
@@ -172,9 +172,9 @@ export const UsersTab: React.FC<UsersTabProps> = ({
 
       {/* FILTER & CONTROLS DECK */}
       <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Search Box */}
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative flex-1 sm:max-w-sm">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
             <input
               type="text"
@@ -186,7 +186,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
           </div>
 
           {/* Sort Dropdown */}
-          <div className="flex items-center gap-2 self-end md:self-auto">
+          <div className="flex items-center gap-2">
             <span className="type-ui text-[9px] text-neutral-500 dark:text-zinc-400 font-bold uppercase tracking-wider">
               Sort by:
             </span>
@@ -233,8 +233,98 @@ export const UsersTab: React.FC<UsersTabProps> = ({
         </div>
       </div>
 
-      {/* USERS TABLE */}
-      <div className="rounded-2xl border border-card-border bg-card/30 backdrop-blur-sm overflow-hidden shadow-xl">
+      {/* MOBILE CARD VIEW — visible on sm and below */}
+      <div className="sm:hidden space-y-3">
+        {filteredUsers.length > 0 ? (
+          filteredUsers.map((user) => {
+            const isSelf = user.email.toLowerCase() === currentUserEmail.toLowerCase();
+            return (
+              <div
+                key={user.id}
+                className="rounded-2xl border border-card-border bg-card/40 backdrop-blur-sm p-4 shadow-xl flex flex-col gap-3"
+              >
+                {/* Header row */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center font-semibold text-xs border ${
+                      user.role === "admin"
+                        ? "bg-red-500/10 text-red-500 border-red-500/20"
+                        : user.role === "barista"
+                        ? "bg-teal-500/10 text-teal-500 border-teal-500/20"
+                        : "bg-brand-green/10 text-brand-green border-brand-green/20"
+                    }`}>
+                      {getInitials(user.name)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground text-xs flex items-center gap-1.5">
+                        {user.name}
+                        {isSelf && (
+                          <span className="bg-brand-green/15 text-brand-green px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider uppercase">You</span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-neutral-500 dark:text-zinc-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold border shrink-0 ${
+                    user.role === "admin"
+                      ? "bg-red-500/10 text-red-500 border-red-500/20"
+                      : user.role === "barista"
+                      ? "bg-teal-500/10 text-teal-500 border-teal-500/20"
+                      : "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                  }`}>
+                    {user.role === "admin" && <Shield size={9} />}
+                    {user.role === "barista" && <Coffee size={9} />}
+                    {user.role === "customer" && <User size={9} />}
+                    <span className="capitalize">{user.role}</span>
+                  </span>
+                </div>
+
+                {/* Meta info */}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-neutral-500 dark:text-zinc-400">
+                  {user.username && (
+                    <span className="flex items-center gap-1 font-mono">
+                      <AtSign size={9} />{user.username}
+                    </span>
+                  )}
+                  {user.joinedAt && (
+                    <span className="flex items-center gap-1">
+                      <Calendar size={9} />{user.joinedAt}
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2 border-t border-card-border/40">
+                  <button
+                    onClick={() => handleOpenRoleModal(user)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-card-border bg-foreground/[0.01] hover:bg-foreground/5 text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white transition-colors text-[9px] font-bold tracking-wider cursor-pointer min-h-[44px]"
+                  >
+                    <Edit2 size={12} /> Edit Role
+                  </button>
+                  <button
+                    onClick={() => !isSelf && handleOpenDeleteModal(user)}
+                    disabled={isSelf}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border transition-colors text-[9px] font-bold tracking-wider min-h-[44px] ${
+                      isSelf
+                        ? "border-transparent bg-transparent text-neutral-300 dark:text-zinc-700 cursor-not-allowed opacity-40"
+                        : "border-red-500/10 bg-red-500/[0.01] hover:bg-red-500/10 text-red-500 hover:text-red-600 cursor-pointer"
+                    }`}
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="py-12 text-center text-neutral-500 dark:text-zinc-400 italic text-xs border border-dashed border-card-border rounded-2xl">
+            No matching user accounts found.
+          </div>
+        )}
+      </div>
+
+      {/* USERS TABLE — hidden on mobile, visible on sm+ */}
+      <div className="hidden sm:block rounded-2xl border border-card-border bg-card/30 backdrop-blur-sm overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -383,7 +473,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
       {/* EDIT ROLE MODAL */}
       <AnimatePresence>
         {isRoleModalOpen && selectedUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -393,11 +483,12 @@ export const UsersTab: React.FC<UsersTabProps> = ({
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-sm rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-8 shadow-2xl relative z-10 overflow-hidden"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl relative z-10 overflow-hidden"
+              style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-brand-green/10 blur-[35px] rounded-full pointer-events-none" />
 
@@ -467,7 +558,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
       {/* DELETE ACCOUNT CONFIRMATION MODAL */}
       <AnimatePresence>
         {isDeleteModalOpen && selectedUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -477,11 +568,12 @@ export const UsersTab: React.FC<UsersTabProps> = ({
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-sm rounded-2xl border border-red-500/20 bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-8 shadow-2xl relative z-10 overflow-hidden"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl border border-red-500/20 bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl relative z-10 overflow-hidden"
+              style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
             >
               <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 blur-[35px] rounded-full pointer-events-none" />
 

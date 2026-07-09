@@ -63,16 +63,26 @@ export const MenuTab: React.FC<MenuTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Filter Deck */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
-          <input
-            type="text"
-            placeholder="Search coffee or pastries..."
-            value={menuSearch}
-            onChange={(e) => setMenuSearch(e.target.value)}
-            className="w-full rounded-full border border-card-border bg-background/40 py-2.5 pl-10 pr-4 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background/60 focus:ring-1 focus:ring-brand-green/20"
-          />
+      <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative flex-1 sm:max-w-sm">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
+            <input
+              type="text"
+              placeholder="Search coffee or pastries..."
+              value={menuSearch}
+              onChange={(e) => setMenuSearch(e.target.value)}
+              className="w-full rounded-full border border-card-border bg-background/40 py-2.5 pl-10 pr-4 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background/60 focus:ring-1 focus:ring-brand-green/20"
+            />
+          </div>
+
+          <button
+            onClick={onOpenAddModal}
+            className="flex items-center justify-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 type-ui text-[9px] text-white transition-all duration-300 font-bold shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25 cursor-pointer sm:shrink-0 min-h-[44px]"
+          >
+            <Plus size={13} />
+            Add Item
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-1.5 items-center">
@@ -93,14 +103,6 @@ export const MenuTab: React.FC<MenuTabProps> = ({
             );
           })}
         </div>
-
-        <button
-          onClick={onOpenAddModal}
-          className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 type-ui text-[9px] text-white transition-all duration-300 font-bold shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25 cursor-pointer shrink-0"
-        >
-          <Plus size={13} />
-          Add Item
-        </button>
       </div>
 
       {/* List Table */}

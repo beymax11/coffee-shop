@@ -239,8 +239,8 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
 
       {/* Filter Deck */}
       <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative flex-1 sm:max-w-sm">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
             <input
               type="text"
@@ -251,7 +251,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             {/* Sort Dropdown */}
             <div className="flex items-center gap-2">
               <span className="type-ui text-[9px] text-neutral-500 dark:text-zinc-400 font-bold uppercase tracking-wider">Sort by:</span>
@@ -270,7 +270,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
 
             <button
               onClick={onOpenRegisterModal}
-              className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 type-ui text-[9px] text-white transition-all duration-300 font-bold shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25 cursor-pointer shrink-0"
+              className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-4 py-2 type-ui text-[9px] text-white transition-all duration-300 font-bold shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25 cursor-pointer shrink-0 min-h-[36px]"
             >
               <Plus size={13} />
               Register Member
@@ -312,7 +312,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6"
       >
         {filteredLoyalty.map((member) => {
           const freeDrinkEarned = member.stamps === 9;
@@ -386,13 +386,13 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-9 gap-2.5 max-w-[340px]">
+                  <div className="grid grid-cols-9 gap-1.5 sm:gap-2.5 max-w-full">
                     {[...Array(9)].map((_, idx) => {
                       const isStamped = idx < member.stamps;
                       return (
                         <div
                           key={idx}
-                          className={`h-7 w-7 rounded-full border transition-all duration-300 flex items-center justify-center ${
+                          className={`h-6 w-6 sm:h-7 sm:w-7 rounded-full border transition-all duration-300 flex items-center justify-center ${
                             isStamped
                               ? "bg-brand-green/20 border-brand-green text-brand-green shadow green-glow font-bold text-[9px] scale-105"
                               : "border-card-border bg-foreground/[0.03] text-neutral-400 dark:text-zinc-600 dark:bg-black/40 text-[9px] font-semibold"
@@ -449,7 +449,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
           >
             <motion.div
               initial={{ opacity: 0 }}
@@ -460,11 +460,11 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3, ease: EASE }}
-              className="relative w-full max-w-md aspect-square rounded-2xl border border-neutral-800 bg-zinc-950 overflow-hidden shadow-2xl z-10 flex items-center justify-center"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ duration: 0.35 }}
+              className="relative w-full sm:max-w-md aspect-square rounded-t-2xl sm:rounded-2xl border border-neutral-800 bg-zinc-950 overflow-hidden shadow-2xl z-10 flex items-center justify-center"
             >
               {errorMsg && !streamRef.current ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-red-500 bg-black/95 z-10 space-y-2">
@@ -509,7 +509,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
           >
             <motion.div
               initial={{ opacity: 0 }}
@@ -520,11 +520,12 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-sm rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-8 shadow-2xl relative z-10 overflow-hidden"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl relative z-10 overflow-hidden"
+              style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
             >
               {/* Decorative Glow */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-brand-green/10 blur-[35px] rounded-full pointer-events-none" />
@@ -632,7 +633,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
           >
             <motion.div
               initial={{ opacity: 0 }}
@@ -643,11 +644,12 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-md rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-8 shadow-2xl relative z-10 overflow-hidden"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl relative z-10 overflow-hidden"
+              style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
             >
               {/* Decorative Glow */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/10 blur-[40px] rounded-full pointer-events-none" />
@@ -762,7 +764,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
           >
             <motion.div
               initial={{ opacity: 0 }}
@@ -773,11 +775,12 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-md rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-8 shadow-2xl relative z-10 overflow-hidden"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl relative z-10 overflow-hidden max-h-[92dvh] overflow-y-auto"
+              style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
             >
               {/* Decorative Glow */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/10 blur-[40px] rounded-full pointer-events-none" />
@@ -881,7 +884,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
           >
             <motion.div
               initial={{ opacity: 0 }}
@@ -892,11 +895,12 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-sm rounded-2xl border border-red-500/20 bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-8 shadow-2xl relative z-10 overflow-hidden"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl border border-red-500/20 bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl relative z-10 overflow-hidden"
+              style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
             >
               {/* Decorative Red Glow */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 blur-[30px] rounded-full pointer-events-none" />
@@ -964,7 +968,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
           >
             <motion.div
               initial={{ opacity: 0 }}
@@ -975,11 +979,12 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-sm rounded-2xl border border-red-500/20 bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-8 shadow-2xl relative z-10 overflow-hidden"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl border border-red-500/20 bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl relative z-10 overflow-hidden"
+              style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
             >
               {/* Decorative Red Glow */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 blur-[30px] rounded-full pointer-events-none" />

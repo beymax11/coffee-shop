@@ -688,7 +688,7 @@ export const AdminView: React.FC = () => {
       <div className="absolute top-[-10%] right-[-5%] w-[450px] h-[450px] bg-brand-green/4 blur-[130px] rounded-full pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] left-[10%] w-[450px] h-[450px] bg-[#2E5A44]/4 blur-[130px] rounded-full pointer-events-none z-0" />
 
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation — hidden on mobile, visible on md+ */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -698,20 +698,20 @@ export const AdminView: React.FC = () => {
       />
 
       {/* Main Workspace */}
-      <main className="flex-1 flex flex-col overflow-y-auto p-8 relative z-10">
+      <main className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-6 md:p-8 relative z-10 pb-24 md:pb-8">
         
         {/* TOP BAR / Header */}
-        <header className="flex justify-between items-center mb-8 pb-4 border-b border-card-border relative">
+        <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-8 pb-3 md:pb-4 border-b border-card-border relative">
           <div>
             <span className="type-eyebrow text-[9px] text-brand-green dark:text-emerald-400 tracking-[0.25em]">Console Panel</span>
-            <h1 className="type-h2 text-foreground font-serif tracking-tight mt-1">
+            <h1 className="type-h2 text-foreground font-serif tracking-tight mt-1 text-lg sm:text-xl md:text-2xl">
               {activeTab === "dashboard" && "DASHBOARD OVERVIEW"}
               {activeTab === "menu" && "MENU OFFERINGS"}
               {activeTab === "reservations" && "EXPERIENCE BOOKINGS"}
               {activeTab === "loyalty" && "DIGITAL LOYALTY DIRECTORY"}
               {activeTab === "users" && "USER ACCOUNTS & ROLES"}
             </h1>
-            <p className="type-caption text-neutral-500 mt-1">
+            <p className="type-caption text-neutral-500 mt-1 hidden sm:block">
               {activeTab === "users"
                 ? "Adjust account authorization roles, inspect client profiles, and manage system access."
                 : "Manage menu inventory, client reservations, and card records."
@@ -720,7 +720,7 @@ export const AdminView: React.FC = () => {
           </div>
 
           {/* Top Right Actions: Theme Toggle and Notifications */}
-          <div className="flex items-center gap-3 self-start md:self-center">
+          <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-start md:self-center">
              {/* Maintenance Toggle */}
              <button
                onClick={toggleMaintenance}

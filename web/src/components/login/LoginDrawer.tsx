@@ -96,7 +96,7 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
 
         if (isSignUp) {
           // Register mock customer
-          const randomId = `LN-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+          const randomId = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
           db.saveLoyaltyMember({
             id: randomId,
             name: name.trim(),
@@ -145,7 +145,7 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
           } else {
             const namePart = loginEmail.split("@")[0];
             const autoName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-            const randomId = `LN-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+            const randomId = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
 
             const newMember = {
               id: randomId,
@@ -194,8 +194,9 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
           const existingMember = members.find(
             (m) => m.email.toLowerCase() === trimmedEmail.toLowerCase()
           );
+          const randomId = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+          
           if (!existingMember) {
-            const randomId = `LN-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
             db.saveLoyaltyMember({
               id: randomId,
               name: name.trim(),
@@ -205,6 +206,21 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
               joinedAt: new Date().toISOString().split("T")[0],
             });
           }
+
+          // Delay to wait for trigger to insert profiles record, then update it with the member_id
+          setTimeout(() => {
+            if (supabase) {
+              supabase
+                .from("profiles")
+                .update({ member_id: existingMember?.id || randomId })
+                .eq("id", user.id)
+                .then(({ error }) => {
+                  if (error) {
+                    console.error("Error updating member_id in profiles table after signup:", error);
+                  }
+                });
+            }
+          }, 1500);
 
           if (data.session) {
             // Logged in immediately (email confirmation disabled in Supabase settings)
@@ -274,6 +290,19 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
 
         if (existingMember) {
           if (profile) {
+            let memberIdToUse = profile.member_id || existingMember.id;
+            if (!memberIdToUse || memberIdToUse.length > 20) {
+              memberIdToUse = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+              // Update database in background
+              supabase
+                .from("profiles")
+                .update({ member_id: memberIdToUse })
+                .eq("id", user.id)
+                .then(({ error }) => {
+                  if (error) console.error("Error updating member_id on login:", error);
+                });
+            }
+            existingMember.id = memberIdToUse;
             existingMember.stamps = profile.stamps ?? existingMember.stamps;
             existingMember.points = profile.points ?? existingMember.points;
             existingMember.name = profile.name ?? existingMember.name;
@@ -283,8 +312,20 @@ export const LoginDrawer: React.FC<LoginDrawerProps> = ({ isOpen, onClose }) => 
         } else {
           const displayName = profile?.name || loginEmail.split("@")[0];
           const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+          let memberIdToUse = profile?.member_id;
+          if (!memberIdToUse || memberIdToUse.length > 20) {
+            memberIdToUse = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+            // Update database in background
+            supabase
+              .from("profiles")
+              .update({ member_id: memberIdToUse })
+              .eq("id", user.id)
+              .then(({ error }) => {
+                if (error) console.error("Error updating member_id on login:", error);
+              });
+          }
           db.saveLoyaltyMember({
-            id: profile?.id || `LN-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`,
+            id: memberIdToUse,
             name: capitalizedName,
             email: loginEmail,
             stamps: profile?.stamps || 0,

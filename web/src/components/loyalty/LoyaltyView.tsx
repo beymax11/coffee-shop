@@ -18,9 +18,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
+import QRCode from "qrcode";
 
 export function LoyaltyView() {
-  const [memberId, setMemberId] = useState<string>("LN-882-901");
+  const [memberId, setMemberId] = useState<string>("AG-882-901");
   const [memberName, setMemberName] = useState<string>("Alexander Vance");
   const [isGuest, setIsGuest] = useState<boolean>(true);
 
@@ -31,27 +32,91 @@ export function LoyaltyView() {
   const [copiedId, setCopiedId] = useState<boolean>(false);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
   const [isQrExpanded, setIsQrExpanded] = useState<boolean>(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (memberId) {
+      QRCode.toDataURL(memberId, {
+        margin: 1.5,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF"
+        }
+      })
+      .then(url => {
+        setQrCodeUrl(url);
+      })
+      .catch(err => {
+        console.error("Failed to generate QR code:", err);
+      });
+    }
+  }, [memberId]);
 
   // Sync with DB
   useEffect(() => {
-    const syncFromDb = () => {
+    const syncFromDb = async () => {
       const sessionEmail = localStorage.getItem("customer_session");
       const members = db.getLoyaltyMembers();
 
-      let current = members.find((m) => m.id === "LN-882-901"); // default fallback
+      let current = members.find((m) => m.id === "AG-882-901"); // default fallback
       let guestState = true;
 
       if (sessionEmail) {
-        const found = members.find((m) => m.email.toLowerCase() === sessionEmail.toLowerCase());
-        if (found) {
-          current = found;
-          guestState = false;
+        // Try to fetch latest profile from Supabase to ensure real-time sync of stamps/member_id
+        try {
+          const { supabase } = await import("@/utils/supabase");
+          if (supabase) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("email", sessionEmail.toLowerCase())
+              .single();
+
+            if (profile) {
+              // Find or create local loyalty member representation
+              let existing = members.find(m => m.email.toLowerCase() === sessionEmail.toLowerCase());
+              let memberIdToUse = profile.member_id || existing?.id || `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+              
+              if (!profile.member_id || profile.member_id.length > 20) {
+                // Update Supabase profiles table
+                await supabase
+                  .from("profiles")
+                  .update({ member_id: memberIdToUse })
+                  .eq("id", profile.id);
+              }
+
+              const updatedMember = {
+                id: memberIdToUse,
+                name: profile.name || existing?.name || sessionEmail.split("@")[0],
+                email: sessionEmail,
+                stamps: profile.stamps ?? existing?.stamps ?? 0,
+                points: profile.points ?? existing?.points ?? 0,
+                joinedAt: profile.created_at
+                  ? new Date(profile.created_at).toISOString().split("T")[0]
+                  : existing?.joinedAt || new Date().toISOString().split("T")[0]
+              };
+              
+              db.saveLoyaltyMember(updatedMember);
+              current = updatedMember;
+              guestState = false;
+            }
+          }
+        } catch (err) {
+          console.error("Error syncing profile with Supabase on mount:", err);
+        }
+
+        if (guestState) {
+          const found = members.find((m) => m.email.toLowerCase() === sessionEmail.toLowerCase());
+          if (found) {
+            current = found;
+            guestState = false;
+          }
         }
       }
 
       if (current) {
         let currentStamps = current.stamps;
-        if (current.id === "LN-882-901") {
+        if (current.id === "AG-882-901") {
           currentStamps = 1;
           if (current.stamps !== 1) {
             db.saveLoyaltyMember({
@@ -297,48 +362,16 @@ export function LoyaltyView() {
                             onClick={() => setIsQrExpanded(true)}
                             className="w-32 h-32 sm:w-36 sm:h-36 bg-white p-2.5 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-inner shrink-0 group cursor-pointer"
                           >
-                            {/* Gold scanning light simulation */}
-                            <div className="absolute left-0 right-0 h-1 bg-emerald-500 opacity-75 shadow-[0_0_8px_#10B981] animate-pulse z-10" style={{ animation: "scan 2.5s infinite ease-in-out" }} />
-
-                            {/* Virtual Stylized QR representation */}
-                            <div className="w-full h-full flex flex-col justify-between select-none">
-                              {/* Rows of block indicators simulating a luxury QR code */}
-                              <div className="flex justify-between h-7 sm:h-8 w-full">
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 border-4 border-black p-0.5 flex justify-center items-center"><div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-black" /></div>
-                                <div className="flex-1 flex flex-col justify-around py-0.5 px-1.5 gap-0.5">
-                                  <div className="flex gap-0.5"><div className="w-1.5 h-1 bg-black" /><div className="w-2.5 h-1 bg-black" /><div className="w-1.5 h-1 bg-black" /></div>
-                                  <div className="flex gap-0.5"><div className="w-3 h-1 bg-black" /><div className="w-1 h-1 bg-black" /></div>
-                                </div>
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 border-4 border-black p-0.5 flex justify-center items-center"><div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-black" /></div>
-                              </div>
-
-                              <div className="flex-1 flex justify-between my-1 sm:my-1.5 gap-1">
-                                <div className="w-7 sm:w-8 flex flex-col justify-around gap-0.5">
-                                  <div className="h-1 w-full bg-black" />
-                                  <div className="h-1 w-3 sm:w-4 bg-black" />
-                                  <div className="h-1 w-5 sm:w-6 bg-black" />
-                                </div>
-                                <div className="flex-1 grid grid-cols-6 gap-0.5 p-0.5">
-                                  {Array.from({ length: 24 }).map((_, i) => (
-                                    <div key={i} className={`rounded-sm ${i % 3 === 0 || i % 7 === 0 ? "bg-black" : "bg-transparent"}`} />
-                                  ))}
-                                </div>
-                                <div className="w-7 sm:w-8 flex flex-col justify-around items-end gap-0.5">
-                                  <div className="h-1 w-full bg-black" />
-                                  <div className="h-1 w-2 sm:w-3 bg-black" />
-                                  <div className="h-1 w-5 sm:w-6 bg-black" />
-                                </div>
-                              </div>
-
-                              <div className="flex justify-between h-7 sm:h-8 w-full">
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 border-4 border-black p-0.5 flex justify-center items-center"><div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-black" /></div>
-                                <div className="flex-1 flex flex-col justify-around py-0.5 px-1.5 gap-0.5">
-                                  <div className="flex gap-0.5"><div className="w-2 h-1 bg-black" /><div className="w-2 h-1 bg-black" /></div>
-                                  <div className="flex gap-0.5"><div className="w-1.5 h-1 bg-black" /><div className="w-2.5 h-1 bg-black" /></div>
-                                </div>
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 border-4 border-black/20 p-0.5 flex justify-center items-center"><div className="w-1.5 h-1 bg-black/40" /></div>
-                              </div>
-                            </div>
+                            {/* Real QR Code Representation */}
+                            {qrCodeUrl ? (
+                              <img
+                                src={qrCodeUrl}
+                                alt="Loyalty QR Code"
+                                className="w-full h-full object-contain relative z-0 select-none pointer-events-none"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-zinc-100 dark:bg-[#181818] animate-pulse rounded-md" />
+                            )}
 
                             {/* Hover Overlay Expand Button */}
                             <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20">
@@ -505,47 +538,16 @@ export function LoyaltyView() {
 
               {/* Large QR Code Container */}
               <div className="w-48 h-48 bg-white p-3 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-lg border border-zinc-200/50">
-                {/* Gold scanning light simulation */}
-                <div className="absolute left-0 right-0 h-1 bg-emerald-500 opacity-75 shadow-[0_0_8px_#10B981] animate-pulse z-10" style={{ animation: "scan 2.5s infinite ease-in-out" }} />
-                
-                {/* Virtual Stylized QR representation */}
-                <div className="w-full h-full flex flex-col justify-between select-none">
-                  <div className="flex justify-between h-10 w-full">
-                    <div className="w-10 h-10 border-4 border-black p-0.5 flex justify-center items-center"><div className="w-5 h-5 bg-black" /></div>
-                    <div className="flex-1 flex flex-col justify-around py-0.5 px-2 gap-0.5">
-                      <div className="flex gap-0.5"><div className="w-2.5 h-1 bg-black" /><div className="w-3.5 h-1 bg-black" /><div className="w-2.5 h-1 bg-black" /></div>
-                      <div className="flex gap-0.5"><div className="w-4.5 h-1 bg-black" /><div className="w-1.5 h-1 bg-black" /></div>
-                    </div>
-                    <div className="w-10 h-10 border-4 border-black p-0.5 flex justify-center items-center"><div className="w-5 h-5 bg-black" /></div>
-                  </div>
-
-                  <div className="flex-1 flex justify-between my-1.5 gap-1">
-                    <div className="w-10 flex flex-col justify-around gap-0.5">
-                      <div className="h-1 w-full bg-black" />
-                      <div className="h-1 w-5 bg-black" />
-                      <div className="h-1 w-7 bg-black" />
-                    </div>
-                    <div className="flex-1 grid grid-cols-6 gap-0.5 p-0.5">
-                      {Array.from({ length: 24 }).map((_, i) => (
-                        <div key={i} className={`rounded-sm ${i % 3 === 0 || i % 7 === 0 || i % 5 === 1 ? "bg-black" : "bg-transparent"}`} />
-                      ))}
-                    </div>
-                    <div className="w-10 flex flex-col justify-around items-end gap-0.5">
-                      <div className="h-1 w-full bg-black" />
-                      <div className="h-1 w-3 bg-black" />
-                      <div className="h-1 w-6 bg-black" />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between h-10 w-full">
-                    <div className="w-10 h-10 border-4 border-black p-0.5 flex justify-center items-center"><div className="w-5 h-5 bg-black" /></div>
-                    <div className="flex-1 flex flex-col justify-around py-0.5 px-2 gap-0.5">
-                      <div className="flex gap-0.5"><div className="w-2.5 h-1 bg-black" /><div className="w-2.5 h-1 bg-black" /></div>
-                      <div className="flex gap-0.5"><div className="w-1.5 h-1 bg-black" /><div className="w-3.5 h-1 bg-black" /></div>
-                    </div>
-                    <div className="w-10 h-10 border-4 border-black/20 p-0.5 flex justify-center items-center"><div className="w-2 h-1 bg-black/40" /></div>
-                  </div>
-                </div>
+                {/* Real QR Code Representation */}
+                {qrCodeUrl ? (
+                  <img
+                    src={qrCodeUrl}
+                    alt="Loyalty QR Code"
+                    className="w-full h-full object-contain relative z-0 select-none pointer-events-none"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-zinc-100 dark:bg-[#181818] animate-pulse rounded-md" />
+                )}
               </div>
 
               <div className="mt-6 text-center space-y-1">

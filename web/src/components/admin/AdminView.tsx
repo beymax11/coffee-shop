@@ -2,26 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  LayoutDashboard,
-  Coffee,
-  Calendar,
-  Sparkles,
-  LogOut,
-  RefreshCw,
-  Sliders,
-} from "lucide-react";
+import { RefreshCw, Sun, Moon } from "lucide-react";
 import { db, LoyaltyMember } from "@/utils/db";
 import { MenuItem, Reservation } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 // Import modular sub-components
+import { Sidebar } from "./Sidebar";
 import { DashboardTab } from "./DashboardTab";
 import { MenuTab } from "./MenuTab";
 import { ReservationsTab } from "./ReservationsTab";
 import { LoyaltyTab } from "./LoyaltyTab";
 import { MenuModal } from "./MenuModal";
 import { LoyaltyModal } from "./LoyaltyModal";
+import { NotificationsDropdown } from "./NotificationsDropdown";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -41,11 +36,7 @@ export const AdminView: React.FC = () => {
   const [reservationFilter, setReservationFilter] = useState<"All" | "Pending" | "Approved" | "Cancelled">("All");
   const [loyaltySearch, setLoyaltySearch] = useState("");
 
-  // Loyalty Stamping & Scanner States
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanSelectId, setScanSelectId] = useState("");
-  const [manualSerialCode, setManualSerialCode] = useState("");
-  const [stampStatusMsg, setStampStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
 
   // Modal / Drawer States
   const [showAddMenuModal, setShowAddMenuModal] = useState(false);
@@ -73,6 +64,32 @@ export const AdminView: React.FC = () => {
   // Status mappings for reservations (we store approval state locally)
   const [reservationStatuses, setReservationStatuses] = useState<Record<string, "Pending" | "Approved" | "Cancelled">>({});
 
+  // Theme state and toggle logic
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const savedTheme = localStorage.getItem("theme");
+    const isDark = savedTheme ? savedTheme === "dark" : root.classList.contains("dark");
+    setTheme(isDark ? "dark" : "light");
+    if (isDark) {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }, []);
+
+  const changeTheme = (newTheme: "light" | "dark") => {
+    const root = document.documentElement;
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    if (newTheme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  };
+
   // 1. Auth check
   useEffect(() => {
     const session = localStorage.getItem("admin_session");
@@ -89,22 +106,19 @@ export const AdminView: React.FC = () => {
       loadAllData();
       
       const handleStorageChange = () => {
-        loadAllData();
+        loadLocalData();
       };
       window.addEventListener("storage", handleStorageChange);
       return () => window.removeEventListener("storage", handleStorageChange);
     }
   }, [isAuthenticated]);
 
-  const loadAllData = () => {
+  // Load non-loyalty data from localStorage (menu, reservations)
+  const loadLocalData = () => {
     setMenuItems(db.getMenuItems());
-    
     const loadedReservations = db.getReservations();
     setReservations(loadedReservations);
-    
-    setLoyaltyMembers(db.getLoyaltyMembers());
 
-    // Initialize mock statuses for loaded reservations if not present
     const savedStatuses = localStorage.getItem("admin_reservation_statuses");
     if (savedStatuses) {
       setReservationStatuses(JSON.parse(savedStatuses));
@@ -119,11 +133,57 @@ export const AdminView: React.FC = () => {
     }
   };
 
+  // Fetch loyalty members from Supabase (single source of truth)
+  const fetchLoyaltyFromSupabase = async () => {
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("role", "customer");
+        
+        if (error) {
+          console.error("Supabase select error:", error);
+          return;
+        }
+        if (data) {
+          const supabaseMembers: LoyaltyMember[] = data.map((profile: any) => ({
+            id: profile.member_id || profile.id,
+            name: profile.name || profile.username || "Unknown",
+            email: profile.email || "",
+            stamps: profile.stamps || 0,
+            points: profile.points || 0,
+            joinedAt: profile.created_at
+              ? new Date(profile.created_at).toISOString().split("T")[0]
+              : new Date().toISOString().split("T")[0]
+          }));
+          setLoyaltyMembers(supabaseMembers);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching loyalty profiles from Supabase:", err);
+    }
+  };
+
+  // Full load: local data + Supabase loyalty members
+  const loadAllData = async () => {
+    loadLocalData();
+    await fetchLoyaltyFromSupabase();
+  };
+
   const updateReservationStatus = (res: Reservation, newStatus: "Pending" | "Approved" | "Cancelled") => {
     const key = `${res.fullName}-${res.date}-${res.time}`;
     const updated = { ...reservationStatuses, [key]: newStatus };
     setReservationStatuses(updated);
     localStorage.setItem("admin_reservation_statuses", JSON.stringify(updated));
+    if (newStatus === "Approved") {
+      toast.success(`Reservation for ${res.fullName} has been approved.`);
+    } else if (newStatus === "Cancelled") {
+      toast.error(`Reservation for ${res.fullName} has been cancelled.`);
+    } else {
+      toast.info(`Reservation for ${res.fullName} set to pending.`);
+    }
   };
 
   const handleLogout = () => {
@@ -136,7 +196,7 @@ export const AdminView: React.FC = () => {
       db.resetDatabase();
       localStorage.removeItem("admin_reservation_statuses");
       loadAllData();
-      alert("Database has been reset to defaults.");
+      toast.success("Database has been reset to defaults.");
     }
   };
 
@@ -161,89 +221,120 @@ export const AdminView: React.FC = () => {
     }
   };
 
-  const handleManualStamp = () => {
-    if (!manualSerialCode.trim()) return;
-
-    const cleanCode = manualSerialCode.trim();
-    const member = loyaltyMembers.find(m => m.id.toLowerCase() === cleanCode.toLowerCase());
-
-    if (member) {
-      if (member.stamps >= 9) {
-        setStampStatusMsg({ type: "error", text: `${member.name} has already filled their card (9/9 stamps)!` });
-        return;
+  // --- STAMP HANDLERS: All Supabase-first ---
+  const handleAwardStamp = async (member: LoyaltyMember) => {
+    if (member.stamps >= 9) return;
+    const newStamps = member.stamps + 1;
+    
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ stamps: newStamps })
+          .eq("email", member.email.toLowerCase());
+        
+        if (error) {
+          console.error("Supabase stamp update error:", error);
+          toast.error("Failed to update stamp in database.");
+          return;
+        }
       }
-      const newStamps = member.stamps + 1;
-      db.saveLoyaltyMember({ ...member, stamps: newStamps });
-      playBeep();
-      loadAllData();
-      setManualSerialCode("");
-      
-      const unlockedReward = newStamps === 9;
-      setStampStatusMsg({ 
-        type: "success", 
-        text: `Success: Stamp added to ${member.name}'s card! (Now: ${newStamps}/9 stamps).${unlockedReward ? " 🎉 Reward unlocked!" : ""}`
-      });
-    } else {
-      setStampStatusMsg({ type: "error", text: `Error: Serial number "${cleanCode}" is not registered.` });
+    } catch (err) {
+      console.error("Error awarding stamp:", err);
+      toast.error("Failed to connect to database.");
+      return;
     }
+
+    // Update UI after successful DB write
+    const updated = { ...member, stamps: newStamps };
+    setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+    playBeep();
+    toast.success(`Awarded 1 stamp to ${member.name}. (${newStamps}/9)`);
   };
 
-  const handleScanSimulate = () => {
-    if (!scanSelectId) return;
+  const handleRevokeStamp = async (member: LoyaltyMember) => {
+    if (member.stamps <= 0) return;
+    const newStamps = member.stamps - 1;
 
-    const member = loyaltyMembers.find(m => m.id === scanSelectId);
-
-    if (member) {
-      if (member.stamps >= 9) {
-        setStampStatusMsg({ type: "error", text: `Scan Failed: ${member.name} has already filled their card (9/9 stamps)!` });
-        return;
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ stamps: newStamps })
+          .eq("email", member.email.toLowerCase());
+        
+        if (error) {
+          console.error("Supabase stamp revoke error:", error);
+          toast.error("Failed to revoke stamp in database.");
+          return;
+        }
       }
-      const newStamps = member.stamps + 1;
-      db.saveLoyaltyMember({ ...member, stamps: newStamps });
-      playBeep();
-      loadAllData();
-      
-      const unlockedReward = newStamps === 9;
-      setStampStatusMsg({ 
-        type: "success", 
-        text: `Scan Success: Detected ${member.name}'s QR code! Issued 1 stamp. (Now: ${newStamps}/9 stamps).${unlockedReward ? " 🎉 Reward unlocked!" : ""}`
-      });
-    } else {
-      setStampStatusMsg({ type: "error", text: "Scan Failed: Card not found in database." });
+    } catch (err) {
+      console.error("Error revoking stamp:", err);
+      toast.error("Failed to connect to database.");
+      return;
     }
+
+    const updated = { ...member, stamps: newStamps };
+    setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+    toast.info(`Revoked 1 stamp from ${member.name}. (${newStamps}/9)`);
   };
 
-  const handleUpdateStamps = (member: LoyaltyMember, increment: boolean) => {
-    let newStamps = member.stamps + (increment ? 1 : -1);
-    if (newStamps < 0) newStamps = 0;
-    if (newStamps > 9) newStamps = 9;
-    db.saveLoyaltyMember({ ...member, stamps: newStamps });
-    loadAllData();
-  };
+  const handleRedeemFreeDrink = async (member: LoyaltyMember) => {
+    if (!confirm("Redeem rewards card and reset stamps?")) return;
 
-  const handleSaveStampsDirect = (member: LoyaltyMember, stamps: number) => {
-    db.saveLoyaltyMember({ ...member, stamps });
-    loadAllData();
-  };
-
-  const handleRedeemFreeDrink = (member: LoyaltyMember) => {
-    if (confirm("Redeem rewards card and reset stamps?")) {
-      db.saveLoyaltyMember({ ...member, stamps: 0 });
-      loadAllData();
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ stamps: 0 })
+          .eq("email", member.email.toLowerCase());
+        
+        if (error) {
+          console.error("Supabase redeem error:", error);
+          toast.error("Failed to redeem in database.");
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error redeeming drink:", err);
+      toast.error("Failed to connect to database.");
+      return;
     }
+
+    const updated = { ...member, stamps: 0 };
+    setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+    toast.success(`Complimentary drink redeemed for ${member.name}!`);
   };
 
-  const handleDeleteLoyalty = (id: string) => {
-    if (confirm("Delete this loyalty card?")) {
-      db.deleteLoyaltyMember(id);
-      loadAllData();
+  const handleDeleteLoyalty = async (id: string) => {
+    const member = loyaltyMembers.find(m => m.id === id);
+
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase && member) {
+        await supabase
+          .from("profiles")
+          .delete()
+          .eq("email", member.email.toLowerCase());
+      }
+    } catch (err) {
+      console.error("Error deleting member:", err);
     }
+
+    db.deleteLoyaltyMember(id);
+    setLoyaltyMembers(prev => prev.filter(m => m.id !== id));
+    toast.success("Loyalty card deleted successfully!");
   };
 
   // --- CRUD HANDLERS ---
   // Menu Item
   const handleAddMenuSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const isEditing = !!editingMenuItem;
     const newItem: MenuItem = {
       id: editingMenuItem ? editingMenuItem.id : `m-${Date.now()}`,
       name: menuForm.name,
@@ -260,6 +351,7 @@ export const AdminView: React.FC = () => {
     setShowAddMenuModal(false);
     setEditingMenuItem(null);
     resetMenuForm();
+    toast.success(isEditing ? "Menu item updated successfully!" : "Menu item added successfully!");
   };
 
   const startEditMenu = (item: MenuItem) => {
@@ -280,6 +372,7 @@ export const AdminView: React.FC = () => {
     if (confirm("Delete this menu item?")) {
       db.deleteMenuItem(id);
       loadAllData();
+      toast.success("Menu item deleted successfully!");
     }
   };
 
@@ -299,7 +392,7 @@ export const AdminView: React.FC = () => {
   const handleAddLoyaltySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newMember: LoyaltyMember = {
-      id: `LN-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`,
+      id: `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`,
       name: loyaltyForm.name,
       email: loyaltyForm.email,
       stamps: Number(loyaltyForm.stamps),
@@ -310,16 +403,17 @@ export const AdminView: React.FC = () => {
     loadAllData();
     setShowAddLoyaltyModal(false);
     setLoyaltyForm({ name: "", email: "", stamps: 0 });
+    toast.success(`Loyalty card registered for ${newMember.name}!`);
   };
 
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#060606] flex items-center justify-center relative overflow-hidden">
         {/* Background Ambient Glow */}
-        <div className="absolute w-[300px] h-[300px] bg-[#C5A880]/10 blur-[100px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="absolute w-[300px] h-[300px] bg-brand-green/10 blur-[100px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
         <div className="film-grain pointer-events-none absolute inset-0 opacity-[0.04] mix-blend-overlay" />
         <div className="flex flex-col items-center gap-4 text-center z-10">
-          <RefreshCw className="animate-spin text-brand-gold h-10 w-10" />
+          <RefreshCw className="animate-spin text-brand-green h-10 w-10" />
           <span className="type-eyebrow text-zinc-500 text-xs tracking-[0.2em]">Accessing Maître D' Console...</span>
         </div>
       </div>
@@ -331,119 +425,64 @@ export const AdminView: React.FC = () => {
   const loyaltyMembersCount = loyaltyMembers.length;
 
   return (
-    <div className="min-h-screen flex bg-[#080808] text-[#F5F5F0] overflow-hidden relative font-sans">
+    <div className="h-screen flex bg-background text-foreground overflow-hidden relative font-sans">
       {/* Background elements */}
       <div className="film-grain pointer-events-none absolute inset-0 opacity-[0.03] mix-blend-overlay z-0" />
-      <div className="absolute top-[-10%] right-[-5%] w-[450px] h-[450px] bg-[#C5A880]/4 blur-[130px] rounded-full pointer-events-none z-0" />
+      <div className="absolute top-[-10%] right-[-5%] w-[450px] h-[450px] bg-brand-green/4 blur-[130px] rounded-full pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] left-[10%] w-[450px] h-[450px] bg-[#2E5A44]/4 blur-[130px] rounded-full pointer-events-none z-0" />
 
       {/* Sidebar Navigation */}
-      <aside className="w-64 border-r border-white/[0.06] bg-[#0A0A0A]/95 backdrop-blur-md flex flex-col justify-between shrink-0 relative z-10">
-        <div>
-          {/* Brand Header */}
-          <div className="p-6 border-b border-white/[0.06] flex flex-col gap-1.5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-[#C5A880]/5 blur-[20px] rounded-full pointer-events-none" />
-            <span className="type-eyebrow tracking-[0.25em] text-[9px] text-brand-gold font-bold">ANTONIONI GROUNDS</span>
-            <span className="type-logo text-white text-sm font-bold font-serif tracking-wider">MAÎTRE D' CONSOLE</span>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="p-4 space-y-2">
-            {[
-              { id: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
-              { id: "menu" as const, label: "Menu Offerings", icon: Coffee },
-              { id: "reservations" as const, label: "Reservations", icon: Calendar, badge: reservations.length },
-              { id: "loyalty" as const, label: "Loyalty Logs", icon: Sparkles },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl type-ui text-[11px] tracking-wider transition-all duration-300 relative group overflow-hidden ${
-                    isActive
-                      ? "text-black font-semibold shadow-[0_4px_20px_rgba(197,168,128,0.2)]"
-                      : "text-zinc-400 hover:bg-white/[0.03] hover:text-white"
-                  }`}
-                >
-                  {/* Glowing background for active */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTabBg"
-                      className="absolute inset-0 bg-brand-gold"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                  
-                  <span className="relative z-10 flex items-center gap-3.5 w-full">
-                    <Icon size={15} className={`transition-transform duration-300 ${isActive ? "scale-110" : "group-hover:scale-110"}`} />
-                    {tab.label}
-                    {tab.badge && tab.badge > 0 && (
-                      <span className={`ml-auto font-mono text-[9px] px-1.5 py-0.5 rounded-full transition-colors ${
-                        isActive ? "bg-black/15 text-black font-bold" : "bg-white/10 text-zinc-300"
-                      }`}>
-                        {tab.badge}
-                      </span>
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Admin User Section */}
-        <div className="p-4 border-t border-white/[0.06] bg-[#080808]/90 flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-brand-gold/10 border border-brand-gold/20 flex items-center justify-center text-brand-gold text-xs font-bold shadow-[0_0_15px_rgba(197,168,128,0.1)] shrink-0">
-              AD
-            </div>
-            <div className="min-w-0">
-              <p className="type-body-sm font-semibold text-white truncate text-xs">Maître D' Admin</p>
-              <p className="type-caption text-zinc-500 truncate text-[9px] tracking-wide mt-0.5">admin@coffee.com</p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-white/[0.03] py-2.5 type-ui text-[10px] text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-all duration-300 group hover:border-white/10"
-          >
-            <LogOut size={12} className="transition-transform group-hover:-translate-x-0.5" />
-            Exit Console
-          </button>
-        </div>
-      </aside>
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        reservationsCount={reservationsCount}
+        onLogout={handleLogout}
+      />
 
       {/* Main Workspace */}
       <main className="flex-1 flex flex-col overflow-y-auto p-8 relative z-10">
         
         {/* TOP BAR / Header */}
-        <header className="flex justify-between items-center mb-8 pb-4 border-b border-white/[0.06] relative">
+        <header className="flex justify-between items-center mb-8 pb-4 border-b border-card-border relative">
           <div>
-            <span className="type-eyebrow text-[9px] text-brand-gold tracking-[0.25em]">Console Panel</span>
-            <h1 className="type-h2 text-white font-serif tracking-tight mt-1">
+            <span className="type-eyebrow text-[9px] text-brand-green dark:text-emerald-400 tracking-[0.25em]">Console Panel</span>
+            <h1 className="type-h2 text-foreground font-serif tracking-tight mt-1">
               {activeTab === "dashboard" && "DASHBOARD OVERVIEW"}
               {activeTab === "menu" && "MENU OFFERINGS"}
               {activeTab === "reservations" && "EXPERIENCE BOOKINGS"}
               {activeTab === "loyalty" && "DIGITAL LOYALTY DIRECTORY"}
             </h1>
-            <p className="type-caption text-zinc-500 mt-1">
+            <p className="type-caption text-neutral-500 mt-1">
               Manage menu inventory, client reservations, and card records.
             </p>
           </div>
 
-          {activeTab === "dashboard" && (
-            <motion.button
-              onClick={handleResetDb}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="flex items-center gap-2 rounded-full border border-red-500/10 bg-red-500/5 px-4 py-2 type-ui text-[10px] text-red-400 hover:bg-red-500/10 transition-all font-semibold cursor-pointer shadow-lg hover:shadow-red-500/5"
-            >
-              <RefreshCw size={11} className="transition-transform hover:rotate-180 duration-500" />
-              Reset Database
-            </motion.button>
-          )}
+          {/* Top Right Actions: Theme Toggle and Notifications */}
+          <div className="flex items-center gap-3 self-start md:self-center">
+            {/* Theme Toggle */}
+            <div className="flex items-center gap-1 bg-foreground/[0.03] border border-card-border rounded-full p-1 shadow-sm">
+              <button
+                onClick={() => changeTheme("light")}
+                title="Light Mode"
+                className={`p-1.5 rounded-full transition-colors cursor-pointer ${theme === "light" ? "bg-brand-green text-white shadow-md" : "text-neutral-500 hover:text-foreground dark:text-zinc-500 dark:hover:text-white"}`}
+              >
+                <Sun size={12} />
+              </button>
+              <button
+                onClick={() => changeTheme("dark")}
+                title="Dark Mode"
+                className={`p-1.5 rounded-full transition-colors cursor-pointer ${theme === "dark" ? "bg-brand-green text-white shadow-md" : "text-neutral-500 hover:text-foreground dark:text-zinc-500 dark:hover:text-white"}`}
+              >
+                <Moon size={12} />
+              </button>
+            </div>
+
+            {/* Notifications Dropdown */}
+            <NotificationsDropdown
+              reservations={reservations}
+              loyaltyMembers={loyaltyMembers}
+            />
+          </div>
         </header>
 
         {/* Tab Views with Animation */}
@@ -507,23 +546,14 @@ export const AdminView: React.FC = () => {
                   loyaltyMembers={loyaltyMembers}
                   loyaltySearch={loyaltySearch}
                   setLoyaltySearch={setLoyaltySearch}
-                  isScanning={isScanning}
-                  setIsScanning={setIsScanning}
-                  scanSelectId={scanSelectId}
-                  setScanSelectId={setScanSelectId}
-                  manualSerialCode={manualSerialCode}
-                  setManualSerialCode={setManualSerialCode}
-                  stampStatusMsg={stampStatusMsg}
-                  onManualStamp={handleManualStamp}
-                  onScanSimulate={handleScanSimulate}
-                  onUpdateStamps={handleUpdateStamps}
                   onDeleteLoyalty={handleDeleteLoyalty}
                   onOpenRegisterModal={() => {
                     setLoyaltyForm({ name: "", email: "", stamps: 0 });
                     setShowAddLoyaltyModal(true);
                   }}
-                  onSaveStampsDirect={handleSaveStampsDirect}
                   onRedeemFreeDrink={handleRedeemFreeDrink}
+                  onAwardStamp={handleAwardStamp}
+                  onRevokeStamp={handleRevokeStamp}
                 />
               )}
             </motion.div>

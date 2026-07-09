@@ -17,7 +17,7 @@ export function LoyaltyPreviewSection() {
       const sessionEmail = localStorage.getItem("customer_session");
       const members = db.getLoyaltyMembers();
 
-      let current = members.find((m) => m.id === "LN-882-901"); // default fallback
+      let current = members.find((m) => m.id === "AG-882-901"); // default fallback
       let guestState = true;
 
       if (sessionEmail) {
@@ -30,7 +30,7 @@ export function LoyaltyPreviewSection() {
 
       if (current) {
         let currentStamps = current.stamps;
-        if (current.id === "LN-882-901") {
+        if (current.id === "AG-882-901") {
           currentStamps = 1;
         }
         setMemberName(current.name);

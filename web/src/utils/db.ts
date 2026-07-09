@@ -35,32 +35,7 @@ const DEFAULT_RESERVATIONS: Reservation[] = [
   }
 ];
 
-const DEFAULT_LOYALTY_MEMBERS: LoyaltyMember[] = [
-  {
-    id: "LN-882-901",
-    name: "Alexander Vance",
-    email: "alexander@vance.net",
-    stamps: 1,
-    points: 720,
-    joinedAt: "2026-06-15"
-  },
-  {
-    id: "LN-102-902",
-    name: "John Doe",
-    email: "john@example.com",
-    stamps: 3,
-    points: 420,
-    joinedAt: "2026-06-01"
-  },
-  {
-    id: "LN-203-903",
-    name: "Jane Smith",
-    email: "jane@gmail.com",
-    stamps: 7,
-    points: 1150,
-    joinedAt: "2026-06-12"
-  }
-];
+const DEFAULT_LOYALTY_MEMBERS: LoyaltyMember[] = [];
 
 // Helper to check if localStorage is available
 const isBrowser = typeof window !== "undefined";
@@ -153,12 +128,23 @@ export const db = {
     if (isBrowser && !localStorage.getItem("loyalty_members")) {
       setLocalStorageItem("loyalty_members", DEFAULT_LOYALTY_MEMBERS);
     }
-    return getLocalStorageItem("loyalty_members", DEFAULT_LOYALTY_MEMBERS);
+    const members = getLocalStorageItem("loyalty_members", DEFAULT_LOYALTY_MEMBERS);
+    const mockIds = ["AG-882-901", "AG-102-902", "AG-203-903", "LN-882-901", "LN-102-902", "LN-203-903"];
+    const filtered = members.filter((m) => !mockIds.includes(m.id));
+    if (filtered.length !== members.length) {
+      setLocalStorageItem("loyalty_members", filtered);
+      return filtered;
+    }
+    return members;
   },
 
   saveLoyaltyMember(member: LoyaltyMember): void {
     const members = this.getLoyaltyMembers();
-    const index = members.findIndex((m) => m.id === member.id);
+    // Match by ID first, then by email as fallback (handles ID migration scenarios)
+    let index = members.findIndex((m) => m.id === member.id);
+    if (index < 0) {
+      index = members.findIndex((m) => m.email.toLowerCase() === member.email.toLowerCase());
+    }
     if (index >= 0) {
       members[index] = member;
     } else {
@@ -175,8 +161,8 @@ export const db = {
             .from("profiles")
             .update({
               name: member.name,
-              stamps: member.stamps,
-              points: member.points
+              points: member.points,
+              member_id: member.id
             })
             .eq("email", member.email.toLowerCase())
             .then(({ error }) => {
@@ -194,6 +180,23 @@ export const db = {
     const filtered = members.filter((m) => m.id !== id);
     setLocalStorageItem("loyalty_members", filtered);
     if (isBrowser) window.dispatchEvent(new Event("storage"));
+
+    // Sync deletion to Supabase
+    if (isBrowser) {
+      import("./supabase").then(({ supabase }) => {
+        if (supabase) {
+          supabase
+            .from("profiles")
+            .delete()
+            .eq("id", id)
+            .then(({ error }) => {
+              if (error) {
+                console.error("Error syncing loyalty member deletion to Supabase:", error);
+              }
+            });
+        }
+      });
+    }
   },
 
   // --- DATABASE RESET ---

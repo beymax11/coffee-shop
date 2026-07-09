@@ -52,7 +52,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            className="absolute inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-md"
           />
 
           {/* Modal Container */}
@@ -61,41 +61,41 @@ export const MenuModal: React.FC<MenuModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.4, ease: EASE }}
-            className="w-full max-w-lg rounded-2xl border border-brand-gold/15 bg-gradient-to-b from-[#121212] to-[#0A0A0A] p-8 glassmorphism shadow-2xl relative z-10 overflow-hidden"
+            className="w-full max-w-lg rounded-2xl border border-card-border bg-card p-8 shadow-2xl relative z-10 overflow-hidden"
           >
-            {/* Ambient Gold Glow inside modal */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-gold/5 blur-[25px] rounded-full pointer-events-none" />
+            {/* Ambient Green Glow inside modal */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-green/5 blur-[25px] rounded-full pointer-events-none" />
 
             <button
               onClick={onClose}
-              className="absolute top-5 right-5 text-zinc-500 hover:text-white transition-colors duration-300 p-1.5 rounded-full hover:bg-white/5 cursor-pointer"
+              className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors duration-300 p-1.5 rounded-full cursor-pointer"
             >
               <X size={16} />
             </button>
 
             <div className="flex items-center gap-2 mb-6">
-              <Sparkles size={16} className="text-brand-gold animate-pulse" />
-              <h3 className="type-h3 text-white font-serif font-bold tracking-tight">
+              <Sparkles size={16} className="text-brand-green animate-pulse" />
+              <h3 className="type-h3 text-foreground font-serif font-bold tracking-tight">
                 {editingMenuItem ? "Edit Menu Creation" : "Add Menu Creation"}
               </h3>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">CREATION NAME</label>
+                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">CREATION NAME</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Saffron Gold Brew"
                   value={menuForm.name}
                   onChange={(e) => setMenuForm({ ...menuForm, name: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 text-xs"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">PRICE ($ USD)</label>
+                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">PRICE ($ USD)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -103,18 +103,18 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                     placeholder="8.50"
                     value={menuForm.price || ""}
                     onChange={(e) => setMenuForm({ ...menuForm, price: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 text-xs"
+                    className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">CATEGORY</label>
+                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">CATEGORY</label>
                   <select
                     value={menuForm.category}
                     onChange={(e) =>
                       setMenuForm({ ...menuForm, category: e.target.value as MenuItem["category"] })
                     }
-                    className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 text-xs text-zinc-400 cursor-pointer"
+                    className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs cursor-pointer"
                   >
                     <option value="Hot Coffee">Hot Coffee</option>
                     <option value="Cold Coffee">Cold Coffee</option>
@@ -127,53 +127,53 @@ export const MenuModal: React.FC<MenuModalProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">DESCRIPTION</label>
+                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">DESCRIPTION</label>
                 <textarea
                   rows={2}
                   required
                   placeholder="Infused with premium cardamom, hints of raw honey, and gold flakes..."
                   value={menuForm.description}
                   onChange={(e) => setMenuForm({ ...menuForm, description: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 resize-none text-xs"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 resize-none text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">IMAGE URL</label>
+                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">IMAGE URL</label>
                 <input
                   type="text"
                   placeholder="https://images.unsplash.com/..."
                   value={menuForm.image}
                   onChange={(e) => setMenuForm({ ...menuForm, image: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 text-xs font-mono"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs font-mono"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">TAGS (Comma-separated)</label>
+                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">TAGS (Comma-separated)</label>
                 <input
                   type="text"
                   placeholder="Signature, Award Winner, Seasonal"
                   value={menuForm.tags}
                   onChange={(e) => setMenuForm({ ...menuForm, tags: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 text-xs"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">BARISTA NOTE (Optional)</label>
+                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">BARISTA NOTE (Optional)</label>
                 <input
                   type="text"
                   placeholder="e.g. Best paired with our Pistachio Tartlet"
                   value={menuForm.notes}
                   onChange={(e) => setMenuForm({ ...menuForm, notes: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 text-xs"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full rounded-full bg-brand-gold py-3.5 type-ui text-xs text-black hover:bg-brand-gold-hover transition-all duration-300 font-bold shadow-lg shadow-brand-gold/15 mt-2 cursor-pointer gold-glow hover:shadow-brand-gold-hover/20"
+                className="w-full rounded-full bg-brand-green py-3.5 type-ui text-xs text-white hover:bg-brand-green-hover transition-all duration-300 font-bold shadow-lg shadow-brand-green/15 mt-2 cursor-pointer green-glow hover:shadow-brand-green-hover/20"
               >
                 {editingMenuItem ? "Apply Showcase Changes" : "Create Menu Offering"}
               </button>

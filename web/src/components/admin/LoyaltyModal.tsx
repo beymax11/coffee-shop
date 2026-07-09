@@ -41,7 +41,7 @@ export const LoyaltyModal: React.FC<LoyaltyModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            className="absolute inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-md"
           />
 
           {/* Modal Container */}
@@ -50,67 +50,53 @@ export const LoyaltyModal: React.FC<LoyaltyModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.4, ease: EASE }}
-            className="w-full max-w-md rounded-2xl border border-brand-gold/15 bg-gradient-to-b from-[#121212] to-[#0A0A0A] p-8 glassmorphism shadow-2xl relative z-10 overflow-hidden"
+            className="w-full max-w-md rounded-2xl border border-card-border bg-card p-8 shadow-2xl relative z-10 overflow-hidden"
           >
-            {/* Ambient Gold Glow inside modal */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-gold/5 blur-[25px] rounded-full pointer-events-none" />
+            {/* Ambient Green Glow inside modal */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-green/5 blur-[25px] rounded-full pointer-events-none" />
 
             <button
               onClick={onClose}
-              className="absolute top-5 right-5 text-zinc-500 hover:text-white transition-colors duration-300 p-1.5 rounded-full hover:bg-white/5 cursor-pointer"
+              className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors duration-300 p-1.5 rounded-full cursor-pointer"
             >
               <X size={16} />
             </button>
 
             <div className="flex items-center gap-2 mb-6">
-              <Sparkles size={16} className="text-brand-gold animate-pulse" />
-              <h3 className="type-h3 text-white font-serif font-bold tracking-tight">
+              <Sparkles size={16} className="text-brand-green animate-pulse" />
+              <h3 className="type-h3 text-foreground font-serif font-bold tracking-tight">
                 Register Member Loyalty Card
               </h3>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">CUSTOMER NAME</label>
+                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">CUSTOMER NAME</label>
                 <input
                   type="text"
                   required
                   placeholder="Alexander Mercer"
                   value={loyaltyForm.name}
                   onChange={(e) => setLoyaltyForm({ ...loyaltyForm, name: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 text-xs"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">EMAIL ADDRESS</label>
+                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">EMAIL ADDRESS</label>
                 <input
                   type="email"
                   required
                   placeholder="alexander@mercer.com"
                   value={loyaltyForm.email}
                   onChange={(e) => setLoyaltyForm({ ...loyaltyForm, email: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-zinc-400 font-bold">INITIAL STAMPS (0 - 9)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="9"
-                  required
-                  placeholder="0"
-                  value={loyaltyForm.stamps}
-                  onChange={(e) => setLoyaltyForm({ ...loyaltyForm, stamps: Number(e.target.value) })}
-                  className="w-full rounded-xl border border-white/10 bg-[#161616]/60 py-3 px-4 type-field text-white outline-none transition-all duration-300 focus:border-brand-gold/60 focus:bg-[#161616] focus:ring-1 focus:ring-brand-gold/20 font-mono text-xs"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full rounded-full bg-brand-gold py-3.5 type-ui text-xs text-black hover:bg-brand-gold-hover transition-all duration-300 font-bold shadow-lg shadow-brand-gold/15 mt-2 cursor-pointer gold-glow hover:shadow-brand-gold-hover/20"
+                className="w-full rounded-full bg-brand-green py-3.5 type-ui text-xs text-white hover:bg-brand-green-hover transition-all duration-300 font-bold shadow-lg shadow-brand-green/15 mt-2 cursor-pointer green-glow hover:shadow-brand-green-hover/20"
               >
                 Register Card
               </button>

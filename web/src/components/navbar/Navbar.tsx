@@ -160,7 +160,7 @@ export const Navbar: React.FC = () => {
               /* Profile Capsule Button */
               <button
                 onClick={() => setIsProfileOpen(true)}
-                className="group relative flex items-center justify-center w-8 h-8 rounded-full border border-brand-gold/30 bg-card/90 transition-all duration-300 hover:border-brand-gold hover:scale-[1.02] active:scale-[0.98] cursor-pointer sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 sm:justify-start sm:gap-2"
+                className="group relative hidden sm:flex items-center justify-center w-8 h-8 rounded-full border border-brand-gold/30 bg-card/90 transition-all duration-300 hover:border-brand-gold hover:scale-[1.02] active:scale-[0.98] cursor-pointer sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 sm:justify-start sm:gap-2"
                 aria-label="Profile"
               >
                 <div className="absolute inset-0 rounded-full bg-brand-gold/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none" />
@@ -295,63 +295,6 @@ export const Navbar: React.FC = () => {
 
                 {/* Mobile Links */}
                 <nav className="flex flex-col gap-6">
-                  {customer ? (
-                    <div className="border-b border-card-border pb-6 mb-4 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full border border-brand-gold/30 bg-background-alt flex items-center justify-center text-brand-gold">
-                          <UserRound size={18} />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-foreground truncate">
-                            {customer.name}
-                          </div>
-                          <div className="text-[10px] text-zinc-400 font-mono">
-                            {customer.id}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <button
-                          onClick={() => {
-                            setIsProfileOpen(true);
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="flex items-center gap-2 text-left type-nav text-sm text-neutral-500 dark:text-zinc-400 hover:text-brand-gold transition-colors py-1 cursor-pointer"
-                        >
-                          <UserRound size={16} />
-                          My Profile
-                        </button>
-                        <button
-                          onClick={handleLogout}
-                          disabled={isLoggingOut}
-                          className="flex items-center gap-2 text-left type-nav text-sm text-neutral-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors py-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                          {isLoggingOut ? (
-                            <Loader2 size={16} className="animate-spin text-zinc-400" />
-                          ) : (
-                            <LogOut size={16} />
-                          )}
-                          {isLoggingOut ? "Signing Out..." : "Sign Out"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setIsLoginOpen(true);
-                      }}
-                      className={`flex items-center gap-2 type-nav text-sm transition-colors py-1 text-left w-full cursor-pointer ${
-                        isLoginOpen
-                          ? "text-brand-green border-l-2 border-brand-green pl-3"
-                          : "text-zinc-400 hover:text-foreground dark:hover:text-white"
-                      }`}
-                    >
-                      <LogIn size={16} />
-                      Sign In
-                    </button>
-                  )}
-
                   {navLinks.map((link) => {
                     const isActive = pathname === link.href;
                     return (
@@ -371,11 +314,71 @@ export const Navbar: React.FC = () => {
                 </nav>
               </div>
 
-              {/* Mobile Footer */}
-              <div className="border-t border-card-border pt-6 text-center">
-                <p className="type-caption text-zinc-500 type-micro">
-                  Antonioni Grounds Cafe & Boutique Roastery
-                </p>
+              {/* Bottom Section (Profile / Sign In + Footer) */}
+              <div className="border-t border-card-border pt-6 mt-auto space-y-6">
+                {customer ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full border border-brand-gold/30 bg-background-alt flex items-center justify-center text-brand-gold">
+                        <UserRound size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-foreground truncate">
+                          {customer.name}
+                        </div>
+                        <div className="text-[10px] text-zinc-400 font-mono">
+                          {customer.id}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => {
+                          setIsProfileOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center gap-2 text-left type-nav text-sm text-neutral-500 dark:text-zinc-400 hover:text-brand-gold transition-colors py-1 cursor-pointer"
+                      >
+                        <UserRound size={16} />
+                        My Profile
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="flex items-center gap-2 text-left type-nav text-sm text-neutral-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors py-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        {isLoggingOut ? (
+                          <Loader2 size={16} className="animate-spin text-zinc-400" />
+                        ) : (
+                          <LogOut size={16} />
+                        )}
+                        {isLoggingOut ? "Signing Out..." : "Sign Out"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsLoginOpen(true);
+                    }}
+                    className={`flex items-center gap-2 type-nav text-sm transition-colors py-1 text-left w-full cursor-pointer ${
+                      isLoginOpen
+                        ? "text-brand-green border-l-2 border-brand-green pl-3"
+                        : "text-zinc-400 hover:text-foreground dark:hover:text-white"
+                    }`}
+                  >
+                    <LogIn size={16} />
+                    Sign In
+                  </button>
+                )}
+
+                {/* Mobile Footer */}
+                <div className="border-t border-card-border pt-4 text-center">
+                  <p className="type-caption text-zinc-500 type-micro">
+                    Antonioni Grounds Cafe & Boutique Roastery
+                  </p>
+                </div>
               </div>
             </motion.div>
           </div>

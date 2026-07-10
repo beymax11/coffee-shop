@@ -13,7 +13,7 @@ export const getMaintenanceMode = async (): Promise<boolean> => {
         .select("value")
         .eq("key", "maintenance_mode")
         .single();
-      
+
       if (!error && data) {
         // Handle both raw boolean and stringified representation
         return data.value === true || data.value === "true";
@@ -22,7 +22,7 @@ export const getMaintenanceMode = async (): Promise<boolean> => {
       console.warn("Failed to fetch maintenance mode from Supabase, falling back to localStorage:", err);
     }
   }
-  
+
   if (typeof window !== "undefined") {
     return localStorage.getItem("maintenance_mode") === "true";
   }
@@ -37,7 +37,7 @@ export const setMaintenanceMode = async (active: boolean): Promise<void> => {
     localStorage.setItem("maintenance_mode", active ? "true" : "false");
     window.dispatchEvent(new Event("storage"));
   }
-  
+
   if (supabase) {
     try {
       const { error } = await supabase
@@ -46,7 +46,7 @@ export const setMaintenanceMode = async (active: boolean): Promise<void> => {
           { key: "maintenance_mode", value: active },
           { onConflict: "key" }
         );
-      
+
       if (error) {
         console.error("Error updating maintenance mode in Supabase settings table:", error);
       }

@@ -55,18 +55,44 @@ export const MenuModal: React.FC<MenuModalProps> = ({
     "Desserts",
   ], []);
 
+  const [categories, setCategories] = React.useState<string[]>(defaultCategories);
+
   React.useEffect(() => {
     if (isOpen) {
-      const isCustom = menuForm.category && !defaultCategories.includes(menuForm.category);
-      if (isCustom) {
-        setIsAddingNew(true);
-        setCustomCategory(menuForm.category);
-      } else {
-        setIsAddingNew(false);
-        setCustomCategory("");
+      const initialCats = [...defaultCategories];
+      const currentCat = menuForm.category;
+      if (currentCat && !initialCats.includes(currentCat)) {
+        initialCats.push(currentCat);
       }
+      setCategories(initialCats);
+      setIsAddingNew(false);
+      setCustomCategory("");
     }
   }, [isOpen, menuForm.category, defaultCategories]);
+
+  const handleSaveCategory = () => {
+    const trimmed = customCategory.trim();
+    if (!trimmed) {
+      alert("Please enter a category name.");
+      return;
+    }
+    
+    if (!categories.includes(trimmed)) {
+      setCategories(prev => [...prev, trimmed]);
+    }
+    
+    setMenuForm(prev => ({ ...prev, category: trimmed }));
+    setIsAddingNew(false);
+    setCustomCategory("");
+  };
+
+  const handleCancelAddCategory = () => {
+    setIsAddingNew(false);
+    setCustomCategory("");
+    if (!menuForm.category) {
+      setMenuForm(prev => ({ ...prev, category: categories[0] || "Hot Coffee" }));
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -174,51 +200,61 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                     onChange={(e) => setMenuForm({ ...menuForm, price: Number(e.target.value) })}
                     className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
                   />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">CATEGORY</label>
-                  <select
-                    value={isAddingNew ? "new" : menuForm.category}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "new") {
-                        setIsAddingNew(true);
-                        setMenuForm((prev) => ({ ...prev, category: "" }));
-                      } else {
-                        setIsAddingNew(false);
-                        setMenuForm((prev) => ({ ...prev, category: val }));
-                      }
-                    }}
-                    className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs cursor-pointer"
-                  >
-                    {defaultCategories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                    <option value="new">+ Add New Category</option>
-                  </select>
+                </div>                <div className={`space-y-1.5 ${isAddingNew ? "col-span-full" : ""}`}>
+                  {isAddingNew ? (
+                    <>
+                      <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">NEW CATEGORY NAME</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Seasonal Brews"
+                          value={customCategory}
+                          onChange={(e) => setCustomCategory(e.target.value)}
+                          className="flex-1 rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveCategory}
+                          className="px-4 py-2.5 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-bold transition-all duration-300 shadow-md shadow-brand-green/10 flex items-center justify-center cursor-pointer shrink-0"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelAddCategory}
+                          className="px-4 py-2.5 rounded-xl bg-foreground/[0.05] border border-card-border hover:bg-foreground/[0.08] text-neutral-500 dark:text-zinc-400 hover:text-foreground dark:hover:text-white text-xs font-bold transition-all duration-300 flex items-center justify-center cursor-pointer shrink-0"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">CATEGORY</label>
+                      <select
+                        value={menuForm.category}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "new") {
+                            setIsAddingNew(true);
+                          } else {
+                            setMenuForm((prev) => ({ ...prev, category: val }));
+                          }
+                        }}
+                        className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs cursor-pointer"
+                      >
+                        {categories.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                        <option value="new">+ Add New Category</option>
+                      </select>
+                    </>
+                  )}
                 </div>
               </div>
-
-              {isAddingNew && (
-                <div className="space-y-1.5">
-                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">NEW CATEGORY NAME</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Seasonal Brews"
-                    value={customCategory}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCustomCategory(val);
-                      setMenuForm((prev) => ({ ...prev, category: val }));
-                    }}
-                    className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
-                  />
-                </div>
-              )}
 
               <div className="space-y-1.5">
                 <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">DESCRIPTION</label>

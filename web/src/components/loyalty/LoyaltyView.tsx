@@ -44,12 +44,12 @@ export function LoyaltyView() {
           light: "#FFFFFF"
         }
       })
-      .then(url => {
-        setQrCodeUrl(url);
-      })
-      .catch(err => {
-        console.error("Failed to generate QR code:", err);
-      });
+        .then(url => {
+          setQrCodeUrl(url);
+        })
+        .catch(err => {
+          console.error("Failed to generate QR code:", err);
+        });
     }
   }, [memberId]);
 
@@ -77,10 +77,10 @@ export function LoyaltyView() {
               // Find or create local loyalty member representation
               let existing = members.find(
                 (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
-                       (m.phone && m.phone.trim() === sessionEmail.trim())
+                  (m.phone && m.phone.trim() === sessionEmail.trim())
               );
               let memberIdToUse = profile.member_id || existing?.id || `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
-              
+
               if (!profile.member_id || profile.member_id.length > 20) {
                 // Update Supabase profiles table
                 await supabase
@@ -100,7 +100,7 @@ export function LoyaltyView() {
                   ? new Date(profile.created_at).toISOString().split("T")[0]
                   : existing?.joinedAt || new Date().toISOString().split("T")[0]
               };
-              
+
               db.saveLoyaltyMember(updatedMember);
               current = updatedMember;
               guestState = false;
@@ -113,7 +113,7 @@ export function LoyaltyView() {
         if (guestState) {
           const found = members.find(
             (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
-                   (m.phone && m.phone.trim() === sessionEmail.trim())
+              (m.phone && m.phone.trim() === sessionEmail.trim())
           );
           if (found) {
             current = found;
@@ -562,7 +562,7 @@ export function LoyaltyView() {
                 <span className="font-mono text-zinc-500 dark:text-zinc-400 text-[10px] tracking-wider uppercase block">Member Account ID</span>
                 <span className="font-mono text-foreground text-sm font-bold tracking-wider">{memberId}</span>
               </div>
-              
+
               <p className="text-[10px] text-zinc-500 dark:text-zinc-400 text-center mt-4 max-w-[240px]">
                 Scan this code at checkout to update your stamps and points balance.
               </p>

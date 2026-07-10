@@ -22,13 +22,14 @@ import { NotificationsDropdown } from "./NotificationsDropdown";
 import { UsersTab } from "./UsersTab";
 import { LifestyleTab } from "./LifestyleTab";
 import { EventsTab } from "./EventsTab";
+import { SettingsTab } from "./SettingsTab";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 export const AdminView: React.FC = () => {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings">("dashboard");
 
   // Database States
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -94,7 +95,7 @@ export const AdminView: React.FC = () => {
     message: "",
     confirmText: "",
     variant: "danger",
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   // Theme state and toggle logic
@@ -123,44 +124,16 @@ export const AdminView: React.FC = () => {
     }
   };
 
-  // Maintenance state and toggle logic
-  const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
-  const [showMaintenanceConfirmModal, setShowMaintenanceConfirmModal] = useState(false);
-
   useEffect(() => {
-    const loadMaintenance = async () => {
-      const active = await getMaintenanceMode();
-      setIsMaintenanceActive(active);
-    };
-
-    // Set initial value inside microtask to avoid synchronous setState warning
-    Promise.resolve().then(loadMaintenance);
-
     const handleStorage = () => {
-      loadMaintenance();
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme) {
+        setTheme(savedTheme as "light" | "dark");
+      }
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
-
-  const toggleMaintenance = () => {
-    if (!isMaintenanceActive) {
-      setShowMaintenanceConfirmModal(true);
-    } else {
-      setIsMaintenanceActive(false);
-      setMaintenanceMode(false);
-      toast.success("Maintenance mode deactivated. Customer access restored.");
-    }
-  };
-
-  const confirmActivateMaintenance = () => {
-    setIsMaintenanceActive(true);
-    setMaintenanceMode(true);
-    toast.error("Maintenance mode activated. Customer access is restricted.", {
-      description: "Customers will see a maintenance message after logging in.",
-    });
-    setShowMaintenanceConfirmModal(false);
-  };
 
   // 1. Auth check
   useEffect(() => {
@@ -205,7 +178,7 @@ export const AdminView: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       loadAllData();
-      
+
       const handleStorageChange = () => {
         loadLocalData();
       };
@@ -223,7 +196,7 @@ export const AdminView: React.FC = () => {
           .from("menu_items")
           .select("*")
           .order("name");
-        
+
         if (error) {
           console.error("Error fetching menu items from Supabase:", error);
           setMenuItems(db.getMenuItems());
@@ -250,7 +223,7 @@ export const AdminView: React.FC = () => {
           .from("reservations")
           .select("*")
           .order("created_at", { ascending: false });
-        
+
         if (error) {
           console.error("Error fetching reservations from Supabase:", error);
           const loadedReservations = db.getReservations();
@@ -274,7 +247,7 @@ export const AdminView: React.FC = () => {
             created_at: res.created_at
           }));
           setReservations(mappedReservations);
-          
+
           // Sync reservationStatuses mapping state
           const newStatuses: Record<string, "Pending" | "Approved" | "Cancelled"> = {};
           mappedReservations.forEach((res) => {
@@ -328,7 +301,7 @@ export const AdminView: React.FC = () => {
           .from("profiles")
           .select("*")
           .eq("role", "customer");
-        
+
         if (error) {
           console.error("Supabase select error:", error);
           setLoyaltyMembers(localMembers);
@@ -384,13 +357,13 @@ export const AdminView: React.FC = () => {
           .from("profiles")
           .select("*")
           .order("created_at", { ascending: false });
-        
+
         if (error) {
           console.error("Error fetching profiles from Supabase:", error);
           setUsers(db.getMockUsers());
           return;
         }
-        
+
         if (data) {
           const mappedUsers: UserProfile[] = data.map((profile: any) => ({
             id: profile.id,
@@ -433,7 +406,7 @@ export const AdminView: React.FC = () => {
           .from("reservations")
           .update({ status: newStatus })
           .eq("id", res.id);
-        
+
         if (error) {
           console.error("Error updating reservation status in Supabase:", error);
           toast.error("Failed to update status on server. Updating locally...");
@@ -508,7 +481,7 @@ export const AdminView: React.FC = () => {
   const handleAwardStamp = async (member: LoyaltyMember) => {
     if (member.stamps >= 9) return;
     const newStamps = member.stamps + 1;
-    
+
     try {
       const { supabase } = await import("@/utils/supabase");
       if (supabase) {
@@ -516,7 +489,7 @@ export const AdminView: React.FC = () => {
           .from("profiles")
           .update({ stamps: newStamps })
           .eq("email", member.email.toLowerCase());
-        
+
         if (error) {
           console.error("Supabase stamp update error:", error);
           toast.error("Failed to update stamp in database.");
@@ -547,7 +520,7 @@ export const AdminView: React.FC = () => {
           .from("profiles")
           .update({ stamps: newStamps })
           .eq("email", member.email.toLowerCase());
-        
+
         if (error) {
           console.error("Supabase stamp revoke error:", error);
           toast.error("Failed to revoke stamp in database.");
@@ -579,7 +552,7 @@ export const AdminView: React.FC = () => {
               .from("profiles")
               .update({ stamps: 0 })
               .eq("email", member.email.toLowerCase());
-            
+
             if (error) {
               console.error("Supabase redeem error:", error);
               toast.error("Failed to redeem in database.");
@@ -632,7 +605,7 @@ export const AdminView: React.FC = () => {
           .from("profiles")
           .update({ role: newRole })
           .eq("id", userId);
-        
+
         if (error) {
           console.error("Supabase user role update error:", error);
           toast.error("Failed to update user role in database.");
@@ -647,7 +620,7 @@ export const AdminView: React.FC = () => {
           db.saveMockUser(user);
         }
       }
-      
+
       toast.success("User role updated successfully.");
       await fetchUsers();
       await fetchLoyaltyFromSupabase(); // refresh loyalty to stay in sync
@@ -665,7 +638,7 @@ export const AdminView: React.FC = () => {
           .from("profiles")
           .delete()
           .eq("id", userId);
-        
+
         if (error) {
           console.error("Supabase user delete error:", error);
           toast.error("Failed to delete user in database.");
@@ -675,7 +648,7 @@ export const AdminView: React.FC = () => {
         // Mock mode delete
         db.deleteMockUser(userId);
       }
-      
+
       toast.success("User account deleted successfully.");
       await fetchUsers();
       await fetchLoyaltyFromSupabase();
@@ -701,7 +674,7 @@ export const AdminView: React.FC = () => {
           const file = menuForm.imageFile;
           const fileExt = file.name.split(".").pop();
           const fileName = `menu-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-          
+
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from("menu-images")
             .upload(fileName, file, { cacheControl: "3600", upsert: true });
@@ -739,7 +712,7 @@ export const AdminView: React.FC = () => {
             category: newItem.category,
             tags: newItem.tags
           });
-        
+
         if (error) {
           console.error("Supabase upsert menu item error:", error);
           toast.error("Failed to save to database. Saving locally...");
@@ -808,7 +781,7 @@ export const AdminView: React.FC = () => {
               .from("menu_items")
               .delete()
               .eq("id", id);
-            
+
             if (error) {
               console.error("Supabase delete menu item error:", error);
               toast.error("Failed to delete from database. Deleting locally...");
@@ -867,7 +840,7 @@ export const AdminView: React.FC = () => {
       const { supabase } = await import("@/utils/supabase");
       if (supabase) {
         const tempPassword = `CoffeeTemp_${Math.floor(100000 + Math.random() * 900000)}!`;
-        
+
         if (formattedPhone) {
           // Phone Signup
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -883,7 +856,7 @@ export const AdminView: React.FC = () => {
 
           if (signUpError) {
             console.warn("Supabase signUp by phone error (user might already exist):", signUpError.message);
-            
+
             const { error: updateError } = await supabase
               .from("profiles")
               .update({
@@ -900,7 +873,7 @@ export const AdminView: React.FC = () => {
             const userId = signUpData.user?.id;
             if (userId) {
               await new Promise((resolve) => setTimeout(resolve, 1200));
-              
+
               const { data: existingProfile } = await supabase
                 .from("profiles")
                 .select("id")
@@ -954,7 +927,7 @@ export const AdminView: React.FC = () => {
 
           if (signUpError) {
             console.warn("Supabase signUp by email error (user might already exist):", signUpError.message);
-            
+
             const { error: updateError } = await supabase
               .from("profiles")
               .update({
@@ -1059,7 +1032,7 @@ export const AdminView: React.FC = () => {
 
       {/* Main Workspace */}
       <main className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-6 md:p-8 relative z-10 pb-24 md:pb-8">
-        
+
         {/* TOP BAR / Header */}
         <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-8 pb-3 md:pb-4 border-b border-card-border relative">
           <div>
@@ -1072,33 +1045,24 @@ export const AdminView: React.FC = () => {
               {activeTab === "users" && "USER ACCOUNTS & ROLES"}
               {activeTab === "lifestyle" && "LIFESTYLE SELECTIONS"}
               {activeTab === "events" && "EVENTS & ANNOUNCEMENTS"}
+              {activeTab === "settings" && "CONSOLE SETTINGS"}
             </h1>
             <p className="type-caption text-neutral-500 mt-1 hidden sm:block">
               {activeTab === "users"
                 ? "Adjust account authorization roles, inspect client profiles, and manage system access."
                 : activeTab === "lifestyle"
-                ? "Curate and manage social media post selections featured on the lifestyle bento grid."
-                : activeTab === "events"
-                ? "Manage promotional events, holiday schedules, and seasonal menu announcements."
-                : "Manage menu inventory, client reservations, and card records."
+                  ? "Curate and manage social media post selections featured on the lifestyle bento grid."
+                  : activeTab === "events"
+                    ? "Manage promotional events, holiday schedules, and seasonal menu announcements."
+                    : activeTab === "settings"
+                      ? "Configure your personal dashboard details and set console system preferences."
+                      : "Manage menu inventory, client reservations, and card records."
               }
             </p>
           </div>
 
           {/* Top Right Actions: Theme Toggle and Notifications */}
           <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-start md:self-center">
-             {/* Maintenance Toggle */}
-             <button
-               onClick={toggleMaintenance}
-               title={isMaintenanceActive ? "Deactivate Maintenance Mode" : "Activate Maintenance Mode"}
-               className={`p-2 rounded-full border transition-all duration-300 cursor-pointer flex items-center justify-center ${
-                 isMaintenanceActive
-                   ? "bg-rose-500 hover:bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-500/20 animate-pulse"
-                   : "bg-foreground/[0.03] border-card-border text-neutral-500 hover:text-foreground dark:text-zinc-500 dark:hover:text-white"
-               }`}
-             >
-               <Wrench size={18} />
-             </button>
 
             {/* Theme Toggle */}
             <div className="flex items-center gap-1 bg-foreground/[0.03] border border-card-border rounded-full p-1 shadow-sm">
@@ -1215,6 +1179,10 @@ export const AdminView: React.FC = () => {
               {activeTab === "events" && (
                 <EventsTab />
               )}
+
+              {activeTab === "settings" && (
+                <SettingsTab />
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -1243,66 +1211,6 @@ export const AdminView: React.FC = () => {
       />
 
       <AnimatePresence>
-        {showMaintenanceConfirmModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowMaintenanceConfirmModal(false)}
-              className="absolute inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-md"
-            />
-
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-md rounded-2xl border border-card-border bg-card p-8 shadow-2xl relative z-10 overflow-hidden"
-            >
-              {/* Ambient Glow */}
-              <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 blur-[25px] rounded-full pointer-events-none" />
-
-              <button
-                onClick={() => setShowMaintenanceConfirmModal(false)}
-                className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors duration-300 p-1.5 rounded-full cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-
-              <div className="flex items-center gap-2 mb-6">
-                <Wrench size={16} className="text-rose-500 animate-pulse" />
-                <h3 className="type-h3 text-foreground font-serif font-bold tracking-tight">
-                  Activate Maintenance Mode?
-                </h3>
-              </div>
-
-              <p className="text-neutral-500 dark:text-zinc-400 text-sm leading-relaxed mb-6">
-                Are you sure you want to activate maintenance mode? This will restrict access for all logged-in customer accounts across the website and show them the maintenance screen. Admins and baristas will retain full access.
-              </p>
-
-              <div className="flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowMaintenanceConfirmModal(false)}
-                  className="px-4 py-2.5 text-xs tracking-wider uppercase border border-card-border hover:bg-foreground/5 transition-colors duration-300 rounded-lg cursor-pointer text-neutral-500 hover:text-foreground"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmActivateMaintenance}
-                  className="px-4 py-2.5 text-xs tracking-wider uppercase bg-rose-500 hover:bg-rose-600 text-white transition-colors duration-300 rounded-lg shadow-md cursor-pointer animate-pulse"
-                >
-                  Activate Mode
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
         {confirmModal.isOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             {/* Backdrop */}
@@ -1323,10 +1231,9 @@ export const AdminView: React.FC = () => {
               className="w-full max-w-md rounded-2xl border border-card-border bg-card p-8 shadow-2xl relative z-10 overflow-hidden"
             >
               {/* Ambient Glow */}
-              <div 
-                className={`absolute top-0 right-0 w-24 h-24 blur-[25px] rounded-full pointer-events-none ${
-                  confirmModal.variant === "danger" ? "bg-rose-500/5" : "bg-amber-500/5"
-                }`} 
+              <div
+                className={`absolute top-0 right-0 w-24 h-24 blur-[25px] rounded-full pointer-events-none ${confirmModal.variant === "danger" ? "bg-rose-500/5" : "bg-amber-500/5"
+                  }`}
               />
 
               <button
@@ -1366,11 +1273,10 @@ export const AdminView: React.FC = () => {
                 <button
                   type="button"
                   onClick={confirmModal.onConfirm}
-                  className={`px-4 py-2.5 text-xs tracking-wider uppercase text-white transition-colors duration-300 rounded-lg shadow-md cursor-pointer font-semibold ${
-                    confirmModal.variant === "danger"
+                  className={`px-4 py-2.5 text-xs tracking-wider uppercase text-white transition-colors duration-300 rounded-lg shadow-md cursor-pointer font-semibold ${confirmModal.variant === "danger"
                       ? "bg-rose-500 hover:bg-rose-600 shadow-rose-500/10"
                       : "bg-amber-500 hover:bg-amber-600 shadow-amber-500/10"
-                  }`}
+                    }`}
                 >
                   {confirmModal.confirmText}
                 </button>

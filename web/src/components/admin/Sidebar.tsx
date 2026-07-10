@@ -11,13 +11,19 @@ import {
   ChevronLeft,
   Camera,
   Megaphone,
+  Wrench,
+  HelpCircle,
+  X,
+  BookOpen,
+  Info,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/utils/supabase";
+import { toast } from "sonner";
 
 interface SidebarProps {
-  activeTab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events";
-  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events") => void;
+  activeTab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings";
+  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings") => void;
   reservationsCount: number;
   onLogout: () => void;
   currentUserRole?: "admin" | "barista";
@@ -31,6 +37,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentUserRole = "admin",
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [activeHelpTab, setActiveHelpTab] = useState<"guide" | "faqs" | "support">("guide");
   const [adminInfo, setAdminInfo] = useState({
     name: "Maître D' Admin",
     email: "admin@coffee.com",
@@ -126,6 +135,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setIsCollapsed(true);
     }
 
+    const handleStorageChange = () => {
+      const savedProfile = localStorage.getItem("admin_profile");
+      if (savedProfile) {
+        try {
+          const parsed = JSON.parse(savedProfile);
+          if (parsed.name && parsed.email) {
+            const nameParts = parsed.name.trim().split(/\s+/);
+            let initials = "AD";
+            if (nameParts.length > 0) {
+              if (nameParts.length >= 2) {
+                initials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+              } else if (nameParts[0].length > 0) {
+                initials = nameParts[0].slice(0, 2).toUpperCase();
+              }
+            }
+            setAdminInfo({
+              name: parsed.name,
+              email: parsed.email,
+              initials
+            });
+          }
+        } catch (err) {
+          console.error("Error parsing saved admin profile in Sidebar storage listener:", err);
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   const toggleCollapse = () => {
@@ -241,21 +280,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      <div className="flex flex-col">
+      <div className="flex flex-col relative overflow-visible">
 
         {/* Admin User Section */}
-        <div className="p-4 border-t border-card-border bg-background-alt/90 flex flex-col gap-4 overflow-hidden">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-brand-green/10 border border-brand-green/20 flex items-center justify-center text-brand-green text-xs font-bold shadow-[0_0_15px_rgba(46,90,68,0.1)] shrink-0">
+        <div className="p-4 border-t border-card-border bg-background-alt/90 flex flex-col gap-4 overflow-visible relative">
+          <button
+            type="button"
+            onClick={() => setShowProfileMenu(prev => !prev)}
+            className="flex items-center gap-3 w-full text-left cursor-pointer hover:bg-foreground/[0.03] dark:hover:bg-white/[0.03] p-1.5 -m-1.5 rounded-xl transition-all duration-200 select-none group/profile"
+            title="Account Menu"
+          >
+            <div className="h-9 w-9 rounded-full bg-brand-green/10 border border-brand-green/20 flex items-center justify-center text-brand-green text-xs font-bold shadow-[0_0_15px_rgba(46,90,68,0.1)] shrink-0 transition-transform group-hover/profile:scale-105">
               {adminInfo.initials}
             </div>
             {!isCollapsed && (
-              <div className="min-w-0">
-                <p className="type-body-sm font-semibold text-foreground truncate text-xs">{adminInfo.name}</p>
+              <div className="min-w-0 flex-1">
+                <p className="type-body-sm font-semibold text-foreground truncate text-xs group-hover/profile:text-brand-green transition-colors">{adminInfo.name}</p>
                 <p className="type-caption text-neutral-500 dark:text-zinc-500 truncate text-[9px] tracking-wide mt-0.5">{adminInfo.email}</p>
               </div>
             )}
-          </div>
+          </button>
 
           <button
             onClick={onLogout}
@@ -265,6 +309,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <LogOut size={12} className="transition-transform group-hover:-translate-x-0.5" />
             {!isCollapsed && <span className="whitespace-nowrap">Exit Console</span>}
           </button>
+
+          {/* Overlay Backdrop to close menu when clicking outside */}
+          {showProfileMenu && (
+            <div 
+              className="fixed inset-0 z-40 bg-transparent cursor-default"
+              onClick={() => setShowProfileMenu(false)}
+            />
+          )}
+
+          {/* Profile Popover Menu */}
+          <AnimatePresence>
+            {showProfileMenu && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, x: -10 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.9, x: -10 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="absolute left-[calc(100%+12px)] bottom-4 w-48 bg-card/95 border border-card-border backdrop-blur-md p-2 rounded-2xl shadow-xl z-50 flex flex-col gap-1 text-foreground"
+              >
+                <div className="px-3 py-2 border-b border-card-border/40 mb-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                    Console Account
+                  </p>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("settings");
+                    setShowProfileMenu(false);
+                  }}
+                  className={`flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-brand-green/10 hover:text-brand-green transition-colors duration-200 cursor-pointer font-medium ${
+                    activeTab === "settings" ? "text-brand-green bg-brand-green/10" : "text-neutral-500 dark:text-zinc-400"
+                  }`}
+                >
+                  <Wrench size={13} />
+                  <span>Settings Tab</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowHelpModal(true);
+                    setActiveHelpTab("guide");
+                    setShowProfileMenu(false);
+                  }}
+                  className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-brand-green/10 hover:text-brand-green text-neutral-500 dark:text-zinc-400 transition-colors duration-200 cursor-pointer font-medium"
+                >
+                  <HelpCircle size={13} />
+                  <span>Help</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </motion.aside>
@@ -317,6 +415,219 @@ export const Sidebar: React.FC<SidebarProps> = ({
         );
       })}
     </nav>
+
+    {/* Help & System Guide Modal */}
+    <AnimatePresence>
+      {showHelpModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowHelpModal(false)}
+            className="absolute inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-md"
+          />
+
+          {/* Modal Card Content */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            className="w-full max-w-2xl rounded-2xl border border-card-border bg-card p-6 md:p-8 shadow-2xl relative z-10 overflow-hidden text-foreground flex flex-col max-h-[85vh]"
+          >
+            {/* Ambient Corner Glow */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/5 blur-[35px] rounded-full pointer-events-none" />
+
+            {/* Close Button */}
+            <button
+              onClick={() => setShowHelpModal(false)}
+              className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors duration-300 p-1.5 rounded-full cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 bg-brand-green/10 rounded-xl text-brand-green">
+                <HelpCircle size={22} />
+              </div>
+              <div>
+                <h3 className="text-xl text-foreground font-serif font-bold tracking-tight">
+                  System Help & Guide
+                </h3>
+                <p className="text-xs text-neutral-400 dark:text-zinc-500">
+                  Antonioni Grounds Admin Management Console
+                </p>
+              </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="flex border-b border-card-border/60 mb-6">
+              {[
+                { id: "guide" as const, label: "System Guide", icon: BookOpen },
+                { id: "faqs" as const, label: "FAQs", icon: HelpCircle },
+                { id: "support" as const, label: "Support & Diagnostics", icon: Info },
+              ].map((tab) => {
+                const TabIcon = tab.icon;
+                const isTabActive = activeHelpTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveHelpTab(tab.id)}
+                    className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+                      isTabActive
+                        ? "border-brand-green text-brand-green font-bold"
+                        : "border-transparent text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white"
+                    }`}
+                  >
+                    <TabIcon size={14} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4 text-sm scrollbar-thin">
+              {activeHelpTab === "guide" && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
+                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+                      Dashboard Overview
+                    </h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
+                      Provides quick-glance statistics of total menu items, pending reservations, active loyalty members, and recent actions. Useful for monitoring daily operations at a glance.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
+                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+                      Menu Offerings
+                    </h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
+                      Create, view, update, or remove menu items. Toggle the availability state of drinks or food (e.g. mark out-of-stock to temporarily hide it from customers).
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
+                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+                      Experience Bookings / Reservations
+                    </h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
+                      Review details of customers booking tables or events. You can approve pending slot requests, toggle check-ins, or cancel reservations directly.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
+                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+                      Digital Loyalty Directory
+                    </h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
+                      Manage digital stamp cards for registered customers. Staff can manually award stamps for walk-in orders, revoke accidental stamps, or redeem complete reward cards (resets cards to 0 stamps).
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
+                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+                      User Accounts & Roles
+                    </h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
+                      Adjust permissions by promoting or demoting users (e.g., to Admin, Barista, or Customer). Admin access grants full customization, whereas Baristas get a streamlined view focused only on execution.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {activeHelpTab === "faqs" && (
+                <div className="space-y-4">
+                  <div className="border-b border-card-border/40 pb-3">
+                    <p className="font-bold text-foreground text-xs">Q: How do customers get stamps?</p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1">
+                      Every time a customer makes a purchase, the barista/admin can search their email or phone number in the Loyalty Directory and click the "+" button to award a stamp.
+                    </p>
+                  </div>
+
+                  <div className="border-b border-card-border/40 pb-3">
+                    <p className="font-bold text-foreground text-xs">Q: What happens when 9 stamps are completed?</p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1">
+                      The customer is eligible for a free reward drink. Use the "Redeem" action in the Loyalty tab to reset their stamp card to 0 after giving them the drink.
+                    </p>
+                  </div>
+
+                  <div className="border-b border-card-border/40 pb-3">
+                    <p className="font-bold text-foreground text-xs">Q: What can a Barista role access?</p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1">
+                      A Barista can view the dashboard summary, review and change reservation statuses, and award/redeem loyalty stamps. Baristas cannot edit menu items, manage users, or post news.
+                    </p>
+                  </div>
+
+                  <div className="pb-3">
+                    <p className="font-bold text-foreground text-xs">Q: How do we upload images for Menu or Events?</p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1">
+                      When adding or editing items, you can drop an image file or type a direct URL. Files are automatically uploaded and optimized via Supabase Storage.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {activeHelpTab === "support" && (
+                <div className="space-y-6">
+                  <div className="p-4 rounded-xl bg-brand-green/5 border border-brand-green/20 flex items-start gap-3">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 mt-1.5 animate-pulse shrink-0" />
+                    <div>
+                      <h4 className="font-bold text-foreground text-xs">System Connected</h4>
+                      <p className="text-neutral-500 dark:text-zinc-400 text-[11px] mt-0.5 leading-relaxed">
+                        The admin console is successfully synchronized with Supabase cloud infrastructure and Local Storage database.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg border border-card-border bg-foreground/[0.01]">
+                      <span className="text-[10px] text-neutral-400 dark:text-zinc-500 block uppercase font-bold tracking-wider">Console Version</span>
+                      <span className="font-mono text-xs text-foreground font-semibold">v1.4.0 (Stable)</span>
+                    </div>
+                    <div className="p-3 rounded-lg border border-card-border bg-foreground/[0.01]">
+                      <span className="text-[10px] text-neutral-400 dark:text-zinc-500 block uppercase font-bold tracking-wider">API Latency</span>
+                      <span className="font-mono text-xs text-foreground font-semibold">Optimal (&lt; 80ms)</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 border-t border-card-border/40 pt-4">
+                    <h4 className="font-bold text-foreground text-xs">Need Assistance?</h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs">
+                      For technical issues, system outages, or custom features, contact the developers:
+                    </p>
+                    <div className="font-mono text-[11px] text-neutral-500 dark:text-zinc-400 space-y-1 bg-foreground/[0.02] p-3 rounded-lg border border-card-border/40">
+                      <div>Email: <a href="mailto:support@coffee.com" className="text-brand-green hover:underline">support@coffee.com</a></div>
+                      <div>Phone Support: Ext. 404 / +1 (555) 404-COFFEE</div>
+                      <div>Working Hours: 08:00 AM - 10:00 PM (PST)</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Action */}
+            <div className="mt-6 pt-4 border-t border-card-border/60 flex justify-end">
+              <button
+                onClick={() => setShowHelpModal(false)}
+                className="px-5 py-2.5 text-xs tracking-wider uppercase text-white bg-brand-green hover:brightness-95 transition-all duration-300 rounded-xl shadow-md font-semibold cursor-pointer"
+              >
+                Understood
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
     </>
   );
 };

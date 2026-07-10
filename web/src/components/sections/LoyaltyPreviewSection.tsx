@@ -24,7 +24,7 @@ export function LoyaltyPreviewSection() {
       if (sessionEmail) {
         const found = members.find(
           (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
-                 (m.phone && m.phone.trim() === sessionEmail.trim())
+            (m.phone && m.phone.trim() === sessionEmail.trim())
         );
         if (found) {
           current = found;
@@ -69,7 +69,7 @@ export function LoyaltyPreviewSection() {
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          
+
           {/* Left Column: Loyalty Details & Program Description */}
           <div className="lg:col-span-7 space-y-6 text-left">
             <div className="space-y-4">
@@ -82,7 +82,7 @@ export function LoyaltyPreviewSection() {
                   The Antonioni Reserve Club
                 </h2>
                 <p className="type-body text-neutral-500 dark:text-zinc-400 leading-relaxed max-w-xl">
-                  {isGuest 
+                  {isGuest
                     ? "Step into a world of curated coffee luxury. Sign up to receive your digital loyalty card, earn stamps on every pour, and unlock access to rare micro-lots and tasting masterclasses."
                     : `Welcome back, ${memberName.split(' ')[0]}. Here is your current membership status. Scan your digital QR code at any of our flagship locations to claim and add your active stamps.`
                   }
@@ -145,8 +145,8 @@ export function LoyaltyPreviewSection() {
                 {/* Micro Progress Bar */}
                 <div className="space-y-2">
                   <div className="w-full bg-zinc-200 dark:bg-white/5 h-2.5 rounded-full overflow-hidden">
-                    <div 
-                      className="bg-[#2E5A44] h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_#10B981]" 
+                    <div
+                      className="bg-[#2E5A44] h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_#10B981]"
                       style={{ width: `${(stamps / 10) * 100}%` }}
                     />
                   </div>

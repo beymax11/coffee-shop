@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { Search, Plus, Edit3, Trash2, Star } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Search, Plus, Edit3, Trash2, Star, Eye, X } from "lucide-react";
 import { MenuItem } from "@/types";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MenuTabProps {
   menuItems: MenuItem[];
@@ -41,6 +41,8 @@ export const MenuTab: React.FC<MenuTabProps> = ({
   onDeleteItem,
   onOpenAddModal,
 }) => {
+  const [viewingItem, setViewingItem] = useState<MenuItem | null>(null);
+
   // Filtered lists
   const filteredMenuItems = menuItems.filter((item) => {
     const matchesSearch =
@@ -157,6 +159,13 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                   <td className="p-4 pr-6 text-center">
                     <div className="inline-flex gap-1.5">
                       <button
+                        onClick={() => setViewingItem(item)}
+                        className="p-2 rounded-lg hover:bg-foreground/[0.04] dark:hover:bg-white/5 text-neutral-500 dark:text-zinc-400 hover:text-foreground dark:hover:text-white transition-all duration-300 cursor-pointer"
+                        title="View Details"
+                      >
+                        <Eye size={13} />
+                      </button>
+                      <button
                         onClick={() => onEditItem(item)}
                         className="p-2 rounded-lg hover:bg-brand-green/10 text-neutral-500 dark:text-zinc-400 hover:text-brand-green transition-all duration-300 cursor-pointer"
                         title="Edit Item"
@@ -186,6 +195,129 @@ export const MenuTab: React.FC<MenuTabProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Details Modal */}
+      <AnimatePresence>
+        {viewingItem && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setViewingItem(null)}
+              className="absolute inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-md"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 40, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.95 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-card-border bg-card overflow-hidden shadow-2xl relative z-10 flex flex-col max-h-[92vh] overflow-y-auto"
+              style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+            >
+              {/* Glow */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/5 blur-[25px] rounded-full pointer-events-none" />
+
+              {/* Close Button overlay */}
+              <button
+                onClick={() => setViewingItem(null)}
+                className="absolute top-4 right-4 z-20 text-white bg-black/40 hover:bg-black/60 transition-colors duration-300 p-2 rounded-full cursor-pointer backdrop-blur-sm"
+              >
+                <X size={14} />
+              </button>
+
+              {/* Hero Image */}
+              <div className="relative h-56 w-full bg-background-alt shrink-0">
+                <img
+                  src={viewingItem.image}
+                  alt={viewingItem.name}
+                  className="w-full h-full object-cover"
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+                
+                {/* Category Badge on image */}
+                <div className="absolute bottom-4 left-6">
+                  <span className="rounded-full bg-brand-green px-3 py-1 text-[9px] uppercase tracking-wider font-bold text-white shadow-lg shadow-brand-green/20">
+                    {viewingItem.category}
+                  </span>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-5">
+                <div>
+                  <h3 className="type-h3 text-foreground font-serif font-bold text-2xl tracking-tight leading-tight">
+                    {viewingItem.name}
+                  </h3>
+                  
+                  {/* Rating */}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <div className="flex items-center text-amber-500">
+                      {Array.from({ length: 5 }).map((_, i) => {
+                        const currentRating = viewingItem.rating ?? 5.0;
+                        return (
+                          <Star
+                            key={i}
+                            size={12}
+                            fill={i < Math.round(currentRating) ? "currentColor" : "none"}
+                            className={i < Math.round(currentRating) ? "text-amber-500" : "text-neutral-300 dark:text-zinc-600"}
+                          />
+                        );
+                      })}
+                    </div>
+                    <span className="text-[11px] text-neutral-500 dark:text-zinc-400 font-medium">
+                      {(viewingItem.rating ?? 5.0).toFixed(1)} / 5.0
+                    </span>
+                  </div>
+                </div>
+
+                {/* Pricing Info */}
+                <div className="flex justify-between items-center rounded-xl bg-background/50 border border-card-border p-4">
+                  <span className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-zinc-400 uppercase">
+                    Price
+                  </span>
+                  <span className="type-price font-serif text-brand-green dark:text-emerald-400 text-2xl font-bold">
+                    ₱{viewingItem.price.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <h4 className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-zinc-400 uppercase">
+                    Description
+                  </h4>
+                  <p className="text-xs leading-relaxed text-neutral-600 dark:text-zinc-300 bg-background/30 rounded-xl p-3.5 border border-card-border/50">
+                    {viewingItem.description}
+                  </p>
+                </div>
+
+                {/* Tags */}
+                {viewingItem.tags && viewingItem.tags.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-zinc-400 uppercase">
+                      Tags
+                    </h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {viewingItem.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-foreground/[0.03] border border-card-border/50 px-3 py-1 text-[10px] text-neutral-600 dark:text-zinc-400 font-medium"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

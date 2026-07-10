@@ -147,7 +147,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
               setSelectedMember(member);
               setIsScanSuccess(true);
               isScanSuccessRef.current = true;
-              
+
               if (animationFrameIdRef.current) {
                 cancelAnimationFrame(animationFrameIdRef.current);
                 animationFrameIdRef.current = null;
@@ -217,7 +217,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
 
   return (
     <div className="space-y-6">
-      
+
       {/* STAMP STATION */}
       <div className="rounded-2xl border border-brand-green/25 bg-gradient-to-br from-card to-background-alt/30 p-6 glassmorphism-gold shadow-2xl relative overflow-hidden">
         {/* Glow decoration */}
@@ -317,11 +317,10 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
               <button
                 key={opt.value}
                 onClick={() => setStampFilter(opt.value)}
-                className={`rounded-full px-3.5 py-1.5 type-ui text-[9px] tracking-wider border cursor-pointer transition-all duration-300 ${
-                  isActive
+                className={`rounded-full px-3.5 py-1.5 type-ui text-[9px] tracking-wider border cursor-pointer transition-all duration-300 ${isActive
                     ? "bg-brand-green border-brand-green text-white font-semibold shadow-[0_2px_10px_rgba(46,90,68,0.2)]"
                     : "bg-foreground/[0.02] border-card-border/50 text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
-                }`}
+                  }`}
               >
                 {opt.label}
               </button>
@@ -416,18 +415,17 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                       <Zap size={11} className="text-brand-green" /> stamps collected: {member.stamps} / 9
                     </span>
                   </div>
-                  
+
                   <div className="grid grid-cols-9 gap-1.5 sm:gap-2.5 max-w-full">
                     {[...Array(9)].map((_, idx) => {
                       const isStamped = idx < member.stamps;
                       return (
                         <div
                           key={idx}
-                          className={`h-6 w-6 sm:h-7 sm:w-7 rounded-full border transition-all duration-300 flex items-center justify-center ${
-                            isStamped
+                          className={`h-6 w-6 sm:h-7 sm:w-7 rounded-full border transition-all duration-300 flex items-center justify-center ${isStamped
                               ? "bg-brand-green/20 border-brand-green text-brand-green shadow green-glow font-bold text-[9px] scale-105"
                               : "border-card-border bg-foreground/[0.03] text-neutral-400 dark:text-zinc-600 dark:bg-black/40 text-[9px] font-semibold"
-                          }`}
+                            }`}
                         >
                           {isStamped ? <Check size={11} className="stroke-[3]" /> : idx + 1}
                         </div>
@@ -515,31 +513,29 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
               {/* Premium scanner overlay */}
               {!errorMsg && (
                 <div className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center p-6">
-                  <div className={`text-center text-[10px] sm:text-[11px] font-semibold backdrop-blur-sm py-1.5 px-3 rounded-full w-fit mx-auto mb-8 pointer-events-none transition-all duration-300 ${
-                    isScanSuccess
+                  <div className={`text-center text-[10px] sm:text-[11px] font-semibold backdrop-blur-sm py-1.5 px-3 rounded-full w-fit mx-auto mb-8 pointer-events-none transition-all duration-300 ${isScanSuccess
                       ? "text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 green-glow"
                       : "text-white/80 bg-black/60"
-                  }`}>
+                    }`}>
                     {isScanSuccess ? "Scanned successfully!" : "Align QR code inside the frame"}
                   </div>
-                  
+
                   {/* Scanner Frame Box Wrapper */}
                   <div className="relative w-64 h-64 sm:w-72 sm:h-72 mx-auto flex items-center justify-center">
                     {/* Shadow Mask to darken camera background outside the box */}
                     <div className="absolute inset-0 shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] rounded-2xl pointer-events-none" />
-                    
+
                     {/* Scanning content box */}
-                    <div className={`absolute inset-0 border rounded-2xl flex items-center justify-center overflow-hidden transition-all duration-500 ${
-                      isScanSuccess
+                    <div className={`absolute inset-0 border rounded-2xl flex items-center justify-center overflow-hidden transition-all duration-500 ${isScanSuccess
                         ? "border-emerald-500 bg-emerald-950/15"
                         : "border-brand-green/30"
-                    }`}>
+                      }`}>
                       {/* Corner markers */}
                       <div className={`absolute top-0 left-0 w-5 h-5 border-t-4 border-l-4 rounded-tl-md transition-colors duration-500 ${isScanSuccess ? "border-emerald-400" : "border-brand-green"}`} />
                       <div className={`absolute top-0 right-0 w-5 h-5 border-t-4 border-r-4 rounded-tr-md transition-colors duration-500 ${isScanSuccess ? "border-emerald-400" : "border-brand-green"}`} />
                       <div className={`absolute bottom-0 left-0 w-5 h-5 border-b-4 border-l-4 rounded-bl-md transition-colors duration-500 ${isScanSuccess ? "border-emerald-400" : "border-brand-green"}`} />
                       <div className={`absolute bottom-0 right-0 w-5 h-5 border-b-4 border-r-4 rounded-br-md transition-colors duration-500 ${isScanSuccess ? "border-emerald-400" : "border-brand-green"}`} />
-                      
+
                       {isScanSuccess ? (
                         <motion.div
                           initial={{ scale: 0, opacity: 0 }}
@@ -641,7 +637,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                     setErrorMsg("Please enter a Member ID.");
                     return;
                   }
-                  
+
                   const normalizeId = (id: string) => {
                     let clean = id.toUpperCase().replace(/[^A-Z0-9]/g, "");
                     if (clean.startsWith("LN") || clean.startsWith("AG")) {
@@ -758,7 +754,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                     <h4 className="type-body text-sm font-bold text-foreground tracking-wide font-serif mt-0.5">{selectedMember.name}</h4>
                     <span className="font-mono text-zinc-500 dark:text-zinc-400 text-[9px] tracking-wider block">ID: {selectedMember.id}</span>
                   </div>
-                  
+
                   {/* Miniature progress pill */}
                   <span className="bg-[#2E5A44]/10 dark:bg-emerald-500/10 text-brand-green dark:text-emerald-400 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border border-brand-green/20">
                     {selectedMember.stamps} / 9
@@ -770,17 +766,16 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                   {Array.from({ length: 9 }).map((_, idx) => {
                     const isStamped = idx < selectedMember.stamps;
                     const isNextToStamp = idx === selectedMember.stamps;
-                    
+
                     return (
                       <div
                         key={idx}
-                        className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border flex items-center justify-center text-[8px] transition-all duration-300 ${
-                          isStamped
+                        className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border flex items-center justify-center text-[8px] transition-all duration-300 ${isStamped
                             ? "bg-brand-green/20 border-brand-green text-brand-green font-bold scale-105 shadow-sm shadow-brand-green/10"
                             : isNextToStamp
-                            ? "bg-brand-green border-brand-green text-white font-extrabold animate-pulse scale-110 shadow-md shadow-brand-green/30"
-                            : "border-card-border bg-background/50 text-neutral-400 dark:text-zinc-600 dark:bg-black/40 font-semibold"
-                        }`}
+                              ? "bg-brand-green border-brand-green text-white font-extrabold animate-pulse scale-110 shadow-md shadow-brand-green/30"
+                              : "border-card-border bg-background/50 text-neutral-400 dark:text-zinc-600 dark:bg-black/40 font-semibold"
+                          }`}
                         title={isNextToStamp ? "Next stamp to be added" : ""}
                       >
                         {isStamped ? (
@@ -929,11 +924,10 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                     return (
                       <div
                         key={idx}
-                        className={`h-6 w-6 rounded-full border flex items-center justify-center text-[8px] transition-all duration-300 ${
-                          isStamped
+                        className={`h-6 w-6 rounded-full border flex items-center justify-center text-[8px] transition-all duration-300 ${isStamped
                             ? "bg-brand-green/20 border-brand-green text-brand-green font-bold scale-105 shadow-sm shadow-brand-green/10"
                             : "border-card-border bg-background/50 text-neutral-400 dark:text-zinc-600 dark:bg-black/40 font-semibold"
-                        }`}
+                          }`}
                       >
                         {isStamped ? <Check size={9} className="stroke-[3]" /> : idx + 1}
                       </div>

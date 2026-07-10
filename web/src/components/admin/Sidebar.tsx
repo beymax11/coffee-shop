@@ -106,7 +106,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }
           
           setAdminInfo({ name, email, initials });
-          localStorage.setItem("admin_profile", JSON.stringify({ name, email }));
+          // Preserve existing role when saving profile to avoid losing it on refresh
+          const existingSaved = localStorage.getItem("admin_profile");
+          let existingRole: string | undefined;
+          try {
+            if (existingSaved) existingRole = JSON.parse(existingSaved)?.role;
+          } catch (_) {}
+          localStorage.setItem("admin_profile", JSON.stringify({ name, email, role: existingRole }));
         }
       } catch (err) {
         console.error("Error fetching admin profile in Sidebar:", err);

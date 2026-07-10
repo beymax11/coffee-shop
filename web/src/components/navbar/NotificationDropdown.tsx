@@ -58,7 +58,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="absolute right-0 mt-2 w-80 bg-card/95 backdrop-blur-md border border-card-border rounded-xl p-4 shadow-xl z-40"
+              className="fixed top-16 left-4 right-4 w-auto sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:w-80 sm:mt-2 bg-card/95 backdrop-blur-md border border-card-border rounded-xl p-4 shadow-xl z-40"
             >
               <div className="flex items-center justify-between border-b border-card-border/50 pb-2 mb-3">
                 <h5 className="text-[10px] font-bold text-foreground font-sans uppercase tracking-wider">

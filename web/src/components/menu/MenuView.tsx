@@ -77,18 +77,9 @@ export function MenuView() {
     setIsQuickViewOpen(true);
   };
 
-  // Derive stats for header summary
-  const signatureCount = useMemo(() => {
-    return items.filter(i => i.category === "Signature Drinks").length;
-  }, [items]);
-
-  const totalOfferings = useMemo(() => {
-    return items.length;
-  }, [items]);
-
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background py-16 md:py-24 text-foreground relative overflow-hidden transition-colors duration-500">
+      <div className="min-h-screen bg-background pt-10 md:pt-16 pb-16 md:pb-24 text-foreground relative overflow-hidden transition-colors duration-500">
         
         {/* Cinematic Vertical & Horizontal Framing Lines */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#2E5A44]/20 to-transparent pointer-events-none" />
@@ -104,16 +95,7 @@ export function MenuView() {
         <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
           
           {/* Header Title Block */}
-          <div className="text-center max-w-3xl mx-auto mb-16 flex flex-col items-center">
-            
-            {/* Elegant Cinematic Eyebrow */}
-            <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-500/20 dark:border-emerald-500/15 bg-[#2E5A44]/5 dark:bg-[#2E5A44]/5 px-4 py-1.5 mb-5 backdrop-blur-md">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 tracking-[0.25em] text-[10px] uppercase font-semibold">
-                Scene IV · Tasting Room
-              </span>
-            </div>
-
+          <div className="text-center max-w-3xl mx-auto mb-10 flex flex-col items-center">
             <h1 className="type-h1 text-foreground tracking-tight leading-tight">
               The <span className="text-emerald-600 dark:text-emerald-400 italic font-serif font-normal">Curated</span> Menu
             </h1>
@@ -128,27 +110,10 @@ export function MenuView() {
             <p className="type-body text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed">
               Explore our master-crafted hot brews, cold tonics, zero-proof signature cocktail pairings, and freshly baked luxury desserts, directed with absolute precision.
             </p>
-
-            {/* Premium Stats Grid */}
-            <div className="grid grid-cols-3 gap-6 w-full max-w-lg mt-10 border-t border-b border-card-border/80 dark:border-zinc-900/60 py-5">
-              <div className="text-center border-r border-card-border dark:border-zinc-900/60 pr-4">
-                <span className="block font-serif text-2xl text-emerald-600 dark:text-emerald-400 font-bold">{totalOfferings}</span>
-                <span className="text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 font-sans block mt-1">Exquisite Items</span>
-              </div>
-              <div className="text-center border-r border-card-border dark:border-zinc-900/60 px-4">
-                <span className="block font-serif text-2xl text-emerald-600 dark:text-emerald-400 font-bold">{signatureCount}</span>
-                <span className="text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 font-sans block mt-1">Reserve Blends</span>
-              </div>
-              <div className="text-center pl-4">
-                <span className="block font-serif text-2xl text-emerald-600 dark:text-emerald-400 font-bold">100%</span>
-                <span className="text-[9px] uppercase tracking-widest text-zinc-500 dark:text-zinc-500 font-sans block mt-1">Single Origin</span>
-              </div>
-            </div>
-
           </div>
 
           {/* Unified Filter Deck */}
-          <div className="relative max-w-5xl mx-auto mb-16 rounded-2xl border border-card-border bg-card/65 dark:bg-zinc-950/60 p-6 backdrop-blur-md shadow-2xl glassmorphism-green">
+          <div className="relative max-w-5xl mx-auto mb-10 rounded-2xl border border-card-border bg-card/65 dark:bg-zinc-950/60 p-6 backdrop-blur-md shadow-2xl glassmorphism-green">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               
               {/* Search Bar */}

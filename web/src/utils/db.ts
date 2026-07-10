@@ -5,6 +5,8 @@ export interface LoyaltyMember {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  username?: string;
   stamps: number;
   points: number;
   joinedAt: string;
@@ -15,6 +17,7 @@ export interface UserProfile {
   name: string;
   username?: string;
   email: string;
+  phone?: string;
   role: "admin" | "barista" | "customer";
   stamps?: number;
   points?: number;
@@ -361,6 +364,7 @@ export const db = {
         name: m.name,
         username: m.email.split("@")[0],
         email: m.email,
+        phone: m.phone,
         role: "customer",
         stamps: m.stamps,
         points: m.points,

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { UserProfile } from "@/utils/db";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatDisplayPhone } from "@/utils/phone";
 
 interface UsersTabProps {
   users: UserProfile[];
@@ -24,6 +25,14 @@ interface UsersTabProps {
   onUpdateRole: (userId: string, newRole: "admin" | "barista" | "customer") => Promise<void>;
   onDeleteUser: (userId: string) => Promise<void>;
 }
+
+const displayContactInfo = (email?: string, phone?: string) => {
+  const formattedPhone = phone ? formatDisplayPhone(phone) : "";
+  if (email) {
+    return formattedPhone ? `${email} • ${formattedPhone}` : email;
+  }
+  return formattedPhone || "No contact info";
+};
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -262,7 +271,9 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                           <span className="bg-brand-green/15 text-brand-green px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider uppercase">You</span>
                         )}
                       </p>
-                      <p className="text-[10px] text-neutral-500 dark:text-zinc-500 truncate">{user.email}</p>
+                      <p className="text-[10px] text-neutral-500 dark:text-zinc-500 truncate">
+                        {displayContactInfo(user.email, user.phone)}
+                      </p>
                     </div>
                   </div>
                   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold border shrink-0 ${
@@ -381,7 +392,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                               )}
                             </span>
                             <span className="type-caption text-[10px] text-neutral-500 dark:text-zinc-500 block mt-0.5">
-                              {user.email}
+                              {displayContactInfo(user.email, user.phone)}
                             </span>
                           </div>
                         </div>
@@ -514,7 +525,9 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                   <span className="type-caption text-[10px] text-neutral-500 dark:text-zinc-500">Account Details:</span>
                   <div className="rounded-xl border border-card-border bg-foreground/[0.02] dark:bg-white/[0.01] p-3">
                     <p className="type-body-sm font-semibold text-foreground text-xs">{selectedUser.name}</p>
-                    <p className="type-caption text-[9px] text-neutral-500 dark:text-zinc-500 font-mono mt-0.5">{selectedUser.email}</p>
+                    <p className="type-caption text-[9px] text-neutral-500 dark:text-zinc-500 font-mono mt-0.5">
+                      {displayContactInfo(selectedUser.email, selectedUser.phone)}
+                    </p>
                   </div>
                 </div>
 

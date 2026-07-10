@@ -15,7 +15,7 @@ const TwitterIcon = ({ size = 18 }: { size?: number }) => (
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative mt-auto border-t border-card-border bg-card text-foreground">
+    <footer className="relative mt-auto border-t border-card-border bg-card text-foreground overflow-hidden">
       {/* Background soft gold glow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-[150px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none" />
 

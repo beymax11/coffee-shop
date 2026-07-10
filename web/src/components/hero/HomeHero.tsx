@@ -31,7 +31,7 @@ const ctaTap = { scale: 0.97 };
 
 export const HomeHero: React.FC = () => {
   return (
-    <section className="relative h-[calc(100vh-72px)] md:h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-black">
+    <section className="relative min-h-[calc(100vh-72px)] md:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-black py-16 sm:py-0">
       {/* Background with slow Ken Burns */}
       <motion.div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -85,10 +85,10 @@ export const HomeHero: React.FC = () => {
           {/* Eyebrow badge */}
           <motion.div
             variants={heroItem}
-            className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-[#2E5A44]/10 px-4 py-1.5 backdrop-blur-md"
+            className="mb-4 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#2E5A44]/10 px-3 py-1 sm:px-4 sm:py-1.5 backdrop-blur-md max-w-full"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="type-eyebrow tracking-[0.25em] font-semibold text-emerald-400">
+            <span className="type-eyebrow tracking-[0.12em] sm:tracking-[0.25em] font-semibold text-emerald-400 text-[8.5px] sm:text-[10px]">
               Welcome to Antonioni Grounds
             </span>
           </motion.div>
@@ -107,7 +107,7 @@ export const HomeHero: React.FC = () => {
           {/* Subcopy */}
           <motion.p
             variants={heroItem}
-            className="type-body mt-6 text-zinc-300/90 max-w-lg drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-base md:text-[1.05rem]"
+            className="type-body mt-4 sm:mt-6 text-zinc-300/90 max-w-lg drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-sm sm:text-base md:text-[1.05rem]"
           >
             Experience handcrafted coffee, thoughtfully prepared with quality beans, warm hospitality, and a space made for meaningful moments.
           </motion.p>
@@ -115,17 +115,17 @@ export const HomeHero: React.FC = () => {
           {/* CTAs */}
           <motion.div
             variants={heroItem}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-4 pt-9"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-3 sm:gap-4 pt-6 sm:pt-9"
           >
             <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
               <Link
                 href="/loyalty"
-                className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)]"
+                className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-6 sm:px-8 py-3.5 sm:py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] text-xs"
               >
                 <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
                 <span className="relative flex items-center gap-2">
                   Digital Loyalty Card
-                  <CreditCard size={15} className="transition-transform duration-300 group-hover:scale-110" />
+                  <CreditCard size={14} className="transition-transform duration-300 group-hover:scale-110" />
                 </span>
               </Link>
             </motion.div>
@@ -133,10 +133,10 @@ export const HomeHero: React.FC = () => {
             <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
               <Link
                 href="/reservations"
-                className="type-ui group w-full sm:w-auto flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-8 py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)]"
+                className="type-ui group w-full sm:w-auto flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-6 sm:px-8 py-3.5 sm:py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)] text-xs"
               >
                 <Calendar
-                  size={15}
+                  size={14}
                   className="text-emerald-500 transition-transform duration-300 group-hover:scale-110"
                 />
                 Reserve Event Cart
@@ -154,7 +154,7 @@ export const HomeHero: React.FC = () => {
 
       {/* Scroll hint */}
       <motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none hidden sm:flex"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 0.55, y: 0 }}
         transition={{ delay: 1.2, duration: 0.8, ease: EASE }}

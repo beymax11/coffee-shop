@@ -54,26 +54,28 @@ export function ForgotPasswordView() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-background text-foreground transition-colors duration-500 px-6 py-16 overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 relative overflow-y-auto transition-colors duration-500">
       {/* Decorative brand glow */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#2E5A44]/[0.08] to-transparent" />
-      <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-[#2E5A44]/[0.07] blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-[#2E5A44]/[0.05] blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-[#2E5A44]/[0.03] via-transparent to-[#2E5A44]/[0.02]" />
+      <div className="pointer-events-none absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-[#2E5A44]/[0.06] blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-[#2E5A44]/[0.04] blur-3xl" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
+      {/* Main Wrapper - Centered, Borderless, Direct Placement */}
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-full max-w-md rounded-2xl border border-card-border glassmorphism shadow-2xl p-8 md:p-10"
+        className="relative z-10 w-full max-w-xl flex flex-col py-8 md:py-12"
       >
-        {/* Header */}
-        <div className="border-b border-card-border/60 pb-6">
-          <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">
-            Reserve Access
+        {/* Header Block */}
+        <div className="flex flex-col items-center text-center pb-6 border-b border-card-border/40 relative">
+          <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 uppercase tracking-widest text-[10px] font-bold">
+            Antonioni Grounds
           </span>
-          <h1 className="type-h2 text-foreground mt-0.5">Reset Password</h1>
-          <div className="h-px w-12 bg-gradient-to-r from-[#2E5A44] to-transparent mt-5" />
-          <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-4 leading-relaxed">
+          <h1 className="text-foreground text-3xl font-serif mt-1 font-bold">
+            Reset Password
+          </h1>
+          <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-2 max-w-md leading-relaxed">
             Enter the email linked to your account and we&apos;ll send you a secure link to reset your password.
           </p>
         </div>
@@ -96,7 +98,7 @@ export function ForgotPasswordView() {
             </p>
             <button
               type="button"
-              onClick={() => router.push("/login")}
+              onClick={() => router.push("/login?view=page")}
               className="type-ui group relative mt-8 flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-3.5 text-white font-sans font-bold tracking-wider border border-[#2E5A44]/30 transition-all duration-300 hover:bg-[#234533] shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_30px_rgba(46,90,68,0.4)] active:scale-[0.98] cursor-pointer"
             >
               <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
@@ -109,7 +111,7 @@ export function ForgotPasswordView() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5 pt-6">
             {!supabase && (
-              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 type-caption text-amber-500 dark:text-amber-400 leading-normal">
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 type-caption text-amber-500 dark:text-amber-400 leading-normal text-xs">
                 <strong>Notice:</strong> Operating in mock auth mode. No email will actually be sent.
               </div>
             )}
@@ -139,7 +141,7 @@ export function ForgotPasswordView() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full rounded-lg border border-card-border bg-background-alt/50 py-3 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 disabled:opacity-50"
+                  className="w-full rounded-lg border border-card-border bg-background-alt/50 py-3 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 text-sm disabled:opacity-50"
                 />
               </div>
             </div>
@@ -170,9 +172,9 @@ export function ForgotPasswordView() {
             <div className="text-center pt-3">
               <button
                 type="button"
-                onClick={() => router.push("/login")}
+                onClick={() => router.push("/login?view=page")}
                 disabled={isSubmitting}
-                className="inline-flex items-center gap-1.5 type-caption text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors font-semibold cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 type-caption text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors font-semibold cursor-pointer disabled:opacity-50 text-xs"
               >
                 <ArrowLeft size={13} />
                 Back to Sign In

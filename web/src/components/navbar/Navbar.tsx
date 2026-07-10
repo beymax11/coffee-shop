@@ -72,7 +72,8 @@ export const Navbar: React.FC = () => {
       if (sessionEmail) {
         const members = db.getLoyaltyMembers();
         const found = members.find(
-          (m) => m.email.toLowerCase() === sessionEmail.toLowerCase()
+          (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
+                 (m.phone && m.phone.trim() === sessionEmail.trim())
         );
         if (found) {
           setCustomer(found);
@@ -118,18 +119,18 @@ export const Navbar: React.FC = () => {
             : "bg-transparent h-20"
           }`}
       >
-        <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between px-6 md:px-8">
+        <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between px-3 sm:px-6 md:px-8">
           {/* Logo */}
           <Link href="/" className="flex items-center group">
             <img
               src="/logo.png"
               alt="ANTONIONI GROUNDS"
-              className="h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105 invert dark:invert-0"
+              className="h-9 sm:h-11 lg:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105 invert dark:invert-0"
             />
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden lg:flex items-center gap-8">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -154,17 +155,18 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             {customer && (
               /* Profile Capsule Button */
               <button
                 onClick={() => setIsProfileOpen(true)}
-                className="group relative flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand-gold/30 bg-card/90 transition-all duration-300 hover:border-brand-gold hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                className="group relative flex items-center justify-center w-8 h-8 rounded-full border border-brand-gold/30 bg-card/90 transition-all duration-300 hover:border-brand-gold hover:scale-[1.02] active:scale-[0.98] cursor-pointer sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 sm:justify-start sm:gap-2"
                 aria-label="Profile"
               >
                 <div className="absolute inset-0 rounded-full bg-brand-gold/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none" />
-                <div className="w-5 h-5 rounded-full border border-brand-gold/40 bg-background flex items-center justify-center text-brand-gold text-[9px] font-bold shadow-[0_0_8px_rgba(197,168,128,0.1)] select-none">
+                <div className="relative w-5 h-5 rounded-full border border-brand-gold/40 bg-background flex items-center justify-center text-brand-gold text-[9px] font-bold shadow-[0_0_8px_rgba(197,168,128,0.1)] select-none">
                   {customer.name.charAt(0).toUpperCase()}
+                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse sm:hidden" />
                 </div>
                 <span className="relative hidden sm:inline text-[10px] uppercase tracking-[0.15em] font-sans font-bold text-neutral-500 dark:text-zinc-300 group-hover:text-foreground dark:group-hover:text-white transition-colors">
                   {customer.name.split(" ")[0]}
@@ -192,23 +194,35 @@ export const Navbar: React.FC = () => {
 
             {/* Sign In Button (Only when NOT logged in) */}
             {!customer && (
-              <button
-                onClick={() => setIsLoginOpen(true)}
-                className="group relative cursor-pointer"
-                aria-label="Sign In"
-              >
-                {/* Background glow ring on hover */}
-                <div className="absolute inset-0 -m-[1px] rounded-full bg-gradient-to-r from-brand-gold to-brand-gold-hover opacity-0 blur-[6px] transition-opacity duration-500 group-hover:opacity-100" />
-                {/* Main button container */}
-                <div className={`relative flex items-center gap-2 px-5 py-2 rounded-full border text-[10px] font-sans font-bold tracking-[0.15em] uppercase transition-all duration-300 group-hover:scale-[1.02] active:scale-[0.98] ${
-                  isLoginOpen
-                    ? "bg-brand-gold border-brand-gold text-black shadow-[0_0_15px_rgba(197,168,128,0.3)]"
-                    : "bg-card/90 border-brand-gold/30 text-neutral-500 dark:text-zinc-300 group-hover:border-brand-gold group-hover:text-black group-hover:bg-gradient-to-r group-hover:from-brand-gold group-hover:to-brand-gold-hover shadow-[0_0_15px_rgba(197,168,128,0.03)]"
-                }`}>
-                  <LogIn size={11} className="transition-transform duration-300 group-hover:translate-x-0.5" />
-                  <span>Sign In</span>
-                </div>
-              </button>
+              <>
+                {/* Desktop Sign In Button */}
+                <button
+                  onClick={() => setIsLoginOpen(true)}
+                  className="hidden lg:block group relative cursor-pointer"
+                  aria-label="Sign In"
+                >
+                  {/* Background glow ring on hover */}
+                  <div className="absolute inset-0 -m-[1px] rounded-full bg-gradient-to-r from-brand-gold to-brand-gold-hover opacity-0 blur-[6px] transition-opacity duration-500 group-hover:opacity-100" />
+                  {/* Main button container */}
+                  <div className={`relative flex items-center gap-2 px-5 py-2 rounded-full border text-[10px] font-sans font-bold tracking-[0.15em] uppercase transition-all duration-300 group-hover:scale-[1.02] active:scale-[0.98] ${
+                    isLoginOpen
+                      ? "bg-brand-gold border-brand-gold text-black shadow-[0_0_15px_rgba(197,168,128,0.3)]"
+                      : "bg-card/90 border-brand-gold/30 text-neutral-500 dark:text-zinc-300 group-hover:border-brand-gold group-hover:text-black group-hover:bg-gradient-to-r group-hover:from-brand-gold group-hover:to-brand-gold-hover shadow-[0_0_15px_rgba(197,168,128,0.03)]"
+                  }`}>
+                    <LogIn size={11} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                    <span>Sign In</span>
+                  </div>
+                </button>
+
+                {/* Mobile/Tablet Sign In Button */}
+                <button
+                  onClick={() => setIsLoginOpen(true)}
+                  className="lg:hidden w-8 h-8 rounded-full border border-brand-gold/30 bg-card/90 flex items-center justify-center text-zinc-500 hover:text-brand-gold hover:border-brand-gold transition-all duration-300 cursor-pointer"
+                  aria-label="Sign In"
+                >
+                  <LogIn size={13} />
+                </button>
+              </>
             )}
 
             {/* Log Out Button */}
@@ -216,7 +230,7 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="w-8 h-8 rounded-full border border-card-border bg-card/50 flex items-center justify-center text-neutral-500 dark:text-zinc-400 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="hidden lg:flex w-8 h-8 rounded-full border border-card-border bg-card/50 items-center justify-center text-neutral-500 dark:text-zinc-400 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 aria-label="Sign Out"
               >
                 {isLoggingOut ? (
@@ -230,10 +244,10 @@ export const Navbar: React.FC = () => {
             {/* Hamburger Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden text-zinc-400 hover:text-white transition-colors p-1"
+              className="lg:hidden w-8 h-8 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-gold hover:border-brand-gold/30 transition-all duration-300 cursor-pointer"
               aria-label="Toggle Menu"
             >
-              <Menu size={22} />
+              <Menu size={14} />
             </button>
           </div>
         </div>
@@ -242,7 +256,7 @@ export const Navbar: React.FC = () => {
       {/* Mobile Drawer Navigation Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 md:hidden">
+          <div className="fixed inset-0 z-50 lg:hidden overflow-hidden">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -258,7 +272,7 @@ export const Navbar: React.FC = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute right-0 top-0 bottom-0 w-80 bg-card border-l border-card-border p-8 flex flex-col justify-between"
+              className="absolute right-0 top-0 bottom-0 w-full sm:w-80 bg-card border-l border-card-border p-8 flex flex-col justify-between"
             >
               <div>
                 {/* Header */}
@@ -272,9 +286,10 @@ export const Navbar: React.FC = () => {
                   </Link>
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="rounded-full border border-card-border bg-card p-2 text-zinc-400 hover:text-foreground"
+                    className="w-8 h-8 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-gold hover:border-brand-gold/30 transition-all duration-300 cursor-pointer"
+                    aria-label="Close Menu"
                   >
-                    <X size={18} />
+                    <X size={14} />
                   </button>
                 </div>
 

@@ -1,7 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { X, Copy, Check, Loader2, LogOut } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  X,
+  Loader2,
+  LogOut,
+  User,
+  Mail,
+  Phone,
+  AtSign,
+  UserCheck,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, LoyaltyMember } from "@/utils/db";
 
@@ -14,6 +23,8 @@ export interface ProfileModalProps {
   onUpdateCustomer: (updated: LoyaltyMember) => void;
 }
 
+const EASE = [0.16, 1, 0.3, 1] as const;
+
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   isOpen,
   onClose,
@@ -22,326 +33,260 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onLogout,
   onUpdateCustomer,
 }) => {
-  const [activeTab, setActiveTab] = useState<"profile" | "loyalty" | "reservations" | "settings">("profile");
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(customer.name);
+  const [editUsername, setEditUsername] = useState(customer.username || customer.email.split("@")[0]);
   const [editEmail, setEditEmail] = useState(customer.email);
-  const [copied, setCopied] = useState(false);
+  const [editPhone, setEditPhone] = useState(customer.phone || "");
   const [settingsMsg, setSettingsMsg] = useState("");
-  const [reservations, setReservations] = useState<any[]>([]);
+  const [isSuccess, setIsSuccess] = useState(true);
 
+  const handleClose = useCallback(() => {
+    if (!isLoggingOut) {
+      setIsEditing(false);
+      onClose();
+    }
+  }, [isLoggingOut, onClose]);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setEditName(customer.name);
+    setEditUsername(customer.username || customer.email.split("@")[0]);
     setEditEmail(customer.email);
+    setEditPhone(customer.phone || "");
   }, [customer]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
-    if (isOpen && customer) {
-      const allRes = db.getReservations();
-      const filtered = allRes.filter(
-        (r) => r.email.toLowerCase() === customer.email.toLowerCase()
-      );
-      setReservations(filtered);
-    }
-  }, [isOpen, customer]);
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, handleClose]);
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editName.trim() || !editEmail.trim()) {
-      setSettingsMsg("Name and email are required.");
+    if (!editName.trim() || !editEmail.trim() || !editUsername.trim()) {
+      setIsSuccess(false);
+      setSettingsMsg("Name, username, and email are required.");
       return;
     }
     const updated: LoyaltyMember = {
       ...customer,
       name: editName,
+      username: editUsername,
       email: editEmail,
+      phone: editPhone,
     };
     db.saveLoyaltyMember(updated);
     localStorage.setItem("customer_session", editEmail.toLowerCase());
     onUpdateCustomer(updated);
-    setSettingsMsg("Changes saved successfully.");
+    setIsSuccess(true);
+    setSettingsMsg("Profile updated successfully!");
+    setIsEditing(false);
     setTimeout(() => setSettingsMsg(""), 3000);
     window.dispatchEvent(new Event("storage"));
   };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "June 2026";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch (e) {
-      return dateString;
-    }
-  };
+  const infoFields = [
+    {
+      label: "Username",
+      value: editUsername,
+      setter: setEditUsername,
+      type: "text",
+      icon: <AtSign size={16} className="text-brand-gold" />,
+    },
+    {
+      label: "Full Name",
+      value: editName,
+      setter: setEditName,
+      type: "text",
+      icon: <User size={16} className="text-brand-gold" />,
+    },
+    {
+      label: "Email Address",
+      value: editEmail,
+      setter: setEditEmail,
+      type: "email",
+      icon: <Mail size={16} className="text-brand-gold" />,
+    },
+    {
+      label: "Phone Number",
+      value: editPhone,
+      setter: setEditPhone,
+      type: "tel",
+      icon: <Phone size={16} className="text-brand-gold" />,
+    },
+  ];
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={handleClose}
+            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            aria-hidden="true"
           />
 
-          {/* Modal Body */}
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.4 }}
-            className="relative w-full max-w-sm overflow-hidden rounded-2xl p-6 shadow-2xl border border-card-border/60 bg-card/95 backdrop-blur-md flex flex-col"
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-modal-title"
+            initial={{ opacity: 0, scale: 0.95, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 16 }}
+            transition={{ duration: 0.35, ease: EASE }}
+            className="relative w-full sm:max-w-md h-auto max-h-[90dvh] overflow-hidden rounded-t-3xl sm:rounded-3xl border border-brand-green/20 dark:border-brand-gold/15 bg-card dark:bg-[#0B0B0B] text-foreground shadow-2xl glassmorphism-green dark:glassmorphism-gold flex flex-col"
+            style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
           >
-            {/* Close Button */}
+            {/* Cinematic Overlay & Glowing Orbs */}
+            <div className="pointer-events-none absolute inset-0 film-grain opacity-[0.03] dark:opacity-[0.05]" />
+            <div className="pointer-events-none absolute top-[-10%] right-[-10%] w-48 h-48 bg-brand-gold/10 dark:bg-brand-gold/5 blur-[40px] rounded-full" />
+            <div className="pointer-events-none absolute bottom-[-10%] left-[-10%] w-48 h-48 bg-brand-green/10 dark:bg-brand-green/5 blur-[40px] rounded-full" />
+
             <button
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isLoggingOut}
-              className="absolute right-4 top-4 rounded-full border border-card-border bg-background/50 dark:bg-zinc-900/50 p-1.5 text-zinc-400 hover:text-foreground hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Close Profile"
+              aria-label="Close profile"
+              className="absolute top-5 right-5 z-10 rounded-full border border-card-border dark:border-white/10 bg-background/50 dark:bg-black/40 p-2 text-zinc-500 dark:text-zinc-400 hover:text-foreground dark:hover:text-white transition-all hover:rotate-90 hover:scale-105 duration-300 cursor-pointer disabled:opacity-40"
             >
-              <X size={14} />
+              <X size={16} />
             </button>
 
-            {/* Profile Summary Header */}
-            <div className="flex flex-col items-center mt-3 mb-5">
-              {/* Double-Ring Minimalist Avatar */}
-              <div className="w-14 h-14 rounded-full border border-brand-gold/20 bg-brand-gold/5 flex items-center justify-center text-brand-gold text-xl font-serif font-semibold shadow-sm select-none mb-3.5 relative group">
-                <div className="absolute inset-0 rounded-full border border-brand-gold/10 scale-110 group-hover:scale-100 transition-transform duration-500" />
-                {customer.name.charAt(0).toUpperCase()}
-              </div>
-              <h4 className="text-base font-bold text-foreground font-serif tracking-wide text-center">
+            {/* Profile Header */}
+            <div className="relative px-6 pt-10 pb-5 text-center shrink-0 border-b border-card-border/40 dark:border-white/5 bg-white/[0.01] backdrop-blur-[2px]">
+              <h4
+                id="profile-modal-title"
+                className="type-h2 text-foreground font-serif tracking-tight max-w-full truncate"
+              >
                 {customer.name}
               </h4>
-              <p className="text-xs text-neutral-500 dark:text-zinc-400 mt-0.5 text-center font-sans">
-                {customer.email}
-              </p>
             </div>
 
-            {/* Modern Minimalist Navigation Tabs */}
-            <div className="flex border-b border-card-border/50 mb-5 text-[9px] uppercase tracking-wider font-sans font-bold">
-              <button
-                onClick={() => setActiveTab("profile")}
-                className={`flex-1 pb-2 border-b-2 text-center transition-all cursor-pointer ${
-                  activeTab === "profile"
-                    ? "border-brand-gold text-foreground"
-                    : "border-transparent text-zinc-400 hover:text-foreground"
-                }`}
-              >
-                Overview
-              </button>
-              <button
-                onClick={() => setActiveTab("loyalty")}
-                className={`flex-1 pb-2 border-b-2 text-center transition-all cursor-pointer ${
-                  activeTab === "loyalty"
-                    ? "border-brand-gold text-foreground"
-                    : "border-transparent text-zinc-400 hover:text-foreground"
-                }`}
-              >
-                Loyalty
-              </button>
-              <button
-                onClick={() => setActiveTab("reservations")}
-                className={`flex-1 pb-2 border-b-2 text-center transition-all cursor-pointer ${
-                  activeTab === "reservations"
-                    ? "border-brand-gold text-foreground"
-                    : "border-transparent text-zinc-400 hover:text-foreground"
-                }`}
-              >
-                History
-              </button>
-              <button
-                onClick={() => setActiveTab("settings")}
-                className={`flex-1 pb-2 border-b-2 text-center transition-all cursor-pointer ${
-                  activeTab === "settings"
-                    ? "border-brand-gold text-foreground"
-                    : "border-transparent text-zinc-400 hover:text-foreground"
-                }`}
-              >
-                Settings
-              </button>
-            </div>
-
-            {/* Tab Contents */}
-            <div className="mb-6 flex-1">
-              {activeTab === "profile" && (
-                <div className="space-y-4 text-xs font-sans animate-fade-in">
-                  <div className="flex justify-between items-center pb-3 border-b border-card-border/30">
-                    <span className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider font-bold">Registered Since</span>
-                    <span className="text-zinc-700 dark:text-zinc-300 font-mono">{formatDate(customer.joinedAt)}</span>
+            {/* Info Fields Content */}
+            <form
+              id="profile-info-form"
+              onSubmit={handleSave}
+              className="px-6 py-6 space-y-4 overflow-y-auto"
+            >
+              {infoFields.map((field, idx) => (
+                <motion.div
+                  key={field.label}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05, duration: 0.3, ease: EASE }}
+                  className="flex items-center gap-4 p-3.5 rounded-2xl border border-card-border/50 dark:border-white/5 bg-background/30 dark:bg-white/[0.01]"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-brand-gold/10 dark:bg-brand-gold/5 border border-brand-gold/25 flex items-center justify-center shrink-0">
+                    {field.icon}
                   </div>
-                  <div className="flex justify-between items-center pb-3 border-b border-card-border/30">
-                    <span className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider font-bold">Member Serial ID</span>
-                    <button
-                      onClick={() => handleCopy(customer.id)}
-                      className="group flex items-center gap-1.5 font-mono text-[11px] text-zinc-600 dark:text-zinc-300 hover:text-brand-gold transition-colors cursor-pointer"
-                    >
-                      <span>{customer.id}</span>
-                      {copied ? (
-                        <Check size={11} className="text-emerald-500 animate-scale" />
-                      ) : (
-                        <Copy size={11} className="opacity-45 group-hover:opacity-80 transition-opacity" />
-                      )}
-                    </button>
-                  </div>
-                  <div className="text-center py-4 px-2 bg-background/30 rounded-xl border border-card-border/40 text-[10px] italic font-serif text-zinc-500 dark:text-zinc-400">
-                    "Thank you for being a part of Antonioni Grounds. Enjoy fresh roasts and exclusive reservation privileges."
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "loyalty" && (
-                <div className="space-y-4 text-xs font-sans animate-fade-in">
-                  <div className="flex justify-between items-center pb-1.5">
-                    <span className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider font-bold">Points Balance</span>
-                    <span className="font-bold text-foreground text-sm font-mono">
-                      {customer.points} <span className="text-[10px] text-brand-gold font-sans font-normal uppercase">pts</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-0.5">
+                      {field.label}
                     </span>
+                    {isEditing ? (
+                      <input
+                        type={field.type}
+                        value={field.value}
+                        onChange={(e) => field.setter(e.target.value)}
+                        required={field.label !== "Phone Number"}
+                        placeholder={field.label === "Phone Number" ? "Enter phone number" : ""}
+                        className="w-full bg-transparent border-b border-card-border dark:border-white/10 text-sm font-medium text-foreground py-0.5 px-0 outline-none focus:border-brand-green/60 dark:focus:border-brand-gold/60 transition-colors"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-foreground block truncate">
+                        {field.label === "Username" ? `@${field.value}` : field.value || "—"}
+                      </span>
+                    )}
                   </div>
+                </motion.div>
+              ))}
 
-                  {/* Progress Bar */}
-                  <div>
-                    <div className="flex justify-between items-center text-[9px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2 font-bold">
-                      <span>Stamp Card</span>
-                      <span className="font-mono text-foreground">{customer.stamps} / 9</span>
-                    </div>
-                    <div className="flex gap-1 mb-2">
-                      {Array.from({ length: 9 }).map((_, idx) => {
-                        const isEarned = idx < customer.stamps;
-                        return (
-                          <div
-                            key={idx}
-                            className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                              isEarned
-                                ? "bg-brand-gold shadow-[0_0_8px_rgba(197,168,128,0.25)]"
-                                : "bg-neutral-100 dark:bg-zinc-800/60"
-                            }`}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
+              <AnimatePresence mode="wait">
+                {settingsMsg && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    aria-live="polite"
+                    className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs text-center font-medium border ${
+                      isSuccess
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                        : "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {isSuccess ? (
+                      <UserCheck size={13} className="shrink-0 text-emerald-500 animate-pulse" />
+                    ) : (
+                      <X size={13} className="shrink-0 text-red-500" />
+                    )}
+                    <span>{settingsMsg}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </form>
 
-                  {/* Benefits Card */}
-                  <div className="bg-background/40 p-3 rounded-xl border border-card-border/50 text-[10px] text-zinc-500 dark:text-zinc-400 space-y-1.5">
-                    <p className="font-bold uppercase tracking-wider text-[8px] text-brand-gold mb-1">Club Benefits</p>
-                    <div className="flex items-start gap-1">
-                      <span className="text-brand-gold">•</span>
-                      <span>Redeem 9 stamps for a free hand-brewed specialty cup.</span>
-                    </div>
-                    <div className="flex items-start gap-1">
-                      <span className="text-brand-gold">•</span>
-                      <span>Earn points on every dine-in and bean retail purchase.</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "reservations" && (
-                <div className="space-y-3 animate-fade-in max-h-48 overflow-y-auto pr-1">
-                  {reservations.length === 0 ? (
-                    <div className="text-center py-8 text-xs text-zinc-400 dark:text-zinc-500 font-sans">
-                      No reservation history found.
-                    </div>
-                  ) : (
-                    reservations.map((res: any, idx: number) => (
-                      <div key={idx} className="bg-background/40 p-2.5 rounded-xl border border-card-border/50 text-xs flex justify-between items-start font-sans">
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-foreground truncate max-w-[155px]">{res.eventType}</p>
-                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400">{res.date} • {res.time}</p>
-                          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 truncate max-w-[155px]">{res.location}</p>
-                        </div>
-                        <div className="text-right flex flex-col items-end gap-1 shrink-0">
-                          <span className="font-mono font-semibold text-[9px] bg-neutral-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-neutral-600 dark:text-zinc-300">
-                            {res.guestCount} pax
-                          </span>
-                          <span className="text-[8px] uppercase tracking-wider font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                            Confirmed
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === "settings" && (
-                <form onSubmit={handleSaveSettings} className="space-y-3 font-sans animate-fade-in">
-                  <div>
-                    <label className="text-[9px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-bold block mb-1">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full bg-background border border-card-border/80 rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-gold transition-colors"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-bold block mb-1">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
-                      className="w-full bg-background border border-card-border/80 rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-brand-gold transition-colors"
-                      required
-                    />
-                  </div>
-                  {settingsMsg && (
-                    <p className={`text-[10px] text-center font-medium mt-1 ${
-                      settingsMsg.includes("successfully") ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"
-                    }`}>
-                      {settingsMsg}
-                    </p>
-                  )}
+            {/* Footer actions */}
+            <div className="px-6 py-5 border-t border-card-border/60 dark:border-white/5 shrink-0 bg-white/[0.01]">
+              {isEditing ? (
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditName(customer.name);
+                      setEditUsername(customer.username || customer.email.split("@")[0]);
+                      setEditEmail(customer.email);
+                      setEditPhone(customer.phone || "");
+                      setSettingsMsg("");
+                    }}
+                    className="flex-1 flex items-center justify-center py-2.5 rounded-full border border-card-border dark:border-white/10 bg-background/50 dark:bg-black/20 text-xs font-semibold text-foreground dark:text-zinc-200 hover:bg-foreground/5 dark:hover:bg-white/5 transition-all duration-300 active:scale-[0.98] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
                   <button
                     type="submit"
-                    className="w-full rounded-lg bg-brand-gold hover:bg-brand-gold-hover text-black py-2 text-xs font-semibold active:scale-[0.98] transition-all cursor-pointer font-sans"
+                    form="profile-info-form"
+                    className="flex-1 flex items-center justify-center py-2.5 rounded-full bg-brand-green dark:bg-brand-gold text-xs font-semibold text-white dark:text-brand-espresso hover:bg-brand-green-hover dark:hover:bg-brand-gold-hover transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer"
                   >
                     Save Changes
                   </button>
-                </form>
-              )}
-            </div>
-
-            {/* Close Button / Bottom Actions */}
-            <div className="space-y-2 mt-auto">
-              <button
-                onClick={onClose}
-                disabled={isLoggingOut}
-                className="w-full rounded-xl bg-brand-espresso text-[#FAF7F2] dark:bg-[#FAF7F2] dark:text-[#1C1917] py-2.5 text-xs font-semibold hover:opacity-90 active:scale-[0.98] transition-all duration-300 cursor-pointer disabled:opacity-50 font-sans tracking-wide shadow-sm"
-              >
-                Close Profile
-              </button>
-              {activeTab === "settings" && (
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  disabled={isLoggingOut}
-                  className="w-full py-2 text-xs font-medium text-red-500 hover:text-red-600 transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                >
-                  {isLoggingOut ? (
-                    <Loader2 size={12} className="animate-spin text-zinc-400" />
-                  ) : (
-                    <LogOut size={12} />
-                  )}
-                  <span>{isLoggingOut ? "Signing Out..." : "Sign Out of Account"}</span>
-                </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="w-full flex items-center justify-center py-2.5 rounded-full bg-brand-green dark:bg-brand-gold text-xs font-semibold text-white dark:text-brand-espresso hover:bg-brand-green-hover dark:hover:bg-brand-gold-hover transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer"
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    disabled={isLoggingOut}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-full border border-red-500/20 dark:border-red-500/10 bg-red-500/5 hover:bg-red-500 hover:text-white py-2.5 text-xs font-semibold text-red-500 transition-all duration-300 active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                  >
+                    {isLoggingOut ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <LogOut size={13} />
+                    )}
+                    <span>{isLoggingOut ? "Signing Out…" : "Sign Out Account"}</span>
+                  </button>
+                </div>
               )}
             </div>
           </motion.div>

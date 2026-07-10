@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Plus, Trash2, Check, ShieldCheck, X, Camera, Mail, Calendar, Zap, QrCode, Eye, AlertTriangle } from "lucide-react";
+import { Search, Plus, Trash2, Check, ShieldCheck, X, Camera, Mail, Calendar, Zap, QrCode, Eye, AlertTriangle, Phone } from "lucide-react";
 import { LoyaltyMember } from "@/utils/db";
 import { motion, AnimatePresence } from "framer-motion";
 import jsQR from "jsqr";
+import { formatDisplayPhone } from "@/utils/phone";
 
 interface LoyaltyTabProps {
   loyaltyMembers: LoyaltyMember[];
@@ -352,9 +353,17 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
                     <h4 className="type-body font-bold text-foreground text-base font-serif tracking-wide">{member.name}</h4>
-                    <div className="flex items-center gap-1.5 text-neutral-500 dark:text-zinc-500 text-[10px]">
-                      <Mail size={11} className="shrink-0" />
-                      <span>{member.email}</span>
+                    <div className="flex flex-col gap-1 pt-0.5">
+                      <div className="flex items-center gap-1.5 text-neutral-500 dark:text-zinc-500 text-[10px]">
+                        <Mail size={11} className="shrink-0" />
+                        <span className="font-semibold text-neutral-600 dark:text-zinc-400">Email:</span>
+                        <span>{member.email ? member.email : "n/a"}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-neutral-500 dark:text-zinc-500 text-[10px]">
+                        <Phone size={11} className="shrink-0" />
+                        <span className="font-semibold text-neutral-600 dark:text-zinc-400">Phone:</span>
+                        <span>{formatDisplayPhone(member.phone)}</span>
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2 pt-2 text-[9px] tracking-wide text-neutral-500 dark:text-zinc-500 font-medium">
                       <div className="flex items-center gap-1">
@@ -887,7 +896,11 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-neutral-500 dark:text-zinc-400 font-medium">Email Address</span>
-                  <span className="text-foreground font-semibold">{selectedMember.email}</span>
+                  <span className="text-foreground font-semibold">{selectedMember.email || "n/a"}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-neutral-500 dark:text-zinc-400 font-medium">Phone Number</span>
+                  <span className="text-foreground font-semibold">{formatDisplayPhone(selectedMember.phone)}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-neutral-500 dark:text-zinc-400 font-medium">Member ID</span>

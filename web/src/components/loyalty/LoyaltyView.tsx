@@ -18,6 +18,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
+import { getTierInfo } from "@/utils/loyalty";
 import QRCode from "qrcode";
 
 export function LoyaltyView() {
@@ -27,7 +28,7 @@ export function LoyaltyView() {
 
   const [stamps, setStamps] = useState<number>(1);
   const [points, setPoints] = useState<number>(720);
-  const tier = points >= 1500 ? "Platinum" : points >= 500 ? "Gold" : "Bronze";
+  const tier = getTierInfo(points).label;
   const [showClaimSuccess, setShowClaimSuccess] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<boolean>(false);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
@@ -66,15 +67,18 @@ export function LoyaltyView() {
         try {
           const { supabase } = await import("@/utils/supabase");
           if (supabase) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("*")
-              .eq("email", sessionEmail.toLowerCase())
-              .single();
+            const isEmail = sessionEmail.includes("@");
+            const query = supabase.from("profiles").select("*");
+            const { data: profile } = isEmail
+              ? await query.eq("email", sessionEmail.toLowerCase()).single()
+              : await query.eq("phone", sessionEmail).single();
 
             if (profile) {
               // Find or create local loyalty member representation
-              let existing = members.find(m => m.email.toLowerCase() === sessionEmail.toLowerCase());
+              let existing = members.find(
+                (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
+                       (m.phone && m.phone.trim() === sessionEmail.trim())
+              );
               let memberIdToUse = profile.member_id || existing?.id || `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
               
               if (!profile.member_id || profile.member_id.length > 20) {
@@ -87,8 +91,9 @@ export function LoyaltyView() {
 
               const updatedMember = {
                 id: memberIdToUse,
-                name: profile.name || existing?.name || sessionEmail.split("@")[0],
-                email: sessionEmail,
+                name: profile.name || existing?.name || (isEmail ? sessionEmail.split("@")[0] : sessionEmail),
+                email: isEmail ? sessionEmail : (profile.email || ""),
+                phone: isEmail ? (profile.phone || "") : sessionEmail,
                 stamps: profile.stamps ?? existing?.stamps ?? 0,
                 points: profile.points ?? existing?.points ?? 0,
                 joinedAt: profile.created_at
@@ -106,7 +111,10 @@ export function LoyaltyView() {
         }
 
         if (guestState) {
-          const found = members.find((m) => m.email.toLowerCase() === sessionEmail.toLowerCase());
+          const found = members.find(
+            (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
+                   (m.phone && m.phone.trim() === sessionEmail.trim())
+          );
           if (found) {
             current = found;
             guestState = false;

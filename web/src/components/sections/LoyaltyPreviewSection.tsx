@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Coffee, Gift, ArrowRight, Sparkles } from "lucide-react";
 import { FadeUp } from "@/components/animations";
 import { db } from "@/utils/db";
+import { getTierInfo } from "@/utils/loyalty";
 
 export function LoyaltyPreviewSection() {
   const [memberName, setMemberName] = useState<string>("Alexander Vance");
@@ -21,7 +22,10 @@ export function LoyaltyPreviewSection() {
       let guestState = true;
 
       if (sessionEmail) {
-        const found = members.find((m) => m.email.toLowerCase() === sessionEmail.toLowerCase());
+        const found = members.find(
+          (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
+                 (m.phone && m.phone.trim() === sessionEmail.trim())
+        );
         if (found) {
           current = found;
           guestState = false;
@@ -45,7 +49,7 @@ export function LoyaltyPreviewSection() {
     return () => window.removeEventListener("storage", syncFromDb);
   }, []);
 
-  const tier = points >= 1500 ? "Platinum" : points >= 500 ? "Gold" : "Bronze";
+  const tier = getTierInfo(points).label;
 
   return (
     <section className="py-20 bg-background text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">

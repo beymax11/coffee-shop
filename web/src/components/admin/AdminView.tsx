@@ -8,6 +8,7 @@ import { MenuItem, Reservation } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { getMaintenanceMode, setMaintenanceMode } from "@/utils/settings";
+import { formatPhoneNumber } from "@/utils/phone";
 
 // Import modular sub-components
 import { Sidebar } from "./Sidebar";
@@ -65,6 +66,7 @@ export const AdminView: React.FC = () => {
   const [loyaltyForm, setLoyaltyForm] = useState({
     name: "",
     email: "",
+    phone: "",
     stamps: 0
   });
 
@@ -230,6 +232,7 @@ export const AdminView: React.FC = () => {
             id: profile.member_id || profile.id,
             name: profile.name || profile.username || "Unknown",
             email: profile.email || "",
+            phone: profile.phone || undefined,
             stamps: profile.stamps || 0,
             points: profile.points || 0,
             joinedAt: profile.created_at
@@ -240,7 +243,16 @@ export const AdminView: React.FC = () => {
           // Merge local members that do NOT exist in Supabase (e.g. offline walk-in members that aren't synced yet)
           const mergedMembers = [...supabaseMembers];
           localMembers.forEach((local) => {
-            if (!mergedMembers.some((s) => s.email.toLowerCase() === local.email.toLowerCase())) {
+            const alreadyExists = mergedMembers.some((s) => {
+              if (local.email && s.email) {
+                return s.email.toLowerCase() === local.email.toLowerCase();
+              }
+              if (local.phone && s.phone) {
+                return s.phone.trim() === local.phone.trim();
+              }
+              return false;
+            });
+            if (!alreadyExists) {
               mergedMembers.push(local);
             }
           });
@@ -278,6 +290,7 @@ export const AdminView: React.FC = () => {
             name: profile.name || profile.username || "Unknown",
             username: profile.username || undefined,
             email: profile.email || "",
+            phone: profile.phone || undefined,
             role: profile.role || "customer",
             stamps: profile.stamps || 0,
             points: profile.points || 0,
@@ -589,13 +602,17 @@ export const AdminView: React.FC = () => {
     e.preventDefault();
     const memberId = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
     const email = loyaltyForm.email.trim();
+    const phone = loyaltyForm.phone.trim();
     const name = loyaltyForm.name.trim();
     const stamps = Number(loyaltyForm.stamps) || 0;
+
+    const formattedPhone = phone ? formatPhoneNumber(phone) : "";
 
     const newMember: LoyaltyMember = {
       id: memberId,
       name: name,
       email: email,
+      phone: formattedPhone || undefined,
       stamps: stamps,
       points: 0,
       joinedAt: new Date().toISOString().split("T")[0]
@@ -606,51 +623,146 @@ export const AdminView: React.FC = () => {
       if (supabase) {
         const tempPassword = `CoffeeTemp_${Math.floor(100000 + Math.random() * 900000)}!`;
         
-        // Try to sign up the customer as a user first
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email,
-          password: tempPassword,
-          options: {
-            data: {
-              name: name,
-              role: "customer"
+        if (formattedPhone) {
+          // Phone Signup
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            phone: formattedPhone,
+            password: tempPassword,
+            options: {
+              data: {
+                name: name,
+                role: "customer"
+              }
             }
-          }
-        });
+          });
 
-        if (signUpError) {
-          console.warn("Supabase signUp error (user might already exist):", signUpError.message);
-          
-          // User might already exist, so let's try to update their existing profile
-          const { error: updateError } = await supabase
-            .from("profiles")
-            .update({
-              member_id: memberId,
-              stamps: stamps,
-              name: name
-            })
-            .eq("email", email.toLowerCase());
-
-          if (updateError) {
-            console.error("Failed to update existing profile in Supabase:", updateError.message);
-          } else {
-            console.log("Successfully updated existing profile with loyalty details.");
-          }
-        } else {
-          // SignUp succeeded. Wait for profile creation trigger.
-          const userId = signUpData.user?.id;
-          if (userId) {
-            await new Promise((resolve) => setTimeout(resolve, 1200));
+          if (signUpError) {
+            console.warn("Supabase signUp by phone error (user might already exist):", signUpError.message);
+            
             const { error: updateError } = await supabase
               .from("profiles")
               .update({
                 member_id: memberId,
-                stamps: stamps
+                stamps: stamps,
+                name: name
               })
-              .eq("id", userId);
+              .eq("phone", formattedPhone);
 
             if (updateError) {
-              console.error("Failed to update profile member_id after signUp:", updateError.message);
+              console.error("Failed to update existing profile in Supabase by phone:", updateError.message);
+            }
+          } else {
+            const userId = signUpData.user?.id;
+            if (userId) {
+              await new Promise((resolve) => setTimeout(resolve, 1200));
+              
+              const { data: existingProfile } = await supabase
+                .from("profiles")
+                .select("id")
+                .eq("id", userId)
+                .single();
+
+              if (existingProfile) {
+                const { error: updateError } = await supabase
+                  .from("profiles")
+                  .update({
+                    member_id: memberId,
+                    stamps: stamps
+                  })
+                  .eq("id", userId);
+
+                if (updateError) {
+                  console.error("Failed to update profile member_id after phone signUp:", updateError.message);
+                }
+              } else {
+                const { error: insertError } = await supabase
+                  .from("profiles")
+                  .insert({
+                    id: userId,
+                    name: name,
+                    email: "",
+                    phone: formattedPhone || null,
+                    role: "customer",
+                    member_id: memberId,
+                    stamps: stamps,
+                    points: 0
+                  });
+
+                if (insertError) {
+                  console.error("Failed to insert missing profile after phone signUp:", insertError.message);
+                }
+              }
+            }
+          }
+        } else {
+          // Email Signup
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: email,
+            password: tempPassword,
+            options: {
+              data: {
+                name: name,
+                role: "customer"
+              }
+            }
+          });
+
+          if (signUpError) {
+            console.warn("Supabase signUp by email error (user might already exist):", signUpError.message);
+            
+            const { error: updateError } = await supabase
+              .from("profiles")
+              .update({
+                member_id: memberId,
+                stamps: stamps,
+                name: name
+              })
+              .eq("email", email.toLowerCase());
+
+            if (updateError) {
+              console.error("Failed to update existing profile in Supabase by email:", updateError.message);
+            }
+          } else {
+            const userId = signUpData.user?.id;
+            if (userId) {
+              await new Promise((resolve) => setTimeout(resolve, 1200));
+
+              const { data: existingProfile } = await supabase
+                .from("profiles")
+                .select("id")
+                .eq("id", userId)
+                .single();
+
+              if (existingProfile) {
+                const { error: updateError } = await supabase
+                  .from("profiles")
+                  .update({
+                    member_id: memberId,
+                    stamps: stamps
+                  })
+                  .eq("id", userId);
+
+                if (updateError) {
+                  console.error("Failed to update profile member_id after email signUp:", updateError.message);
+                }
+              } else {
+                const { error: insertError } = await supabase
+                  .from("profiles")
+                  .insert({
+                    id: userId,
+                    name: name,
+                    email: email.toLowerCase(),
+                    phone: null,
+                    role: "customer",
+                    member_id: memberId,
+                    stamps: stamps,
+                    points: 0
+                  });
+
+                if (insertError) {
+                  console.error("Failed to insert missing profile after email signUp:", insertError.message);
+                }
+              }
             }
           }
         }
@@ -662,7 +774,7 @@ export const AdminView: React.FC = () => {
     db.saveLoyaltyMember(newMember);
     await loadAllData();
     setShowAddLoyaltyModal(false);
-    setLoyaltyForm({ name: "", email: "", stamps: 0 });
+    setLoyaltyForm({ name: "", email: "", phone: "", stamps: 0 });
     toast.success(`Loyalty card registered for ${newMember.name}!`);
   };
 
@@ -794,7 +906,7 @@ export const AdminView: React.FC = () => {
                     setShowAddMenuModal(true);
                   }}
                   onRegisterLoyaltyClick={() => {
-                    setLoyaltyForm({ name: "", email: "", stamps: 0 });
+                    setLoyaltyForm({ name: "", email: "", phone: "", stamps: 0 });
                     setShowAddLoyaltyModal(true);
                   }}
                 />
@@ -833,7 +945,7 @@ export const AdminView: React.FC = () => {
                   setLoyaltySearch={setLoyaltySearch}
                   onDeleteLoyalty={handleDeleteLoyalty}
                   onOpenRegisterModal={() => {
-                    setLoyaltyForm({ name: "", email: "", stamps: 0 });
+                    setLoyaltyForm({ name: "", email: "", phone: "", stamps: 0 });
                     setShowAddLoyaltyModal(true);
                   }}
                   onRedeemFreeDrink={handleRedeemFreeDrink}

@@ -71,13 +71,15 @@ export function ReservationsView() {
     if (sessionEmail) {
       const members = db.getLoyaltyMembers();
       const found = members.find(
-        (m) => m.email.toLowerCase() === sessionEmail.toLowerCase()
+        (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
+               (m.phone && m.phone.trim() === sessionEmail.trim())
       );
       if (found) {
         setFormData((prev) => ({
           ...prev,
           fullName: found.name,
-          email: found.email,
+          email: found.email || "",
+          phone: found.phone || "",
         }));
       }
     }

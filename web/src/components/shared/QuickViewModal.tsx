@@ -83,13 +83,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   {/* Rating & Price */}
                   <div className="mt-4 flex items-center justify-between border-b border-card-border dark:border-white/5 pb-4">
                     <span className="type-h3 text-emerald-600 dark:text-emerald-400 font-serif">
-                      ${item.price.toFixed(2)}
+                      ₱{item.price.toFixed(2)}
                     </span>
-                    <div className="flex items-center gap-1">
-                      <Star size={16} className="fill-emerald-500 text-emerald-500" />
-                      <span className="type-body-sm font-semibold">{item.rating}</span>
-                      <span className="type-caption text-zinc-500">/ 5.0</span>
-                    </div>
                   </div>
 
                   {/* Description */}

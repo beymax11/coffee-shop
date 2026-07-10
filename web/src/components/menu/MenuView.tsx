@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { db } from "@/utils/db";
+import { supabase } from "@/utils/supabase";
 import { 
   Star, 
   Eye, 
@@ -41,24 +42,46 @@ export function MenuView() {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
   // Sync menu items from local database on mount & on storage update
-  useEffect(() => {
+  const fetchMenuItems = async () => {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("menu_items")
+        .select("*")
+        .order("name");
+      if (!error && data) {
+        setItems(data as MenuItem[]);
+        return;
+      } else if (error) {
+        console.error("Supabase select error:", error);
+      }
+    }
     setItems(db.getMenuItems());
+  };
+
+  useEffect(() => {
+    fetchMenuItems();
     const handleStorage = () => {
-      setItems(db.getMenuItems());
+      fetchMenuItems();
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const categories = [
-    "All",
-    "Hot Coffee",
-    "Cold Coffee",
-    "Signature Drinks",
-    "Non-Coffee",
-    "Pastries",
-    "Desserts"
-  ];
+  const categories = useMemo(() => {
+    const defaultCats = [
+      "All",
+      "Hot Coffee",
+      "Cold Coffee",
+      "Signature Drinks",
+      "Non-Coffee",
+      "Pastries",
+      "Desserts"
+    ];
+    const customCats = items
+      .map((item) => item.category)
+      .filter((cat): cat is string => !!cat && !defaultCats.includes(cat));
+    return [...defaultCats, ...Array.from(new Set(customCats))];
+  }, [items]);
 
   // Filtering Logic
   const filteredItems = useMemo(() => {
@@ -220,9 +243,8 @@ export function MenuView() {
                         
                         {/* Shutter Overlay on Hover */}
                         <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                          <span className="flex items-center gap-2 rounded-full bg-[#2E5A44] px-5 py-2.5 text-white hover:scale-105 active:scale-95 transition-all duration-300 font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(46,90,68,0.4)]">
-                            <Eye size={14} />
-                            Inspect Profile
+                          <span className="flex items-center justify-center rounded-full bg-[#2E5A44] p-3 text-white hover:scale-110 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(46,90,68,0.4)]">
+                            <Eye size={16} />
                           </span>
                         </div>
                       </div>
@@ -231,17 +253,13 @@ export function MenuView() {
                       <div className="flex-1 flex flex-col justify-between">
                         <div>
                           
-                          {/* Category & Rating Row */}
+                          {/* Category Row */}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
                               <Sparkles size={10} className="text-emerald-500 animate-pulse" />
                               <span className="text-[9px] font-sans font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase">
                                 {item.category}
                               </span>
-                            </div>
-                            <div className="flex items-center gap-1 bg-background-alt/40 dark:bg-zinc-900/60 px-2 py-0.5 rounded border border-card-border/60 dark:border-zinc-800">
-                              <Star size={10} className="fill-emerald-500 text-emerald-500" />
-                              <span className="text-[10px] font-mono font-medium text-zinc-700 dark:text-zinc-300">{item.rating.toFixed(1)}</span>
                             </div>
                           </div>
 
@@ -268,22 +286,12 @@ export function MenuView() {
                           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3 line-clamp-2 leading-relaxed">
                             {item.description}
                           </p>
-
-                          {/* Director's / Barista's Notes */}
-                          {item.notes && (
-                            <div className="mt-3.5 pt-3 border-t border-card-border/40 dark:border-zinc-900/60 flex flex-col gap-1">
-                              <span className="text-[8px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-mono font-bold">Barista's Cut</span>
-                              <p className="text-[10.5px] italic text-zinc-500 dark:text-zinc-400 leading-normal line-clamp-2">
-                                "{item.notes}"
-                              </p>
-                            </div>
-                          )}
                         </div>
 
                         {/* Price & Action Footer */}
                         <div className="flex items-center justify-between border-t border-card-border dark:border-zinc-900 pt-4 mt-5">
                           <span className="text-lg font-serif text-emerald-600 dark:text-emerald-400 font-semibold">
-                            ${item.price.toFixed(2)}
+                            ₱{item.price.toFixed(2)}
                           </span>
                           
                           <span

@@ -1,5 +1,6 @@
-import { Reservation, ReservationType } from "@/types";
+import { Reservation } from "@/types";
 import { db } from "@/utils/db";
+import { supabase } from "@/utils/supabase";
 
 export class ReservationService {
   /**
@@ -67,16 +68,34 @@ export class ReservationService {
     reference: string;
     message: string;
   }> {
-    // Save to our dynamic local storage database
-    db.saveReservation(reservation);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          reference: this.generateConfirmationCode(),
-          message: "Your private experience request has been successfully registered. Our maître d' will contact you within 24 hours.",
-        });
-      }, 1500);
-    });
+    const referenceCode = this.generateConfirmationCode();
+
+    if (supabase) {
+      const { error } = await supabase.from("reservations").insert({
+        full_name: reservation.fullName,
+        email: reservation.email,
+        phone: reservation.phone,
+        event_type: reservation.eventType,
+        date: reservation.date,
+        time: reservation.time,
+        guest_count: reservation.guestCount,
+        location: reservation.location,
+        notes: reservation.notes || null,
+        status: "Pending"
+      });
+
+      if (error) {
+        console.error("Supabase reservation insert error:", error);
+        db.saveReservation(reservation);
+      }
+    } else {
+      db.saveReservation(reservation);
+    }
+
+    return {
+      success: true,
+      reference: referenceCode,
+      message: "Your private experience request has been successfully registered. Our maître d' will contact you within 24 hours.",
+    };
   }
 }

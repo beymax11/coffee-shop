@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Search, Plus, Edit3, Trash2, Star } from "lucide-react";
 import { MenuItem } from "@/types";
 import { motion } from "framer-motion";
@@ -50,15 +50,21 @@ export const MenuTab: React.FC<MenuTabProps> = ({
     return matchesSearch && matchesCat;
   });
 
-  const categories = [
-    "All",
-    "Hot Coffee",
-    "Cold Coffee",
-    "Signature Drinks",
-    "Non-Coffee",
-    "Pastries",
-    "Desserts",
-  ];
+  const categories = useMemo(() => {
+    const defaultCats = [
+      "All",
+      "Hot Coffee",
+      "Cold Coffee",
+      "Signature Drinks",
+      "Non-Coffee",
+      "Pastries",
+      "Desserts",
+    ];
+    const customCats = menuItems
+      .map((item) => item.category)
+      .filter((cat): cat is string => !!cat && !defaultCats.includes(cat));
+    return [...defaultCats, ...Array.from(new Set(customCats))];
+  }, [menuItems]);
 
   return (
     <div className="space-y-6">
@@ -114,7 +120,6 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                 <th className="p-4 pl-6">Item Details</th>
                 <th className="p-4">Category</th>
                 <th className="p-4 text-right">Price</th>
-                <th className="p-4 text-center">Rating</th>
                 <th className="p-4 pr-6 text-center w-28">Operations</th>
               </tr>
             </thead>
@@ -147,13 +152,7 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                     <span className="type-caption text-neutral-500 dark:text-zinc-400 text-xs">{item.category}</span>
                   </td>
                   <td className="p-4 text-right">
-                    <span className="type-price font-serif text-brand-green dark:text-emerald-400 text-[15px] font-bold">${item.price.toFixed(2)}</span>
-                  </td>
-                  <td className="p-4 text-center">
-                    <div className="inline-flex items-center gap-1.5 bg-foreground/[0.02] border border-card-border rounded-full px-2.5 py-0.5">
-                      <Star size={10} className="fill-brand-gold text-brand-gold" />
-                      <span className="type-caption text-neutral-500 dark:text-zinc-300 font-mono text-[10px] font-semibold">{item.rating.toFixed(1)}</span>
-                    </div>
+                    <span className="type-price font-serif text-brand-green dark:text-emerald-400 text-[15px] font-bold">₱{item.price.toFixed(2)}</span>
                   </td>
                   <td className="p-4 pr-6 text-center">
                     <div className="inline-flex gap-1.5">

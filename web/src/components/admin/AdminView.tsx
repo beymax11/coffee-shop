@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Sun, Moon, Wrench, X } from "lucide-react";
+import { RefreshCw, Sun, Moon, Wrench, X, AlertTriangle, Trash2 } from "lucide-react";
 import { db, LoyaltyMember, UserProfile } from "@/utils/db";
-import { MenuItem, Reservation } from "@/types";
+import { MenuItem, Reservation, ReservationType } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { getMaintenanceMode, setMaintenanceMode } from "@/utils/settings";
@@ -52,14 +52,22 @@ export const AdminView: React.FC = () => {
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
 
   // Form States (Menu)
-  const [menuForm, setMenuForm] = useState({
+  const [menuForm, setMenuForm] = useState<{
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    image: string;
+    tags: string;
+    imageFile?: File | null;
+  }>({
     name: "",
     description: "",
     price: 0,
-    category: "Hot Coffee" as MenuItem["category"],
+    category: "Hot Coffee",
     image: "",
     tags: "",
-    notes: ""
+    imageFile: null
   });
 
   // Form States (Loyalty)
@@ -69,9 +77,25 @@ export const AdminView: React.FC = () => {
     phone: "",
     stamps: 0
   });
-
   // Status mappings for reservations (we store approval state locally)
   const [reservationStatuses, setReservationStatuses] = useState<Record<string, "Pending" | "Approved" | "Cancelled">>({});
+
+  // Custom Confirmation Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    variant: "danger" | "warning";
+    onConfirm: () => void | Promise<void>;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "",
+    variant: "danger",
+    onConfirm: () => {}
+  });
 
   // Theme state and toggle logic
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -190,12 +214,89 @@ export const AdminView: React.FC = () => {
     }
   }, [isAuthenticated]);
 
-  // Load non-loyalty data from localStorage (menu, reservations)
-  const loadLocalData = () => {
-    setMenuItems(db.getMenuItems());
-    const loadedReservations = db.getReservations();
-    setReservations(loadedReservations);
+  // Fetch menu items from Supabase
+  const fetchMenuItems = async () => {
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("menu_items")
+          .select("*")
+          .order("name");
+        
+        if (error) {
+          console.error("Error fetching menu items from Supabase:", error);
+          setMenuItems(db.getMenuItems());
+          return;
+        }
+        if (data) {
+          setMenuItems(data as MenuItem[]);
+        }
+      } else {
+        setMenuItems(db.getMenuItems());
+      }
+    } catch (err) {
+      console.error("Error loading menu items:", err);
+      setMenuItems(db.getMenuItems());
+    }
+  };
 
+  // Fetch reservations from Supabase
+  const fetchReservations = async () => {
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("reservations")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching reservations from Supabase:", error);
+          const loadedReservations = db.getReservations();
+          setReservations(loadedReservations);
+          syncLocalReservationStatuses(loadedReservations);
+          return;
+        }
+        if (data) {
+          const mappedReservations: Reservation[] = data.map((res: any) => ({
+            id: res.id,
+            fullName: res.full_name,
+            email: res.email,
+            phone: res.phone,
+            eventType: res.event_type as ReservationType,
+            date: res.date,
+            time: res.time,
+            guestCount: res.guest_count,
+            location: res.location || "",
+            notes: res.notes || undefined,
+            status: res.status as "Pending" | "Approved" | "Cancelled",
+            created_at: res.created_at
+          }));
+          setReservations(mappedReservations);
+          
+          // Sync reservationStatuses mapping state
+          const newStatuses: Record<string, "Pending" | "Approved" | "Cancelled"> = {};
+          mappedReservations.forEach((res) => {
+            const key = `${res.fullName}-${res.date}-${res.time}`;
+            newStatuses[key] = res.status || "Pending";
+          });
+          setReservationStatuses(newStatuses);
+        }
+      } else {
+        const loadedReservations = db.getReservations();
+        setReservations(loadedReservations);
+        syncLocalReservationStatuses(loadedReservations);
+      }
+    } catch (err) {
+      console.error("Error loading reservations:", err);
+      const loadedReservations = db.getReservations();
+      setReservations(loadedReservations);
+      syncLocalReservationStatuses(loadedReservations);
+    }
+  };
+
+  const syncLocalReservationStatuses = (loadedReservations: Reservation[]) => {
     const savedStatuses = localStorage.getItem("admin_reservation_statuses");
     if (savedStatuses) {
       setReservationStatuses(JSON.parse(savedStatuses));
@@ -208,6 +309,12 @@ export const AdminView: React.FC = () => {
       setReservationStatuses(initialStatuses);
       localStorage.setItem("admin_reservation_statuses", JSON.stringify(initialStatuses));
     }
+  };
+
+  // Load non-loyalty data (menu, reservations)
+  const loadLocalData = () => {
+    fetchMenuItems();
+    fetchReservations();
   };
 
   // Fetch loyalty members from Supabase (single source of truth)
@@ -312,12 +419,34 @@ export const AdminView: React.FC = () => {
 
   // Full load: local data + Supabase loyalty members + user profiles
   const loadAllData = async () => {
-    loadLocalData();
+    await fetchMenuItems();
+    await fetchReservations();
     await fetchLoyaltyFromSupabase();
     await fetchUsers();
   };
 
-  const updateReservationStatus = (res: Reservation, newStatus: "Pending" | "Approved" | "Cancelled") => {
+  const updateReservationStatus = async (res: Reservation, newStatus: "Pending" | "Approved" | "Cancelled") => {
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase && res.id) {
+        const { error } = await supabase
+          .from("reservations")
+          .update({ status: newStatus })
+          .eq("id", res.id);
+        
+        if (error) {
+          console.error("Error updating reservation status in Supabase:", error);
+          toast.error("Failed to update status on server. Updating locally...");
+        } else {
+          toast.success(`Reservation for ${res.fullName} status updated to ${newStatus}.`);
+          await fetchReservations();
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error in updateReservationStatus Supabase path:", err);
+    }
+
     const key = `${res.fullName}-${res.date}-${res.time}`;
     const updated = { ...reservationStatuses, [key]: newStatus };
     setReservationStatuses(updated);
@@ -336,15 +465,23 @@ export const AdminView: React.FC = () => {
     localStorage.removeItem("admin_profile");
     router.push("/login");
   };
-
   const handleResetDb = () => {
-    if (confirm("Are you sure you want to reset the database to defaults? Any changes will be lost.")) {
-      db.resetDatabase();
-      localStorage.removeItem("admin_reservation_statuses");
-      loadAllData();
-      toast.success("Database has been reset to defaults.");
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Reset Database",
+      message: "Are you sure you want to reset the database to defaults? All custom changes, menu items, and reservation bookings will be lost.",
+      confirmText: "Reset Database",
+      variant: "warning",
+      onConfirm: () => {
+        db.resetDatabase();
+        localStorage.removeItem("admin_reservation_statuses");
+        loadAllData();
+        toast.success("Database has been reset to defaults.");
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
+
 
   // Beep utility using Web Audio API
   const playBeep = () => {
@@ -427,34 +564,44 @@ export const AdminView: React.FC = () => {
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
     toast.info(`Revoked 1 stamp from ${member.name}. (${newStamps}/9)`);
   };
-
-  const handleRedeemFreeDrink = async (member: LoyaltyMember) => {
-    if (!confirm("Redeem rewards card and reset stamps?")) return;
-
-    try {
-      const { supabase } = await import("@/utils/supabase");
-      if (supabase) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ stamps: 0 })
-          .eq("email", member.email.toLowerCase());
-        
-        if (error) {
-          console.error("Supabase redeem error:", error);
-          toast.error("Failed to redeem in database.");
+  const handleRedeemFreeDrink = (member: LoyaltyMember) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Redeem Free Drink",
+      message: `Are you sure you want to redeem the rewards card for ${member.name}? This will reset their stamp count back to 0.`,
+      confirmText: "Redeem Card",
+      variant: "warning",
+      onConfirm: async () => {
+        try {
+          const { supabase } = await import("@/utils/supabase");
+          if (supabase) {
+            const { error } = await supabase
+              .from("profiles")
+              .update({ stamps: 0 })
+              .eq("email", member.email.toLowerCase());
+            
+            if (error) {
+              console.error("Supabase redeem error:", error);
+              toast.error("Failed to redeem in database.");
+              setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Error redeeming drink:", err);
+          toast.error("Failed to connect to database.");
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
           return;
         }
-      }
-    } catch (err) {
-      console.error("Error redeeming drink:", err);
-      toast.error("Failed to connect to database.");
-      return;
-    }
 
-    const updated = { ...member, stamps: 0 };
-    setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
-    toast.success(`Complimentary drink redeemed for ${member.name}!`);
+        const updated = { ...member, stamps: 0 };
+        setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+        toast.success(`Successfully redeemed free drink for ${member.name}! Stamps reset.`);
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
+
 
   const handleDeleteLoyalty = async (id: string) => {
     const member = loyaltyMembers.find(m => m.id === id);
@@ -540,22 +687,92 @@ export const AdminView: React.FC = () => {
 
   // --- CRUD HANDLERS ---
   // Menu Item
-  const handleAddMenuSubmit = (e: React.FormEvent) => {
+  const handleAddMenuSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isEditing = !!editingMenuItem;
     const uniqueId = `m-${crypto.randomUUID()}`;
-    const newItem: MenuItem = {
-      id: editingMenuItem ? editingMenuItem.id : uniqueId,
-      name: menuForm.name,
-      description: menuForm.description,
-      price: Number(menuForm.price),
-      rating: editingMenuItem ? editingMenuItem.rating : 5.0,
-      image: menuForm.image || "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=600&auto=format&fit=crop",
-      category: menuForm.category,
-      tags: menuForm.tags ? menuForm.tags.split(",").map(t => t.trim()) : [],
-      notes: menuForm.notes || undefined
-    };
-    db.saveMenuItem(newItem);
+    let finalImageUrl = menuForm.image || "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=600&auto=format&fit=crop";
+
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        // Upload image file if user chose a new file
+        if (menuForm.imageFile) {
+          const file = menuForm.imageFile;
+          const fileExt = file.name.split(".").pop();
+          const fileName = `menu-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("menu-images")
+            .upload(fileName, file, { cacheControl: "3600", upsert: true });
+
+          if (uploadError) {
+            console.error("Supabase Storage upload error:", uploadError);
+            toast.error("Failed to upload image to Supabase Storage.");
+          } else if (uploadData) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("menu-images")
+              .getPublicUrl(fileName);
+            finalImageUrl = publicUrl;
+          }
+        }
+
+        const newItem: MenuItem = {
+          id: editingMenuItem ? editingMenuItem.id : uniqueId,
+          name: menuForm.name,
+          description: menuForm.description,
+          price: Number(menuForm.price),
+          rating: editingMenuItem ? editingMenuItem.rating : 5.0,
+          image: finalImageUrl,
+          category: menuForm.category,
+          tags: menuForm.tags ? menuForm.tags.split(",").map(t => t.trim()) : []
+        };
+
+        const { error } = await supabase
+          .from("menu_items")
+          .upsert({
+            id: newItem.id,
+            name: newItem.name,
+            description: newItem.description,
+            price: newItem.price,
+            image: newItem.image,
+            category: newItem.category,
+            tags: newItem.tags
+          });
+        
+        if (error) {
+          console.error("Supabase upsert menu item error:", error);
+          toast.error("Failed to save to database. Saving locally...");
+          db.saveMenuItem(newItem);
+        }
+      } else {
+        const newItem: MenuItem = {
+          id: editingMenuItem ? editingMenuItem.id : uniqueId,
+          name: menuForm.name,
+          description: menuForm.description,
+          price: Number(menuForm.price),
+          rating: editingMenuItem ? editingMenuItem.rating : 5.0,
+          image: finalImageUrl,
+          category: menuForm.category,
+          tags: menuForm.tags ? menuForm.tags.split(",").map(t => t.trim()) : []
+        };
+        db.saveMenuItem(newItem);
+      }
+    } catch (err) {
+      console.error("Error in handleAddMenuSubmit Supabase path:", err);
+      const newItem: MenuItem = {
+        id: editingMenuItem ? editingMenuItem.id : uniqueId,
+        name: menuForm.name,
+        description: menuForm.description,
+        price: Number(menuForm.price),
+        rating: editingMenuItem ? editingMenuItem.rating : 5.0,
+        image: finalImageUrl,
+        category: menuForm.category,
+        tags: menuForm.tags ? menuForm.tags.split(",").map(t => t.trim()) : []
+      };
+      db.saveMenuItem(newItem);
+    }
+
     loadAllData();
     setShowAddMenuModal(false);
     setEditingMenuItem(null);
@@ -571,19 +788,47 @@ export const AdminView: React.FC = () => {
       price: item.price,
       category: item.category,
       image: item.image,
-      tags: item.tags ? item.tags.join(", ") : "",
-      notes: item.notes || ""
+      tags: item.tags ? item.tags.join(", ") : ""
     });
     setShowAddMenuModal(true);
   };
-
   const handleDeleteMenu = (id: string) => {
-    if (confirm("Delete this menu item?")) {
-      db.deleteMenuItem(id);
-      loadAllData();
-      toast.success("Menu item deleted successfully!");
-    }
+    const item = menuItems.find(i => i.id === id);
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Menu Offering",
+      message: `Are you sure you want to delete "${item?.name || "this menu item"}"? This action is permanent and cannot be undone.`,
+      confirmText: "Delete Item",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          const { supabase } = await import("@/utils/supabase");
+          if (supabase) {
+            const { error } = await supabase
+              .from("menu_items")
+              .delete()
+              .eq("id", id);
+            
+            if (error) {
+              console.error("Supabase delete menu item error:", error);
+              toast.error("Failed to delete from database. Deleting locally...");
+              db.deleteMenuItem(id);
+            }
+          } else {
+            db.deleteMenuItem(id);
+          }
+        } catch (err) {
+          console.error("Error in handleDeleteMenu Supabase path:", err);
+          db.deleteMenuItem(id);
+        }
+
+        loadAllData();
+        toast.success("Menu item deleted successfully!");
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      }
+    });
   };
+
 
   const resetMenuForm = () => {
     setMenuForm({
@@ -593,7 +838,7 @@ export const AdminView: React.FC = () => {
       category: "Hot Coffee",
       image: "",
       tags: "",
-      notes: ""
+      imageFile: null
     });
   };
 
@@ -1057,8 +1302,83 @@ export const AdminView: React.FC = () => {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
 
+        {confirmModal.isOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+              className="absolute inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-md"
+            />
+
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.4, ease: EASE }}
+              className="w-full max-w-md rounded-2xl border border-card-border bg-card p-8 shadow-2xl relative z-10 overflow-hidden"
+            >
+              {/* Ambient Glow */}
+              <div 
+                className={`absolute top-0 right-0 w-24 h-24 blur-[25px] rounded-full pointer-events-none ${
+                  confirmModal.variant === "danger" ? "bg-rose-500/5" : "bg-amber-500/5"
+                }`} 
+              />
+
+              <button
+                onClick={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+                className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors duration-300 p-1.5 rounded-full cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                {confirmModal.variant === "danger" ? (
+                  <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-500">
+                    <Trash2 size={20} className="animate-pulse" />
+                  </div>
+                ) : (
+                  <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-500">
+                    <AlertTriangle size={20} className="animate-pulse" />
+                  </div>
+                )}
+                <h3 className="text-xl text-foreground font-serif font-bold tracking-tight">
+                  {confirmModal.title}
+                </h3>
+              </div>
+
+              <p className="text-neutral-500 dark:text-zinc-400 text-sm leading-relaxed mb-8">
+                {confirmModal.message}
+              </p>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2.5 text-xs tracking-wider uppercase border border-card-border hover:bg-foreground/5 transition-colors duration-300 rounded-lg cursor-pointer text-neutral-500 hover:text-foreground font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmModal.onConfirm}
+                  className={`px-4 py-2.5 text-xs tracking-wider uppercase text-white transition-colors duration-300 rounded-lg shadow-md cursor-pointer font-semibold ${
+                    confirmModal.variant === "danger"
+                      ? "bg-rose-500 hover:bg-rose-600 shadow-rose-500/10"
+                      : "bg-amber-500 hover:bg-amber-600 shadow-amber-500/10"
+                  }`}
+                >
+                  {confirmModal.confirmText}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

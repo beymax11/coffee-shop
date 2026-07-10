@@ -37,6 +37,75 @@ export function ReservationsView() {
   const [isMounted, setIsMounted] = useState(false);
   const [ticketId, setTicketId] = useState("");
 
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const formatDateString = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const parseTimeStr = (timeStr: string) => {
+    if (!timeStr) return { hour: "08", minute: "00", ampm: "AM" };
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (match) {
+      return { hour: match[1].padStart(2, '0'), minute: match[2], ampm: match[3].toUpperCase() };
+    }
+    return { hour: "08", minute: "00", ampm: "AM" };
+  };
+
+  const getCalendarDays = (currentDate: Date) => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+    const days: { date: Date; isCurrentMonth: boolean; isPast: boolean }[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Trailing days from previous month
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const d = new Date(year, month - 1, prevMonthTotalDays - i);
+      days.push({
+        date: d,
+        isCurrentMonth: false,
+        isPast: d < today,
+      });
+    }
+
+    // Days of current month
+    for (let i = 1; i <= totalDays; i++) {
+      const d = new Date(year, month, i);
+      days.push({
+        date: d,
+        isCurrentMonth: true,
+        isPast: d < today,
+      });
+    }
+
+    // Leading days from next month
+    const remainingCells = 42 - days.length;
+    for (let i = 1; i <= remainingCells; i++) {
+      const d = new Date(year, month + 1, i);
+      days.push({
+        date: d,
+        isCurrentMonth: false,
+        isPast: d < today,
+      });
+    }
+
+    return days;
+  };
+
   const sidebarImages = ["/ser.jpg", "/cart.jpg", "/carts.jpg", "/res.jpg"];
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
@@ -52,7 +121,8 @@ export function ReservationsView() {
         setFormData((prev) => ({
           ...prev,
           eventType: selectedType,
-          location: selectedType === "Table Reservation" ? "Antonioni Grounds Reserve (New York / Tokyo)" : prev.location,
+          location: selectedType === "Table Reservation" ? "Antonioni Grounds - Tiaong" : prev.location,
+          time: selectedType === "Table Reservation" ? "08:00 AM" : prev.time,
         }));
         setStep(2);
       }
@@ -72,7 +142,7 @@ export function ReservationsView() {
       const members = db.getLoyaltyMembers();
       const found = members.find(
         (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
-               (m.phone && m.phone.trim() === sessionEmail.trim())
+          (m.phone && m.phone.trim() === sessionEmail.trim())
       );
       if (found) {
         setFormData((prev) => ({
@@ -87,34 +157,34 @@ export function ReservationsView() {
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
-  const eventTypes: { 
-    type: ReservationType; 
-    title: string; 
+  const eventTypes: {
+    type: ReservationType;
+    title: string;
     category: string;
-    desc: string; 
-    features: string[]; 
+    desc: string;
+    features: string[];
     pricing: string;
-    icon: any; 
+    icon: any;
   }[] = [
-    {
-      type: "Table Reservation",
-      title: "Lounge Table Reservation",
-      category: "In-House Café",
-      desc: "Reserve a private table in our luxury matte-black café. Perfect for premium coffee tastings, quiet meetings, or personal coffee rituals.",
-      features: ["1 - 4 guests capacity", "Complimentary welcome pour", "Full patisserie menu access"],
-      pricing: "$45 / Table",
-      icon: Coffee,
-    },
-    {
-      type: "Coffee Cart Booking",
-      title: "Mobile Coffee Cart Sourcing",
-      category: "Off-Site Sourcing",
-      desc: "Sponsor our premium copper & brass espresso cart directly at weddings, fashion galas, or private product launches.",
-      features: ["2 certified master baristas", "Unlimited espresso bar drinks", "Custom foam monogram stencil"],
-      pricing: "Bespoke Quote",
-      icon: CalendarIcon,
-    },
-  ];
+      {
+        type: "Table Reservation",
+        title: "Lounge Table Reservation",
+        category: "In-House Café",
+        desc: "Reserve a private table in our luxury matte-black café. Perfect for premium coffee tastings, quiet meetings, or personal coffee rituals.",
+        features: ["1 - 4 guests capacity", "Complimentary welcome pour", "Full patisserie menu access"],
+        pricing: "$45 / Table",
+        icon: Coffee,
+      },
+      {
+        type: "Coffee Cart Booking",
+        title: "Mobile Coffee Cart Sourcing",
+        category: "Off-Site Sourcing",
+        desc: "Sponsor our premium copper & brass espresso cart directly at weddings, fashion galas, or private product launches.",
+        features: ["2 certified master baristas", "Unlimited espresso bar drinks", "Custom foam monogram stencil"],
+        pricing: "Bespoke Quote",
+        icon: CalendarIcon,
+      },
+    ];
 
   const validateStep = () => {
     const newErrors: typeof errors = {};
@@ -164,7 +234,8 @@ export function ReservationsView() {
       ...formData,
       eventType: type,
       // Default location to "Antonioni Grounds Café" if booking a table
-      location: type === "Table Reservation" ? "Antonioni Grounds Reserve (New York / Tokyo)" : formData.location,
+      location: type === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location,
+      time: type === "Table Reservation" ? "08:00 AM" : "",
     });
     setErrors({ ...errors, eventType: undefined });
   };
@@ -174,22 +245,28 @@ export function ReservationsView() {
     setErrors({ ...errors, [field]: undefined });
   };
 
-  const timeSlots = formData.eventType === "Table Reservation" 
+  const timeSlots = formData.eventType === "Table Reservation"
     ? ["08:00 AM", "10:00 AM", "12:00 PM", "02:00 PM", "04:00 PM", "06:00 PM", "08:00 PM"]
     : [
-        "Morning (08:00 - 12:00)",
-        "Afternoon (12:00 - 17:00)",
-        "Evening (17:00 - 22:00)",
-        "All Day Gala Booking"
-      ];
+      "Morning (08:00 - 12:00)",
+      "Afternoon (12:00 - 17:00)",
+      "Evening (17:00 - 22:00)",
+      "All Day Gala Booking"
+    ];
 
   const quickGuests = formData.eventType === "Table Reservation" ? [1, 2, 3, 4] : [20, 50, 100, 150];
+
+  const isTable = formData.eventType === "Table Reservation";
+  const activeColor = isTable ? "bg-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.4)]" : "bg-[#8B5E3C] shadow-[0_0_12px_rgba(139,94,60,0.4)]";
+  const todayActiveDot = isTable ? "bg-emerald-500" : "bg-[#8B5E3C]";
+  const labelAccent = isTable ? "text-emerald-500/90" : "text-[#8B5E3C]/95";
 
   return (
     <PageTransition>
       <div className="min-h-screen bg-background pt-8 pb-16 md:pt-12 md:pb-24 text-foreground relative overflow-hidden font-sans print:bg-white print:text-black transition-colors duration-500">
         {/* Inject print-specific styles to hide main navbar and footer if present */}
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @media print {
             header, footer, nav, [role="navigation"], .no-print, .print-hidden-element {
               display: none !important;
@@ -208,7 +285,7 @@ export function ReservationsView() {
         ` }} />
 
         {/* Deep atmospheric ambient glows */}
-        <motion.div 
+        <motion.div
           animate={{
             x: [0, 30, -15, 0],
             y: [0, -20, 20, 0],
@@ -218,9 +295,9 @@ export function ReservationsView() {
             repeat: Infinity,
             ease: "easeInOut"
           }}
-          className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#2E5A44]/5 blur-[150px] rounded-full pointer-events-none print:hidden" 
+          className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#2E5A44]/5 blur-[150px] rounded-full pointer-events-none print:hidden"
         />
-        <motion.div 
+        <motion.div
           animate={{
             x: [0, -20, 30, 0],
             y: [0, 30, -15, 0],
@@ -230,7 +307,7 @@ export function ReservationsView() {
             repeat: Infinity,
             ease: "easeInOut"
           }}
-          className="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-[#8B5E3C]/5 blur-[150px] rounded-full pointer-events-none print:hidden" 
+          className="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-[#8B5E3C]/5 blur-[150px] rounded-full pointer-events-none print:hidden"
         />
 
         {/* Floating Gold/Green Particles */}
@@ -265,43 +342,231 @@ export function ReservationsView() {
         <div className="mx-auto max-w-7xl px-4 md:px-8 relative z-10 print:px-0">
           {step < 4 ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
-              
+
               <div className="lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden">
-                <span className="text-[10px] uppercase font-bold tracking-[0.35em] text-emerald-500/90 block mb-3 font-sans">Bespoke Experience</span>
+                <span className={`text-[10px] uppercase font-bold tracking-[0.35em] block mb-3 font-sans transition-colors duration-300 ${step >= 2 ? labelAccent : "text-emerald-500/90"}`}>
+                  {step >= 2 ? "Reservation Details" : "Bespoke Experience"}
+                </span>
                 <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-2">
-                  Secure Your Ritual
+                  {step >= 2 ? "Select Date & Time" : "Secure Your Ritual"}
                 </h1>
                 <div className="w-16 h-[1px] bg-brand-gold mt-6 mb-6" />
-                <div className="relative rounded-xl overflow-hidden border border-card-border shadow-[0_10px_35px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.6)] bg-card/40 w-full aspect-[4/5] md:aspect-[3/4] group">
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={currentImgIndex}
-                      src={sidebarImages[currentImgIndex]}
-                      alt="Antonioni Grounds Experience"
-                      initial={{ opacity: 0, scale: 1.12, y: 3 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.96, y: -3 }}
-                      transition={{ duration: 1.2, ease: "easeOut" }}
-                      className="w-full h-full object-cover block"
-                    />
-                  </AnimatePresence>
-                  
-                  {/* Glassmorphic Indicator dots at the bottom */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/45 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                    {sidebarImages.map((_, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setCurrentImgIndex(idx)}
-                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                          currentImgIndex === idx 
-                            ? "bg-emerald-400 w-3.5" 
-                            : "bg-white/30 hover:bg-white/60"
-                        }`}
-                      />
-                    ))}
+
+                {step >= 2 ? (
+                  <div className="space-y-6">
+                    {/* Custom Interactive Calendar */}
+                    <div className="rounded-xl border border-card-border bg-card/45 backdrop-blur-md p-4 shadow-lg relative overflow-hidden">
+                      <div className="flex items-center justify-between mb-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMonth = new Date(calendarMonth);
+                            newMonth.setMonth(newMonth.getMonth() - 1);
+                            const today = new Date();
+                            if (newMonth.getFullYear() > today.getFullYear() ||
+                              (newMonth.getFullYear() === today.getFullYear() && newMonth.getMonth() >= today.getMonth())) {
+                              setCalendarMonth(newMonth);
+                            }
+                          }}
+                          className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <span className="font-serif text-sm font-semibold tracking-wide text-foreground">
+                          {monthNames[calendarMonth.getMonth()]} {calendarMonth.getFullYear()}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newMonth = new Date(calendarMonth);
+                            newMonth.setMonth(newMonth.getMonth() + 1);
+                            setCalendarMonth(newMonth);
+                          }}
+                          className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+
+                      {/* Weekday Labels */}
+                      <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                          <span key={day} className="text-[10px] font-sans font-bold text-zinc-500 tracking-wider">
+                            {day}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Days Grid */}
+                      <div className="grid grid-cols-7 gap-1 text-center">
+                        {getCalendarDays(calendarMonth).map((day, idx) => {
+                          const dateStr = formatDateString(day.date);
+                          const isSelected = formData.date === dateStr;
+                          const isToday = formatDateString(new Date()) === dateStr;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              disabled={day.isPast}
+                              onClick={() => {
+                                updateField("date", dateStr);
+                              }}
+                              className={`aspect-square flex items-center justify-center text-xs font-sans rounded-full transition-all duration-200 relative ${isSelected
+                                  ? `${activeColor} font-bold text-white`
+                                  : day.isPast
+                                    ? "text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-30"
+                                    : day.isCurrentMonth
+                                      ? "text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
+                                      : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
+                                }`}
+                            >
+                              {day.date.getDate()}
+                              {isToday && !isSelected && (
+                                <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${todayActiveDot}`} />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {errors.date && <span className="type-error block pl-1 text-xs text-red-500 font-sans">{errors.date}</span>}
+
+                    {/* Time Selector */}
+                    {isTable ? (
+                      (() => {
+                        const { hour: selectedHour, minute: selectedMinute, ampm: selectedAmPm } = parseTimeStr(formData.time);
+                        const handleTimeChange = (type: "hour" | "minute" | "ampm", val: string) => {
+                          let h = selectedHour;
+                          let m = selectedMinute;
+                          let ap = selectedAmPm;
+                          if (type === "hour") h = val;
+                          if (type === "minute") m = val;
+                          if (type === "ampm") ap = val;
+                          updateField("time", `${h}:${m} ${ap}`);
+                        };
+
+                        return (
+                          <div className="space-y-2">
+                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
+                              Select Preferred Time
+                            </label>
+                            <div className="flex items-center gap-1.5 bg-background-alt/50 p-2 rounded-xl border border-card-border">
+                              {/* Hour Dropdown */}
+                              <div className="flex-1">
+                                <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Hour</span>
+                                <select
+                                  value={selectedHour}
+                                  onChange={(e) => handleTimeChange("hour", e.target.value)}
+                                  className="w-full bg-card border border-card-border rounded-lg px-2 py-1.5 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
+                                >
+                                  {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((h) => (
+                                    <option key={h} value={h}>{h}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <span className="text-foreground self-end mb-2 font-bold font-mono">:</span>
+
+                              {/* Minute Dropdown */}
+                              <div className="flex-1">
+                                <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Minute</span>
+                                <select
+                                  value={selectedMinute}
+                                  onChange={(e) => handleTimeChange("minute", e.target.value)}
+                                  className="w-full bg-card border border-card-border rounded-lg px-2 py-1.5 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
+                                >
+                                  {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => (
+                                    <option key={m} value={m}>{m}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* AM/PM Button Toggle */}
+                              <div className="flex flex-col justify-end">
+                                <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Period</span>
+                                <div className="flex rounded-lg border border-card-border overflow-hidden bg-card p-0.5">
+                                  {["AM", "PM"].map((period) => {
+                                    const isActive = selectedAmPm === period;
+                                    return (
+                                      <button
+                                        key={period}
+                                        type="button"
+                                        onClick={() => handleTimeChange("ampm", period)}
+                                        className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all duration-300 font-sans ${isActive
+                                            ? "bg-[#2E5A44] text-white shadow-sm"
+                                            : "text-zinc-500 hover:text-foreground"
+                                          }`}
+                                      >
+                                        {period}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                            {errors.time && <span className="type-error block pl-1 text-xs text-red-500 font-sans">{errors.time}</span>}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="space-y-2">
+                        <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
+                          Select Preferred Time Slot
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {timeSlots.map((slot) => {
+                            const isSelected = formData.time === slot;
+                            return (
+                              <button
+                                key={slot}
+                                type="button"
+                                onClick={() => updateField("time", slot)}
+                                className={`px-3 py-2.5 rounded-lg text-xs font-sans border transition-all duration-300 text-center flex items-center justify-center min-h-[40px] ${
+                                  isSelected
+                                    ? "bg-[#8B5E3C]/25 border-[#8B5E3C] text-[#8B5E3C] dark:text-[#EADBC8] shadow-[0_0_12px_rgba(139,94,60,0.15)] font-semibold"
+                                    : "bg-card border-card-border text-neutral-500 hover:border-brand-gold/30 hover:bg-background"
+                                }`}
+                              >
+                                {slot}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {errors.time && <span className="type-error block pl-1 text-xs text-red-500 font-sans">{errors.time}</span>}
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="relative rounded-xl overflow-hidden border border-card-border shadow-[0_10px_35px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.6)] bg-card/40 w-full aspect-[4/5] md:aspect-[3/4] group">
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={currentImgIndex}
+                        src={sidebarImages[currentImgIndex]}
+                        alt="Antonioni Grounds Experience"
+                        initial={{ opacity: 0, scale: 1.12, y: 3 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.96, y: -3 }}
+                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        className="w-full h-full object-cover block"
+                      />
+                    </AnimatePresence>
+
+                    {/* Glassmorphic Indicator dots at the bottom */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/45 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                      {sidebarImages.map((_, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setCurrentImgIndex(idx)}
+                          className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentImgIndex === idx
+                              ? "bg-[#8B5E3C] w-3.5"
+                              : "bg-white/30 hover:bg-white/60"
+                            }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Column: Form & Stepper */}
@@ -324,38 +589,34 @@ export function ReservationsView() {
                             onClick={() => setStep(item.num)}
                             className="group flex flex-col items-center focus:outline-none disabled:cursor-not-allowed"
                           >
-                            <span className={`font-serif text-[13px] tracking-widest ${
-                              isCurrent 
-                                ? "text-emerald-600 dark:text-emerald-400 font-medium scale-105" 
-                                : isPassed 
-                                  ? "text-[#8B5E3C] dark:text-[#D4C5B9]" 
+                            <span className={`font-serif text-[13px] tracking-widest ${isCurrent
+                                ? "text-emerald-600 dark:text-emerald-400 font-medium scale-105"
+                                : isPassed
+                                  ? "text-[#8B5E3C] dark:text-[#D4C5B9]"
                                   : "text-zinc-500 dark:text-zinc-600"
-                            } transition-all duration-300`}>
+                              } transition-all duration-300`}>
                               0{item.num}
                             </span>
-                            <span className={`font-sans text-[9px] uppercase tracking-[0.25em] mt-1.5 font-bold ${
-                              isCurrent 
-                                ? "text-foreground" 
-                                : isPassed 
-                                  ? "text-zinc-500 dark:text-zinc-400" 
+                            <span className={`font-sans text-[9px] uppercase tracking-[0.25em] mt-1.5 font-bold ${isCurrent
+                                ? "text-foreground"
+                                : isPassed
+                                  ? "text-zinc-500 dark:text-zinc-400"
                                   : "text-zinc-500 dark:text-zinc-600"
-                            } transition-all duration-300`}>
+                              } transition-all duration-300`}>
                               {item.label}
                             </span>
-                            <div className={`h-[2px] w-6 mt-2 rounded-full transition-all duration-500 ${
-                              isCurrent 
-                                ? "bg-emerald-600 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] dark:shadow-[0_0_8px_rgba(16,185,129,0.8)] w-10" 
-                                : isPassed 
-                                  ? "bg-[#8B5E3C]" 
+                            <div className={`h-[2px] w-6 mt-2 rounded-full transition-all duration-500 ${isCurrent
+                                ? "bg-emerald-600 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] dark:shadow-[0_0_8px_rgba(16,185,129,0.8)] w-10"
+                                : isPassed
+                                  ? "bg-[#8B5E3C]"
                                   : "bg-zinc-200 dark:bg-white/5"
-                            }`} />
+                              }`} />
                           </button>
-                          
+
                           {idx < 2 && (
                             <div className="flex-1 flex justify-center items-center px-4 -mt-5">
-                              <div className={`h-[1px] w-full transition-all duration-700 ${
-                                step > item.num ? "bg-[#8B5E3C]/40" : "bg-zinc-200 dark:bg-white/5"
-                              }`} />
+                              <div className={`h-[1px] w-full transition-all duration-700 ${step > item.num ? "bg-[#8B5E3C]/40" : "bg-zinc-200 dark:bg-white/5"
+                                }`} />
                             </div>
                           )}
                         </React.Fragment>
@@ -398,50 +659,46 @@ export function ReservationsView() {
                                 whileHover={{ y: -4, scale: 1.01 }}
                                 whileTap={{ scale: 0.99 }}
                                 onClick={() => selectType(item.type)}
-                                className={`rounded-xl border p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[310px] h-auto select-none ${
-                                  isSelected
+                                className={`rounded-xl border p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[310px] h-auto select-none ${isSelected
                                     ? isTable
                                       ? "bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1] border-emerald-600/50 shadow-[0_10px_30px_rgba(46,90,68,0.12)] text-foreground dark:from-[#07130E]/95 dark:to-[#0F261B]/95 dark:border-emerald-500/80 dark:shadow-[0_10px_30px_rgba(46,90,68,0.25)]"
                                       : "bg-gradient-to-br from-[#FAF5F0] to-[#F1E8DF] border-[#8B5E3C]/60 shadow-[0_10px_30px_rgba(139,94,60,0.12)] text-foreground dark:from-[#120B07]/95 dark:to-[#22150D]/95 dark:border-[#8B5E3C]/80 dark:shadow-[0_10px_30px_rgba(139,94,60,0.25)]"
                                     : "bg-card border-card-border text-neutral-500 hover:border-brand-gold/30 hover:bg-background"
-                                }`}
+                                  }`}
                               >
                                 <div className="space-y-4 flex-1">
                                   {/* Card Top Row */}
                                   <div className="flex justify-between items-start">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all ${
-                                      isSelected
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all ${isSelected
                                         ? isTable
                                           ? "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-[#2E5A44]/20 dark:text-emerald-400 dark:border-emerald-500/40"
                                           : "bg-[#8B5E3C]/10 border-[#8B5E3C]/30 text-[#8B5E3C] dark:bg-[#8B5E3C]/20 dark:text-[#EADBC8] dark:border-[#8B5E3C]/40"
                                         : "bg-zinc-100 dark:bg-white/5 text-zinc-500 border-zinc-200 dark:border-white/5"
-                                    }`}>
+                                      }`}>
                                       <Icon size={18} />
                                     </div>
                                     <div className="text-right">
-                                      <span className={`text-[8px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full border ${
-                                        isSelected
+                                      <span className={`text-[8px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full border ${isSelected
                                           ? isTable
                                             ? "text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/20 dark:border-emerald-500/30"
                                             : "text-[#8B5E3C] bg-[#8B5E3C]/10 border-[#8B5E3C]/20 dark:text-[#EADBC8] dark:bg-[#8B5E3C]/10 dark:border-[#8B5E3C]/30"
                                           : "text-zinc-500 border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5"
-                                      }`}>
+                                        }`}>
                                         {item.category}
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   {/* Title & Description */}
                                   <div>
                                     <div className="flex justify-between items-baseline gap-2">
                                       <h4 className="font-serif text-sm md:text-base text-foreground tracking-wide font-medium">{item.title}</h4>
-                                      <span className={`font-serif text-xs italic ${
-                                        isSelected 
-                                          ? isTable 
-                                            ? "text-emerald-700 dark:text-emerald-400" 
-                                            : "text-[#8B5E3C] dark:text-[#EADBC8]" 
+                                      <span className={`font-serif text-xs italic ${isSelected
+                                          ? isTable
+                                            ? "text-emerald-700 dark:text-emerald-400"
+                                            : "text-[#8B5E3C] dark:text-[#EADBC8]"
                                           : "text-zinc-500"
-                                      }`}>
+                                        }`}>
                                         {item.pricing}
                                       </span>
                                     </div>
@@ -460,13 +717,12 @@ export function ReservationsView() {
                                 </div>
 
                                 <div className="flex justify-end pt-4 border-t border-zinc-200 dark:border-white/5 mt-4">
-                                  <span className={`font-sans text-[9px] uppercase tracking-widest font-bold ${
-                                    isSelected
+                                  <span className={`font-sans text-[9px] uppercase tracking-widest font-bold ${isSelected
                                       ? isTable
                                         ? "text-emerald-700 dark:text-emerald-400"
                                         : "text-[#8B5E3C] dark:text-[#EADBC8]"
                                       : "text-zinc-500 dark:text-zinc-600"
-                                  }`}>
+                                    }`}>
                                     {isSelected ? "● Selected" : "Choose"}
                                   </span>
                                 </div>
@@ -502,133 +758,124 @@ export function ReservationsView() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-background-alt/40 p-6 rounded-xl border border-card-border backdrop-blur-sm">
-                          {/* Date Picker */}
-                          <div className="space-y-2 col-span-1">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                              Select Date
-                            </label>
-                            <div className="relative group">
-                              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
-                                <CalendarIcon size={14} className="text-zinc-500 group-focus-within:text-emerald-400" />
+                          {formData.eventType === "Table Reservation" ? (
+                            <>
+                              {/* Guest Count Input Field */}
+                              <div className="space-y-2 col-span-1">
+                                <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
+                                  Guest Count
+                                </label>
+                                <div className="relative group">
+                                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
+                                    <Users size={14} />
+                                  </div>
+                                  <input
+                                    type="number"
+                                    required
+                                    min={1}
+                                    max={4}
+                                    value={formData.guestCount || ""}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value);
+                                      updateField("guestCount", isNaN(val) ? "" : Math.min(4, Math.max(1, val)));
+                                    }}
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    placeholder="Number of guests"
+                                  />
+                                </div>
+                                <span className="text-[9px] text-zinc-500 pl-1 font-sans block">Capacity: 1 - 4 guests</span>
+                                {errors.guestCount && <span className="type-error block mt-1">{errors.guestCount}</span>}
                               </div>
-                              <input
-                                type="date"
-                                required
-                                value={formData.date}
-                                onChange={(e) => updateField("date", e.target.value)}
-                                className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
-                              />
-                            </div>
-                            {errors.date && <span className="type-error block mt-1">{errors.date}</span>}
-                          </div>
 
-                          {/* Guest Count Selector */}
-                          <div className="space-y-2 col-span-1">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                              Guest Count
-                            </label>
-                            <div className="flex items-center gap-2 mt-1">
-                              <button
-                                type="button"
-                                disabled={formData.guestCount <= 1}
-                                onClick={() => updateField("guestCount", Math.max(1, formData.guestCount - 1))}
-                                className="flex h-9 w-9 items-center justify-center rounded-full border border-card-border bg-background/90 text-foreground hover:bg-[#8B5E3C]/10 hover:border-[#8B5E3C]/40 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all duration-300 font-sans font-medium text-sm"
-                              >
-                                —
-                              </button>
-                              <div className="flex h-9 w-12 items-center justify-center font-serif text-base font-semibold text-foreground">
-                                {formData.guestCount}
+                              {/* Venue / Location Address (Disabled for Table Reservation) */}
+                              <div className="space-y-2 col-span-1">
+                                <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
+                                  Location
+                                </label>
+                                <div className="relative group">
+                                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
+                                    <MapPin size={14} className="text-zinc-500" />
+                                  </div>
+                                  <input
+                                    type="text"
+                                    disabled
+                                    value="Antonioni Grounds - Tiaong"
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-zinc-500 cursor-not-allowed"
+                                  />
+                                </div>
                               </div>
-                              <button
-                                type="button"
-                                disabled={formData.guestCount >= (formData.eventType === "Table Reservation" ? 4 : 200)}
-                                onClick={() => updateField("guestCount", formData.guestCount + 1)}
-                                className="flex h-9 w-9 items-center justify-center rounded-full border border-card-border bg-background/90 text-foreground hover:bg-[#8B5E3C]/10 hover:border-[#8B5E3C]/40 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition-all duration-300 font-sans font-medium text-sm"
-                              >
-                                +
-                              </button>
-                            </div>
-                            
-                            {/* Guest Count Quick Selection */}
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {quickGuests.map((num) => (
-                                <button
-                                  key={num}
-                                  type="button"
-                                  onClick={() => updateField("guestCount", num)}
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-sans border transition-all duration-300 ${
-                                    formData.guestCount === num
-                                      ? formData.eventType === "Table Reservation"
-                                        ? "bg-[#2E5A44]/25 border-emerald-500/80 text-emerald-700 dark:text-emerald-400 font-semibold"
-                                        : "bg-[#8B5E3C]/25 border-[#8B5E3C]/80 text-[#8B5E3C] dark:text-[#EADBC8] font-semibold"
-                                      : "bg-card border-card-border text-neutral-500 hover:border-brand-gold/30 hover:text-foreground"
-                                  }`}
-                                >
-                                  {num} {formData.eventType === "Table Reservation" ? (num === 1 ? "Guest" : "Guests") : `~${num} Pax`}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
 
-                          {/* Time Slots Grid (Replaced standard dropdown) */}
-                          <div className="space-y-2 col-span-1 md:col-span-2">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                              Preferred Time Slot
-                            </label>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-1.5">
-                              {timeSlots.map((slot) => {
-                                const isSelected = formData.time === slot;
-                                const isTable = formData.eventType === "Table Reservation";
-                                return (
-                                  <button
-                                    key={slot}
-                                    type="button"
-                                    onClick={() => updateField("time", slot)}
-                                    className={`px-3 py-3 rounded-lg text-xs font-sans border transition-all duration-300 text-center flex items-center justify-center min-h-[44px] ${
-                                      isSelected
-                                        ? isTable
-                                          ? "bg-[#2E5A44]/25 border-emerald-500 text-emerald-700 dark:text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] font-semibold"
-                                          : "bg-[#8B5E3C]/25 border-[#8B5E3C] text-[#8B5E3C] dark:text-[#EADBC8] shadow-[0_0_12px_rgba(139,94,60,0.15)] font-semibold"
-                                        : "bg-card border-card-border text-neutral-500 hover:border-brand-gold/30 hover:bg-background"
-                                    }`}
-                                  >
-                                    {slot}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            {errors.time && <span className="type-error block mt-1">{errors.time}</span>}
-                          </div>
-
-                          {/* Venue / Location Address */}
-                          <div className="space-y-2 col-span-1 md:col-span-2">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                              Location
-                            </label>
-                            <div className="relative group">
-                              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
-                                <MapPin size={14} className="text-zinc-500 group-focus-within:text-emerald-400" />
+                              {/* Lounge Reserve Policy Info Card */}
+                              <div className="col-span-1 md:col-span-2 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/10 mt-2">
+                                <h4 className="text-xs font-serif font-bold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase mb-1">
+                                  Antonioni Grounds - Tiaong Lounge Reserve Policy
+                                </h4>
+                                <p className="text-[11px] text-zinc-500 leading-relaxed font-light">
+                                  To ensure the ultimate sensory experience for all guests, lounge tables are reserved for a duration of 90 minutes. Reservations are held for 15 minutes past the scheduled booking. Premium pour-overs and tasting flights are available in-lounge.
+                                </p>
                               </div>
-                              {formData.eventType === "Table Reservation" ? (
-                                <input
-                                   type="text"
-                                   disabled
-                                   value="Antonioni Grounds Luxury Reserve Lounge"
-                                   className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-zinc-500 cursor-not-allowed"
-                                 />
-                              ) : (
-                                <input
-                                  type="text"
-                                  required
-                                  placeholder="e.g. 5th Avenue Loft, New York"
-                                  value={formData.location}
-                                  onChange={(e) => updateField("location", e.target.value)}
-                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
-                                />
-                              )}
-                            </div>
-                            {errors.location && <span className="type-error block mt-1">{errors.location}</span>}
-                          </div>
+                            </>
+                          ) : (
+                            <>
+                              {/* Guest Count Input Field */}
+                              <div className="space-y-2 col-span-1">
+                                <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
+                                  Guest Count
+                                </label>
+                                <div className="relative group">
+                                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-[#8B5E3C] transition-colors">
+                                    <Users size={14} />
+                                  </div>
+                                  <input
+                                    type="number"
+                                    required
+                                    min={1}
+                                    max={200}
+                                    value={formData.guestCount || ""}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value);
+                                      updateField("guestCount", isNaN(val) ? "" : Math.min(200, Math.max(1, val)));
+                                    }}
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-[#8B5E3C]/80 focus:ring-1 focus:ring-[#8B5E3C]/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    placeholder="Number of guests"
+                                  />
+                                </div>
+                                <span className="text-[9px] text-zinc-500 pl-1 font-sans block">Capacity: 1 - 200 Pax</span>
+                                {errors.guestCount && <span className="type-error block mt-1">{errors.guestCount}</span>}
+                              </div>
+
+                              {/* Venue / Location Address */}
+                              <div className="space-y-2 col-span-1">
+                                <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
+                                  Location
+                                </label>
+                                <div className="relative group">
+                                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-[#8B5E3C]">
+                                    <MapPin size={14} className="text-zinc-500 group-focus-within:text-[#8B5E3C]" />
+                                  </div>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g. 5th Avenue Loft, New York"
+                                    value={formData.location}
+                                    onChange={(e) => updateField("location", e.target.value)}
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-[#8B5E3C]/80 focus:ring-1 focus:ring-[#8B5E3C]/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                                  />
+                                </div>
+                                {errors.location && <span className="type-error block mt-1">{errors.location}</span>}
+                              </div>
+
+                              {/* Sourcing Info Card */}
+                              <div className="col-span-1 md:col-span-2 p-4 bg-[#8B5E3C]/5 rounded-lg border border-[#8B5E3C]/10 mt-2">
+                                <h4 className="text-xs font-serif font-bold text-[#8B5E3C] dark:text-[#EADBC8] tracking-wider uppercase mb-1">
+                                  Mobile Coffee Cart Sourcing Details
+                                </h4>
+                                <p className="text-[11px] text-zinc-500 leading-relaxed font-light">
+                                  Our premium espresso bar setup is fully mobile and includes everything needed for certified master barista services at your venue. Event coordinate details and power logistics will be finalized by our event coordination team upon reservation approval.
+                                </p>
+                              </div>
+                            </>
+                          )}
                         </div>
 
                         <div className="flex justify-between pt-6 border-t border-zinc-200 dark:border-white/5">
@@ -683,7 +930,7 @@ export function ReservationsView() {
                               </div>
                               {errors.fullName && <span className="type-error block mt-1">{errors.fullName}</span>}
                             </div>
-                            
+
                             {/* Email */}
                             <div>
                               <label className="type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9]">Email Address</label>
@@ -751,14 +998,17 @@ export function ReservationsView() {
                             <h4 className="font-sans text-[10px] uppercase font-bold tracking-[0.25em] text-emerald-600 dark:text-emerald-400">Review Booking Details</h4>
                             <span className="font-serif text-[11px] text-[#8B5E3C] dark:text-[#D4C5B9] italic">Summary</span>
                           </div>
-                          
+
                           <div className="space-y-3.5 pt-2 relative z-10">
                             {[
                               { label: "Selected Experience", value: formData.eventType, highlight: true },
                               { label: "Reservation Date", value: formData.date },
                               { label: "Preferred Time Slot", value: formData.time },
                               { label: "Guests Attending", value: `${formData.guestCount} Guests` },
-                              { label: "Venue Coordinate", value: formData.location },
+                              { 
+                                label: formData.eventType === "Table Reservation" ? "Store Location" : "Venue Coordinate", 
+                                value: formData.eventType === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location 
+                              },
                             ].map((row, idx) => (
                               <div key={idx} className="flex justify-between items-baseline gap-4 text-xs">
                                 <span className="font-sans text-zinc-500 font-light whitespace-nowrap">{row.label}</span>
@@ -816,7 +1066,7 @@ export function ReservationsView() {
                   </div>
 
                   {/* Visual Receipt Card */}
-                  <div 
+                  <div
                     id="reservation-ticket"
                     className="max-w-md mx-auto rounded-xl border border-card-border bg-card p-8 text-left space-y-6 relative border-t-4 border-t-[#2E5A44] shadow-2xl overflow-hidden font-sans print:bg-white print:text-black print:border-t-black print:border print:border-zinc-300 print:shadow-none print:max-w-none"
                   >
@@ -861,8 +1111,12 @@ export function ReservationsView() {
                         <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.date} at {formData.time}</span>
                       </div>
                       <div className="col-span-2">
-                        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Venue / Sourced Location</span>
-                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.location}</span>
+                        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">
+                          {formData.eventType === "Table Reservation" ? "Store Location" : "Venue / Sourced Location"}
+                        </span>
+                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">
+                          {formData.eventType === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location}
+                        </span>
                       </div>
                       {formData.notes && (
                         <div className="col-span-2 border-t border-zinc-200 dark:border-white/5 print:border-zinc-200 pt-3">
@@ -878,7 +1132,7 @@ export function ReservationsView() {
                         {/* Barcode line pattern */}
                         <div className="h-full w-full bg-[repeating-linear-gradient(90deg,var(--foreground)_0px,var(--foreground)_2px,transparent_2px,transparent_5px,var(--foreground)_5px,var(--foreground)_6px,transparent_6px,transparent_10px)]" />
                         {/* Red Laser Line */}
-                        <motion.div 
+                        <motion.div
                           className="absolute left-0 right-0 h-[2px] bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] print:hidden"
                           animate={{ top: ["0%", "100%", "0%"] }}
                           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}

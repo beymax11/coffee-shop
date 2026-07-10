@@ -123,12 +123,12 @@ export const LoyaltyModal: React.FC<LoyaltyModalProps> = ({
                 <div className="space-y-1.5">
                   <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">EMAIL ADDRESS</label>
                   <input
-                    type="email"
-                    required={authMethod === "email"}
-                    placeholder="alexander@mercer.com"
-                    value={loyaltyForm.email}
-                    onChange={(e) => setLoyaltyForm({ ...loyaltyForm, email: e.target.value })}
-                    className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
+                     type="email"
+                     required={authMethod === "email"}
+                     placeholder="alexander@mercer.com"
+                     value={loyaltyForm.email}
+                     onChange={(e) => setLoyaltyForm({ ...loyaltyForm, email: e.target.value })}
+                     className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
                   />
                 </div>
               ) : (

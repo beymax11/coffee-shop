@@ -11,6 +11,9 @@ export interface Reservation {
   guestCount: number;
   location: string;
   notes?: string;
-  status?: "Pending" | "Approved" | "Cancelled";
+  status?: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed";
   created_at?: string;
+  paymentMethod?: "GCash" | "Bank Transfer" | "QRPh";
+  referenceNumber?: string;
+  proofOfPayment?: string;
 }

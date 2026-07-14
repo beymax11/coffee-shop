@@ -1,16 +1,18 @@
 "use client";
 
-import React from "react";
-import { Check, X, Mail, Phone, Calendar, Users, MapPin, MessageSquare } from "lucide-react";
+import { Check, X, Mail, Phone, Calendar, Users, MapPin, MessageSquare, Search } from "lucide-react";
 import { Reservation } from "@/types";
 import { motion } from "framer-motion";
 
 interface ReservationsTabProps {
   reservations: Reservation[];
-  reservationStatuses: Record<string, "Pending" | "Approved" | "Cancelled">;
-  reservationFilter: "All" | "Pending" | "Approved" | "Cancelled";
-  setReservationFilter: (filter: "All" | "Pending" | "Approved" | "Cancelled") => void;
-  onUpdateStatus: (res: Reservation, newStatus: "Pending" | "Approved" | "Cancelled") => void;
+  reservationStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed">;
+  reservationFilter: "All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed";
+  setReservationFilter: (filter: "All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed") => void;
+  onUpdateStatus: (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed") => void;
+  reservationSearch: string;
+  setReservationSearch: (search: string) => void;
+  onOpenDetails: (res: Reservation) => void;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -34,45 +36,77 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
   reservationFilter,
   setReservationFilter,
   onUpdateStatus,
+  reservationSearch,
+  setReservationSearch,
+  onOpenDetails,
 }) => {
   // Filtered reservations
   const filteredReservations = reservations.filter((res) => {
     const key = `${res.fullName}-${res.date}-${res.time}`;
     const status = reservationStatuses[key] || "Pending";
-    if (reservationFilter === "All") return true;
-    return status === reservationFilter;
+    
+    // Status filter match
+    const matchesFilter = reservationFilter === "All" || status === reservationFilter;
+
+    // Search query match (fullname, email, phone)
+    const matchesSearch =
+      !reservationSearch ||
+      res.fullName.toLowerCase().includes(reservationSearch.toLowerCase()) ||
+      res.email.toLowerCase().includes(reservationSearch.toLowerCase()) ||
+      res.phone.toLowerCase().includes(reservationSearch.toLowerCase()) ||
+      (res.location && res.location.toLowerCase().includes(reservationSearch.toLowerCase()));
+
+    return matchesFilter && matchesSearch;
   });
 
-  const filterStates: Array<"All" | "Pending" | "Approved" | "Cancelled"> = [
+  const filterStates: Array<"All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed"> = [
     "All",
     "Pending",
+    "Pre-Approved",
     "Approved",
+    "Completed",
     "Cancelled",
   ];
 
   return (
     <div className="space-y-6">
       {/* Filter Deck */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
-        <span className="type-body-sm text-neutral-500 dark:text-zinc-400 font-semibold pl-2 text-xs">Filter bookings by status:</span>
+      <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Search bar */}
+          <div className="relative flex-1 max-w-md w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
+            <input
+              type="text"
+              placeholder="Search by name, email, phone, or location..."
+              value={reservationSearch}
+              onChange={(e) => setReservationSearch(e.target.value)}
+              className="w-full rounded-full border border-card-border bg-background/40 py-2.5 pl-10 pr-4 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background/60 focus:ring-1 focus:ring-brand-green/20 text-xs font-sans"
+            />
+          </div>
 
-        <div className="flex gap-1.5 flex-wrap">
-          {filterStates.map((status) => {
-            const isActive = reservationFilter === status;
-            return (
-              <button
-                key={status}
-                onClick={() => setReservationFilter(status)}
-                className={`rounded-full px-3 sm:px-4 py-1.5 type-ui text-[9px] tracking-wider border cursor-pointer transition-all duration-300 min-h-[36px] ${
-                  isActive
-                    ? "bg-brand-green border-brand-green text-white font-semibold shadow-[0_2px_10px_rgba(46,90,68,0.2)]"
-                    : "bg-foreground/[0.02] border-card-border/50 text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
-                }`}
-              >
-                {status}
-              </button>
-            );
-          })}
+          {/* Filter options */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-start gap-3 flex-wrap">
+            <span className="type-body-sm text-neutral-500 dark:text-zinc-400 font-semibold text-xs whitespace-nowrap pl-1">Filter by status:</span>
+            <div className="flex gap-1.5 flex-wrap">
+              {filterStates.map((status) => {
+                const isActive = reservationFilter === status;
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setReservationFilter(status)}
+                    className={`rounded-full px-3 sm:px-4 py-1.5 type-ui text-[9px] tracking-wider border cursor-pointer transition-all duration-300 min-h-[36px] ${
+                      isActive
+                        ? "bg-brand-green border-brand-green text-white font-semibold shadow-[0_2px_10px_rgba(46,90,68,0.2)]"
+                        : "bg-foreground/[0.02] border-card-border/50 text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
+                    }`}
+                  >
+                    {status}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -91,11 +125,12 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
               key={index}
               variants={cardVariants}
               whileHover={{ y: -4, scale: 1.01 }}
-              className="rounded-2xl border border-card-border bg-card/40 backdrop-blur-sm p-6 shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden transition-all duration-300 hover:border-card-border hover:shadow-2xl"
+              onClick={() => onOpenDetails(res)}
+              className="rounded-2xl border border-card-border bg-card/40 backdrop-blur-sm p-6 shadow-xl flex flex-col justify-between gap-5 relative overflow-hidden transition-all duration-300 hover:border-card-border hover:shadow-2xl cursor-pointer"
             >
               {/* Highlight background glow */}
               <div className={`absolute top-0 right-0 w-24 h-24 blur-[35px] rounded-full pointer-events-none opacity-20 ${
-                status === "Approved" ? "bg-emerald-500" : status === "Cancelled" ? "bg-red-500" : "bg-amber-500"
+                status === "Completed" ? "bg-blue-500" : status === "Approved" ? "bg-emerald-500" : status === "Pre-Approved" ? "bg-amber-500" : status === "Cancelled" ? "bg-red-500" : "bg-zinc-500"
               }`} />
 
               <div className="space-y-4">
@@ -103,11 +138,15 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                   <span className="type-eyebrow text-[8px] text-brand-green dark:text-emerald-400 tracking-[0.2em] font-bold">{res.eventType}</span>
                   <span
                     className={`px-3 py-1 rounded-full text-[8px] font-bold type-ui tracking-wider border transition-all ${
-                      status === "Approved"
+                      status === "Completed"
+                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                        : status === "Approved"
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                        : status === "Pre-Approved"
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                         : status === "Cancelled"
                         ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                        : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
                     }`}
                   >
                     {status}
@@ -148,24 +187,87 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                     <p className="italic text-neutral-500 dark:text-zinc-400">"{res.notes}"</p>
                   </div>
                 )}
+
+                {/* Settle payment details display for verification */}
+                {(res.referenceNumber || res.proofOfPayment) && (
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.02] p-3.5 text-xs text-neutral-500 dark:text-zinc-400 relative space-y-1">
+                    <span className="font-sans text-[8px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold block mb-1">Payment Verified</span>
+                    <div className="space-y-0.5 text-[11px]">
+                      <p>Method: <strong className="text-foreground">{res.paymentMethod || "—"}</strong></p>
+                      <p>Ref No: <strong className="text-foreground font-mono">{res.referenceNumber || "—"}</strong></p>
+                      <p className="truncate">Proof File: <strong className="text-foreground italic">{res.proofOfPayment || "—"}</strong></p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="flex gap-3 border-t border-card-border/40 pt-4">
-                {status !== "Approved" && (
+              <div className="flex gap-3 border-t border-card-border/40 pt-4" onClick={(e) => e.stopPropagation()}>
+                {status === "Pending" && (
+                  <>
+                    <button
+                      onClick={() => onUpdateStatus(res, "Pre-Approved")}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-amber-500/40 cursor-pointer"
+                    >
+                      <Check size={11} /> Pre-Approve
+                    </button>
+                    <button
+                      onClick={() => onUpdateStatus(res, "Cancelled")}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer"
+                    >
+                      <X size={11} /> Cancel
+                    </button>
+                  </>
+                )}
+
+                {status === "Pre-Approved" && (
+                  <>
+                    <button
+                      onClick={() => onUpdateStatus(res, "Approved")}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-emerald-500/40 cursor-pointer"
+                    >
+                      <Check size={11} /> Approve & Paid
+                    </button>
+                    <button
+                      onClick={() => onUpdateStatus(res, "Cancelled")}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer"
+                    >
+                      <X size={11} /> Cancel
+                    </button>
+                  </>
+                )}
+
+                {status === "Approved" && (
+                  <>
+                    <button
+                      onClick={() => onUpdateStatus(res, "Completed")}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-blue-500/40 cursor-pointer"
+                    >
+                      <Check size={11} /> Complete
+                    </button>
+                    <button
+                      onClick={() => onUpdateStatus(res, "Cancelled")}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer"
+                    >
+                      <X size={11} /> Cancel
+                    </button>
+                  </>
+                )}
+
+                {status === "Completed" && (
                   <button
                     onClick={() => onUpdateStatus(res, "Approved")}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_0_15px_rgba(16,185,129,0.1)] cursor-pointer"
+                    className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-zinc-500/40 cursor-pointer"
                   >
-                    <Check size={11} /> Approve
+                    Restore to Active (Approved)
                   </button>
                 )}
 
-                {status !== "Cancelled" && (
+                {status === "Cancelled" && (
                   <button
-                    onClick={() => onUpdateStatus(res, "Cancelled")}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 hover:shadow-[0_0_15px_rgba(239,68,68,0.1)] cursor-pointer"
+                    onClick={() => onUpdateStatus(res, "Pending")}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-zinc-500/40 cursor-pointer"
                   >
-                    <X size={11} /> Cancel
+                    Restore to Pending
                   </button>
                 )}
               </div>

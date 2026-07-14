@@ -15,6 +15,7 @@ import { Sidebar } from "./sidebar/Sidebar";
 import { DashboardTab } from "./dashboard/DashboardTab";
 import { MenuTab } from "./menu/MenuTab";
 import { ReservationsTab } from "./reservations/ReservationsTab";
+import { ReservationDetailsModal } from "./reservations/ReservationDetailsModal";
 import { LoyaltyTab } from "./loyalty/LoyaltyTab";
 import { MenuModal } from "./menu/MenuModal";
 import { LoyaltyModal } from "./loyalty/LoyaltyModal";
@@ -43,7 +44,8 @@ export const AdminView: React.FC = () => {
   // Search/Filters
   const [menuSearch, setMenuSearch] = useState("");
   const [menuCatFilter, setMenuCatFilter] = useState("All");
-  const [reservationFilter, setReservationFilter] = useState<"All" | "Pending" | "Approved" | "Cancelled">("All");
+  const [reservationFilter, setReservationFilter] = useState<"All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed">("All");
+  const [reservationSearch, setReservationSearch] = useState("");
   const [loyaltySearch, setLoyaltySearch] = useState("");
 
 
@@ -52,6 +54,7 @@ export const AdminView: React.FC = () => {
   const [showAddMenuModal, setShowAddMenuModal] = useState(false);
   const [showAddLoyaltyModal, setShowAddLoyaltyModal] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   // Form States (Menu)
   const [menuForm, setMenuForm] = useState<{
@@ -80,7 +83,7 @@ export const AdminView: React.FC = () => {
     stamps: 0
   });
   // Status mappings for reservations (we store approval state locally)
-  const [reservationStatuses, setReservationStatuses] = useState<Record<string, "Pending" | "Approved" | "Cancelled">>({});
+  const [reservationStatuses, setReservationStatuses] = useState<Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed">>({});
 
   // Custom Confirmation Modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -215,59 +218,48 @@ export const AdminView: React.FC = () => {
     }
   };
 
-  // Fetch reservations from Supabase
+  // Fetch reservations — Supabase first, fallback to local
   const fetchReservations = async () => {
     try {
-      const { supabase } = await import("@/utils/supabase");
-      if (supabase) {
-        const { data, error } = await supabase
-          .from("reservations")
-          .select("*")
-          .order("created_at", { ascending: false });
+      const res = await fetch("/api/reservations");
+      if (res.ok) {
+        const data = await res.json();
+        // Map snake_case DB columns back to camelCase
+        const mapped = (data.reservations as any[]).map((r) => ({
+          id: r.id,
+          fullName: r.full_name,
+          email: r.email,
+          phone: r.phone,
+          eventType: r.event_type,
+          date: r.date,
+          time: r.time,
+          guestCount: r.guest_count,
+          location: r.location,
+          notes: r.notes,
+          status: r.status,
+          paymentMethod: r.payment_method,
+          referenceNumber: r.reference_number,
+          proofOfPayment: r.proof_of_payment,
+          created_at: r.created_at,
+        }));
 
-        if (error) {
-          console.error("Error fetching reservations from Supabase:", error);
-          const loadedReservations = db.getReservations();
-          setReservations(loadedReservations);
-          syncLocalReservationStatuses(loadedReservations);
-          return;
-        }
-        if (data) {
-          const mappedReservations: Reservation[] = data.map((res: any) => ({
-            id: res.id,
-            fullName: res.full_name,
-            email: res.email,
-            phone: res.phone,
-            eventType: res.event_type as ReservationType,
-            date: res.date,
-            time: res.time,
-            guestCount: res.guest_count,
-            location: res.location || "",
-            notes: res.notes || undefined,
-            status: res.status as "Pending" | "Approved" | "Cancelled",
-            created_at: res.created_at
-          }));
-          setReservations(mappedReservations);
+        // Merge: include local reservations that don't exist in Supabase yet (offline bookings)
+        const localReservations = db.getReservations();
+        const supabaseIds = new Set(mapped.map((r) => r.id));
+        const onlyLocal = localReservations.filter((r) => r.id && !supabaseIds.has(r.id));
+        const merged = [...mapped, ...onlyLocal];
 
-          // Sync reservationStatuses mapping state
-          const newStatuses: Record<string, "Pending" | "Approved" | "Cancelled"> = {};
-          mappedReservations.forEach((res) => {
-            const key = `${res.fullName}-${res.date}-${res.time}`;
-            newStatuses[key] = res.status || "Pending";
-          });
-          setReservationStatuses(newStatuses);
-        }
-      } else {
-        const loadedReservations = db.getReservations();
-        setReservations(loadedReservations);
-        syncLocalReservationStatuses(loadedReservations);
+        setReservations(merged);
+        syncLocalReservationStatuses(merged);
+        return;
       }
     } catch (err) {
-      console.error("Error loading reservations:", err);
-      const loadedReservations = db.getReservations();
-      setReservations(loadedReservations);
-      syncLocalReservationStatuses(loadedReservations);
+      console.warn("Could not load from Supabase, falling back to local:", err);
     }
+    // Fallback: local db only
+    const loadedReservations = db.getReservations();
+    setReservations(loadedReservations);
+    syncLocalReservationStatuses(loadedReservations);
   };
 
   const syncLocalReservationStatuses = (loadedReservations: Reservation[]) => {
@@ -275,7 +267,7 @@ export const AdminView: React.FC = () => {
     if (savedStatuses) {
       setReservationStatuses(JSON.parse(savedStatuses));
     } else {
-      const initialStatuses: Record<string, "Pending" | "Approved" | "Cancelled"> = {};
+      const initialStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed"> = {};
       loadedReservations.forEach((res, index) => {
         const key = `${res.fullName}-${res.date}-${res.time}`;
         initialStatuses[key] = index === 0 ? "Approved" : "Pending";
@@ -399,36 +391,95 @@ export const AdminView: React.FC = () => {
     await fetchUsers();
   };
 
-  const updateReservationStatus = async (res: Reservation, newStatus: "Pending" | "Approved" | "Cancelled") => {
-    try {
-      const { supabase } = await import("@/utils/supabase");
-      if (supabase && res.id) {
-        const { error } = await supabase
-          .from("reservations")
-          .update({ status: newStatus })
-          .eq("id", res.id);
-
-        if (error) {
-          console.error("Error updating reservation status in Supabase:", error);
-          toast.error("Failed to update status on server. Updating locally...");
-        } else {
-          toast.success(`Reservation for ${res.fullName} status updated to ${newStatus}.`);
-          await fetchReservations();
-          return;
-        }
-      }
-    } catch (err) {
-      console.error("Error in updateReservationStatus Supabase path:", err);
-    }
-
+  const updateReservationStatus = async (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed") => {
     const key = `${res.fullName}-${res.date}-${res.time}`;
     const updated = { ...reservationStatuses, [key]: newStatus };
     setReservationStatuses(updated);
     localStorage.setItem("admin_reservation_statuses", JSON.stringify(updated));
+    
+    // Propagate status update back to the reservation object in localStorage
+    const localReservations = db.getReservations();
+    const idx = localReservations.findIndex((r) => r.fullName === res.fullName && r.date === res.date && r.time === res.time);
+    if (idx >= 0) {
+      localReservations[idx].status = newStatus;
+      localStorage.setItem("reservations", JSON.stringify(localReservations));
+    }
+    
+    window.dispatchEvent(new Event("storage"));
+
+    // Also update status in Supabase via API (if reservation has an id)
+    if (res.id) {
+      try {
+        await fetch(`/api/reservations/${res.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        });
+      } catch (err) {
+        console.warn("Could not update reservation status in backend:", err);
+      }
+    }
+
+    // Send automated email notifications
     if (newStatus === "Approved") {
-      toast.success(`Reservation for ${res.fullName} has been approved.`);
+      toast.success(`Reservation for ${res.fullName} has been approved & paid.`);
+      // Send secured confirmation email
+      try {
+        const emailRes = await fetch("/api/send-email/secured", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reservation: res }),
+        });
+        if (emailRes.ok) {
+          toast.success(`📧 Secured & Paid confirmation email sent to ${res.email}`);
+        } else {
+          console.warn("Email send failed:", await emailRes.text());
+          toast.warning(`Approved & Paid, but email notification could not be sent.`);
+        }
+      } catch (err) {
+        console.warn("Email API error:", err);
+        toast.warning(`Approved & Paid, but email notification could not be sent.`);
+      }
+    } else if (newStatus === "Pre-Approved") {
+      toast.success(`Reservation for ${res.fullName} has been pre-approved.`);
+      // Send approval email so customer gets the Pay Now link
+      try {
+        const emailRes = await fetch("/api/send-email/approved", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reservation: res }),
+        });
+        if (emailRes.ok) {
+          toast.success(`📧 Confirmation email sent to ${res.email}`);
+        } else {
+          console.warn("Pre-approve email send failed:", await emailRes.text());
+          toast.warning(`Pre-approved, but email notification could not be sent.`);
+        }
+      } catch (err) {
+        console.warn("Email API error:", err);
+        toast.warning(`Pre-approved, but email notification could not be sent.`);
+      }
     } else if (newStatus === "Cancelled") {
       toast.error(`Reservation for ${res.fullName} has been cancelled.`);
+    } else if (newStatus === "Completed") {
+      toast.success(`Reservation for ${res.fullName} has been completed.`);
+      // Send thank you email
+      try {
+        const emailRes = await fetch("/api/send-email/completed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reservation: res }),
+        });
+        if (emailRes.ok) {
+          toast.success(`📧 Thank you email sent to ${res.email}`);
+        } else {
+          console.warn("Thank you email send failed:", await emailRes.text());
+          toast.warning(`Completed, but thank you email could not be sent.`);
+        }
+      } catch (err) {
+        console.warn("Email API error:", err);
+        toast.warning(`Completed, but thank you email could not be sent.`);
+      }
     } else {
       toast.info(`Reservation for ${res.fullName} set to pending.`);
     }
@@ -1144,6 +1195,9 @@ export const AdminView: React.FC = () => {
                   reservationFilter={reservationFilter}
                   setReservationFilter={setReservationFilter}
                   onUpdateStatus={updateReservationStatus}
+                  reservationSearch={reservationSearch}
+                  setReservationSearch={setReservationSearch}
+                  onOpenDetails={(res) => setSelectedReservation(res)}
                 />
               )}
 
@@ -1218,6 +1272,14 @@ export const AdminView: React.FC = () => {
         confirmText={confirmModal.confirmText}
         variant={confirmModal.variant}
         onConfirm={confirmModal.onConfirm}
+      />
+
+      <ReservationDetailsModal
+        isOpen={!!selectedReservation}
+        onClose={() => setSelectedReservation(null)}
+        reservation={selectedReservation}
+        reservationStatuses={reservationStatuses}
+        onUpdateStatus={updateReservationStatus}
       />
     </div>
   );

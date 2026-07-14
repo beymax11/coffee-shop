@@ -1,6 +1,5 @@
 import { Reservation } from "@/types";
 import { db } from "@/utils/db";
-import { supabase } from "@/utils/supabase";
 
 export class ReservationService {
   /**
@@ -70,27 +69,7 @@ export class ReservationService {
   }> {
     const referenceCode = this.generateConfirmationCode();
 
-    if (supabase) {
-      const { error } = await supabase.from("reservations").insert({
-        full_name: reservation.fullName,
-        email: reservation.email,
-        phone: reservation.phone,
-        event_type: reservation.eventType,
-        date: reservation.date,
-        time: reservation.time,
-        guest_count: reservation.guestCount,
-        location: reservation.location,
-        notes: reservation.notes || null,
-        status: "Pending"
-      });
-
-      if (error) {
-        console.error("Supabase reservation insert error:", error);
-        db.saveReservation(reservation);
-      }
-    } else {
-      db.saveReservation(reservation);
-    }
+    db.saveReservation(reservation);
 
     return {
       success: true,

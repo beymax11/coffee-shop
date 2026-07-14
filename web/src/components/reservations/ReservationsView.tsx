@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText, Printer } from "lucide-react";
+import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText, Printer, Check } from "lucide-react";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 
-type ReservationType = "Coffee Cart Booking" | "Table Reservation";
+export type ReservationType = "Coffee Cart Booking" | "Table Reservation";
 
-interface FormData {
+export interface FormData {
   fullName: string;
   email: string;
   phone: string;
@@ -18,7 +18,15 @@ interface FormData {
   guestCount: number;
   location: string;
   notes: string;
+  paymentMethod: "GCash" | "Bank Transfer" | "QRPh";
+  referenceNumber: string;
+  proofOfPayment: string;
 }
+
+import { TableReservationForm, TableReservationPolicy, TableReservationReceipt } from "./TableReservation";
+import { CartReservationForm, CartReservationPolicy, CartReservationReceipt } from "./CartReservation";
+import { PaymentMethod } from "./PaymentMethod";
+import { SuccessDocket } from "./SuccessDocket";
 
 export function ReservationsView() {
   const [step, setStep] = useState(1);
@@ -32,10 +40,62 @@ export function ReservationsView() {
     guestCount: 2,
     location: "",
     notes: "",
+    paymentMethod: "GCash",
+    referenceNumber: "",
+    proofOfPayment: "",
   });
+
+  const [addressDetails, setAddressDetails] = useState({
+    landmark: "",
+    street: "",
+    barangay: "",
+    city: "",
+    province: "",
+  });
+  const [isAddressExpanded, setIsAddressExpanded] = useState(false);
+
+  const handleSaveAddress = () => {
+    const parts = [
+      addressDetails.street.trim(),
+      addressDetails.barangay.trim() ? `Brgy. ${addressDetails.barangay.trim()}` : "",
+      addressDetails.city.trim(),
+      addressDetails.province.trim(),
+      addressDetails.landmark.trim() ? `(Landmark: ${addressDetails.landmark.trim()})` : ""
+    ].filter(Boolean);
+    const combinedLocation = parts.join(", ");
+    updateField("location", combinedLocation);
+    setIsAddressExpanded(false);
+  };
 
   const [isMounted, setIsMounted] = useState(false);
   const [ticketId, setTicketId] = useState("");
+  const [reservationStatus, setReservationStatus] = useState<"Pending" | "Approved" | "Cancelled">("Pending");
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (step !== 3 || !ticketId) return;
+
+    const checkStatus = () => {
+      const key = `${formData.fullName}-${formData.date}-${formData.time}`;
+      try {
+        const statuses = JSON.parse(localStorage.getItem("admin_reservation_statuses") || "{}");
+        const currentStatus = statuses[key] || "Pending";
+        setReservationStatus(currentStatus);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 1500);
+    window.addEventListener("storage", checkStatus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", checkStatus);
+    };
+  }, [step, ticketId, formData.fullName, formData.date, formData.time]);
 
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => new Date());
 
@@ -136,26 +196,10 @@ export function ReservationsView() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const sessionEmail = localStorage.getItem("customer_session");
-    if (sessionEmail) {
-      const members = db.getLoyaltyMembers();
-      const found = members.find(
-        (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
-          (m.phone && m.phone.trim() === sessionEmail.trim())
-      );
-      if (found) {
-        setFormData((prev) => ({
-          ...prev,
-          fullName: found.name,
-          email: found.email || "",
-          phone: found.phone || "",
-        }));
-      }
-    }
-  }, []);
+  // Removed customer_session autofill to keep input fields completely empty by default
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
 
   const eventTypes: {
     type: ReservationType;
@@ -171,17 +215,28 @@ export function ReservationsView() {
         title: "Lounge Table Reservation",
         category: "In-House Café",
         desc: "Reserve a private table in our luxury matte-black café. Perfect for premium coffee tastings, quiet meetings, or personal coffee rituals.",
-        features: ["1 - 4 guests capacity", "Complimentary welcome pour", "Full patisserie menu access"],
-        pricing: "$45 / Table",
+        features: [
+          "1 - 4 guests capacity",
+          "₱3,500 fully consumable fee",
+          "3-hour table booking duration",
+          "100% refundable up to 24h prior"
+        ],
+        pricing: "₱3,500 / 3 Hours",
         icon: Coffee,
       },
       {
         type: "Coffee Cart Booking",
-        title: "Mobile Coffee Cart Sourcing",
+        title: '"Brew Buggy" Mobile Coffee Cart',
         category: "Off-Site Sourcing",
-        desc: "Sponsor our premium copper & brass espresso cart directly at weddings, fashion galas, or private product launches.",
-        features: ["2 certified master baristas", "Unlimited espresso bar drinks", "Custom foam monogram stencil"],
-        pricing: "Bespoke Quote",
+        desc: "Sponsor Antonioni Ground's exclusive Brew Buggy coffee cart, designed exclusively for special occasions.",
+        features: [
+          "Inclusions: Cart, 2 Baristas, 3 Hours Service",
+          "Flavor Options: Latte, Americano, +2 Flavors, +2 Non-Coffee",
+          "Price: 50 Pax (₱5,500) to 200 Pax (₱22,000)",
+          "10% Downpayment required to secure booking",
+          "100% Refundable up to 1 week before booking date"
+        ],
+        pricing: "From ₱5,500 / 3 Hours",
         icon: CalendarIcon,
       },
     ];
@@ -200,7 +255,7 @@ export function ReservationsView() {
       if (isExternalEvent && !formData.location) {
         newErrors.location = "Event location / venue address is required";
       }
-    } else if (step === 3) {
+
       if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
       if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
         newErrors.email = "Please enter a valid email address";
@@ -222,21 +277,151 @@ export function ReservationsView() {
     setStep((prev) => prev - 1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateStep()) {
-      setStep(4);
+    if (!validateStep()) return;
+
+    const newReservation = {
+      ...formData,
+      id: ticketId,
+      status: "Pending" as const,
+      created_at: new Date().toISOString(),
+    };
+
+    // Save to localStorage (always works, even offline)
+    db.saveReservation(newReservation);
+
+    // Also persist to Supabase via API
+    try {
+      await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newReservation),
+      });
+    } catch (err) {
+      console.warn("Could not save reservation to backend (offline fallback):", err);
     }
+
+    // Send booking confirmation email to the customer (fire-and-forget)
+    fetch("/api/send-email/booked", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reservation: newReservation }),
+    }).catch((err) =>
+      console.warn("Booking confirmation email failed (non-blocking):", err)
+    );
+
+    setStep(3);
+  };
+
+  const handleConfirmPayment = async () => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
+    if (!formData.paymentMethod) newErrors.paymentMethod = "Please select a payment method";
+    if (!formData.referenceNumber.trim()) newErrors.referenceNumber = "Reference number is required";
+    if (!formData.proofOfPayment) newErrors.proofOfPayment = "Proof of payment screenshot is required";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+
+    let finalProofUrl = formData.proofOfPayment;
+
+    // Convert file to Base64 as a fallback
+    if (proofFile) {
+      const getBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = (error) => reject(error);
+        });
+      };
+      try {
+        finalProofUrl = await getBase64(proofFile);
+      } catch (err) {
+        console.warn("Base64 conversion failed:", err);
+      }
+    }
+
+    // Upload file to Supabase if available
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase && proofFile) {
+        const fileExt = proofFile.name.split(".").pop();
+        const fileName = `proof-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("menu-images")
+          .upload(fileName, proofFile, { cacheControl: "3600", upsert: true });
+
+        if (uploadError) {
+          console.error("Supabase Storage upload error for proof:", uploadError);
+        } else if (uploadData) {
+          const { data: { publicUrl } } = supabase.storage
+            .from("menu-images")
+            .getPublicUrl(fileName);
+          finalProofUrl = publicUrl;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to upload proof of payment file:", err);
+    }
+
+    setIsPaid(true);
+
+    // Update in database / localStorage
+    if (typeof window !== "undefined") {
+      const reservations = db.getReservations();
+      const idx = reservations.findIndex((r) => r.id === ticketId);
+      if (idx >= 0) {
+        reservations[idx] = {
+          ...reservations[idx],
+          paymentMethod: formData.paymentMethod,
+          referenceNumber: formData.referenceNumber,
+          proofOfPayment: finalProofUrl,
+        };
+        localStorage.setItem("reservations", JSON.stringify(reservations));
+        window.dispatchEvent(new Event("storage"));
+      }
+    }
+
+    // Update in Supabase
+    try {
+      await fetch(`/api/reservations/${ticketId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentMethod: formData.paymentMethod,
+          referenceNumber: formData.referenceNumber,
+          proofOfPayment: finalProofUrl,
+        }),
+      });
+    } catch (err) {
+      console.warn("Could not sync payment details to backend:", err);
+    }
+
+    setShowPaymentForm(false);
   };
 
   const selectType = (type: ReservationType) => {
+    const isTableType = type === "Table Reservation";
     setFormData({
       ...formData,
       eventType: type,
-      // Default location to "Antonioni Grounds Café" if booking a table
-      location: type === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location,
-      time: type === "Table Reservation" ? "08:00 AM" : "",
+      location: isTableType ? "Antonioni Grounds - Tiaong" : "",
+      time: "08:00 AM", // default start time
+      guestCount: isTableType ? 2 : 50, // default to 50 pax package for Brew Buggy, 2 for Table
     });
+    setAddressDetails({
+      landmark: "",
+      street: "",
+      barangay: "",
+      city: "",
+      province: "",
+    });
+    setIsAddressExpanded(false);
     setErrors({ ...errors, eventType: undefined });
   };
 
@@ -257,9 +442,55 @@ export function ReservationsView() {
   const quickGuests = formData.eventType === "Table Reservation" ? [1, 2, 3, 4] : [20, 50, 100, 150];
 
   const isTable = formData.eventType === "Table Reservation";
-  const activeColor = isTable ? "bg-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.4)]" : "bg-[#8B5E3C] shadow-[0_0_12px_rgba(139,94,60,0.4)]";
-  const todayActiveDot = isTable ? "bg-emerald-500" : "bg-[#8B5E3C]";
-  const labelAccent = isTable ? "text-emerald-500/90" : "text-[#8B5E3C]/95";
+  const activeColor = "bg-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.4)]";
+  const todayActiveDot = "bg-emerald-500";
+  const labelAccent = "text-emerald-600 dark:text-emerald-400";
+
+  const getEndTimeString = (startTimeStr: string) => {
+    if (!startTimeStr) return "";
+    const match = startTimeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return "";
+    let h = parseInt(match[1]);
+    const m = match[2];
+    const ampm = match[3].toUpperCase();
+    if (ampm === "PM" && h !== 12) h += 12;
+    if (ampm === "AM" && h === 12) h = 0;
+
+    // Add 3 hours
+    h = (h + 3) % 24;
+
+    const endAmPm = h >= 12 ? "PM" : "AM";
+    let endH = h % 12;
+    if (endH === 0) endH = 12;
+
+    return `${String(endH).padStart(2, '0')}:${m} ${endAmPm}`;
+  };
+
+  const getPricingDetails = () => {
+    if (isTable) {
+      return {
+        totalPrice: 3500,
+        downpayment: 1000,
+        label: "Lounge Table Reservation Fee",
+        notes: "₱3,500 consumable for 3 hours (₱1,000 downpayment required). Refundable up to 24 hours prior."
+      };
+    } else {
+      const pax = formData.guestCount;
+      let totalPrice = 5500;
+      if (pax === 100) totalPrice = 11000;
+      else if (pax === 150) totalPrice = 16500;
+      else if (pax === 200) totalPrice = 22000;
+
+      const dp = totalPrice * 0.10;
+
+      return {
+        totalPrice,
+        downpayment: dp,
+        label: `Brew Buggy Coffee Cart (${pax} Pax Package)`,
+        notes: `Total Price: ₱${totalPrice.toLocaleString()}. 10% Downpayment (₱${dp.toLocaleString()}) required. Refundable up to 1 week prior. Downpayment is non-refundable if cancelled less than 24h prior.`
+      };
+    }
+  };
 
   return (
     <PageTransition>
@@ -307,7 +538,7 @@ export function ReservationsView() {
             repeat: Infinity,
             ease: "easeInOut"
           }}
-          className="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-[#8B5E3C]/5 blur-[150px] rounded-full pointer-events-none print:hidden"
+          className="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-[#2E5A44]/5 blur-[150px] rounded-full pointer-events-none print:hidden"
         />
 
         {/* Floating Gold/Green Particles */}
@@ -320,7 +551,7 @@ export function ReservationsView() {
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `${Math.random() * 100}%`,
-                  background: i % 2 === 0 ? "rgba(16, 185, 129, 0.15)" : "rgba(212, 197, 185, 0.15)",
+                  background: i % 2 === 0 ? "rgba(16, 185, 129, 0.15)" : "rgba(52, 211, 153, 0.15)",
                 }}
                 animate={{
                   y: [0, -120 - Math.random() * 180],
@@ -340,7 +571,7 @@ export function ReservationsView() {
         )}
 
         <div className="mx-auto max-w-7xl px-4 md:px-8 relative z-10 print:px-0">
-          {step < 4 ? (
+          {step < 3 ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
 
               <div className="lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden">
@@ -352,11 +583,11 @@ export function ReservationsView() {
                 </h1>
                 <div className="w-16 h-[1px] bg-brand-gold mt-6 mb-6" />
 
-                {step >= 2 ? (
+                {step === 2 ? (
                   <div className="space-y-6">
                     {/* Custom Interactive Calendar */}
-                    <div className="rounded-xl border border-card-border bg-card/45 backdrop-blur-md p-4 shadow-lg relative overflow-hidden">
-                      <div className="flex items-center justify-between mb-4">
+                    <div className="rounded-xl border border-card-border bg-card/45 backdrop-blur-md p-5 shadow-md relative overflow-hidden max-w-[420px] mx-auto w-full">
+                      <div className="flex items-center justify-between mb-5">
                         <button
                           type="button"
                           onClick={() => {
@@ -368,7 +599,7 @@ export function ReservationsView() {
                               setCalendarMonth(newMonth);
                             }
                           }}
-                          className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
+                          className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
                         >
                           <ChevronLeft size={16} />
                         </button>
@@ -382,23 +613,23 @@ export function ReservationsView() {
                             newMonth.setMonth(newMonth.getMonth() + 1);
                             setCalendarMonth(newMonth);
                           }}
-                          className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
+                          className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
                         >
                           <ChevronRight size={16} />
                         </button>
                       </div>
 
                       {/* Weekday Labels */}
-                      <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                      <div className="grid grid-cols-7 gap-1.5 text-center mb-2">
                         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-                          <span key={day} className="text-[10px] font-sans font-bold text-zinc-500 tracking-wider">
+                          <span key={day} className="text-xs font-sans font-bold text-zinc-500 tracking-wider">
                             {day}
                           </span>
                         ))}
                       </div>
 
                       {/* Days Grid */}
-                      <div className="grid grid-cols-7 gap-1 text-center">
+                      <div className="grid grid-cols-7 gap-1.5 text-center">
                         {getCalendarDays(calendarMonth).map((day, idx) => {
                           const dateStr = formatDateString(day.date);
                           const isSelected = formData.date === dateStr;
@@ -412,12 +643,12 @@ export function ReservationsView() {
                                 updateField("date", dateStr);
                               }}
                               className={`aspect-square flex items-center justify-center text-xs font-sans rounded-full transition-all duration-200 relative ${isSelected
-                                  ? `${activeColor} font-bold text-white`
-                                  : day.isPast
-                                    ? "text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-30"
-                                    : day.isCurrentMonth
-                                      ? "text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
-                                      : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
+                                ? `${activeColor} font-bold text-white`
+                                : day.isPast
+                                  ? "text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-30"
+                                  : day.isCurrentMonth
+                                    ? "text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
+                                    : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
                                 }`}
                             >
                               {day.date.getDate()}
@@ -432,8 +663,12 @@ export function ReservationsView() {
                     {errors.date && <span className="type-error block pl-1 text-xs text-red-500 font-sans">{errors.date}</span>}
 
                     {/* Time Selector */}
-                    {isTable ? (
-                      (() => {
+                    <div className="space-y-2">
+                      <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                        Select Starting Time
+                      </label>
+
+                      {(() => {
                         const { hour: selectedHour, minute: selectedMinute, ampm: selectedAmPm } = parseTimeStr(formData.time);
                         const handleTimeChange = (type: "hour" | "minute" | "ampm", val: string) => {
                           let h = selectedHour;
@@ -446,18 +681,15 @@ export function ReservationsView() {
                         };
 
                         return (
-                          <div className="space-y-2">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                              Select Preferred Time
-                            </label>
-                            <div className="flex items-center gap-1.5 bg-background-alt/50 p-2 rounded-xl border border-card-border">
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-1.5 bg-card/65 p-3 rounded-xl border border-card-border max-w-md mx-auto w-full">
                               {/* Hour Dropdown */}
                               <div className="flex-1">
                                 <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Hour</span>
                                 <select
                                   value={selectedHour}
                                   onChange={(e) => handleTimeChange("hour", e.target.value)}
-                                  className="w-full bg-card border border-card-border rounded-lg px-2 py-1.5 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
+                                  className="w-full bg-card border border-card-border rounded-lg px-2 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
                                 >
                                   {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((h) => (
                                     <option key={h} value={h}>{h}</option>
@@ -465,7 +697,7 @@ export function ReservationsView() {
                                 </select>
                               </div>
 
-                              <span className="text-foreground self-end mb-2 font-bold font-mono">:</span>
+                              <span className="text-foreground self-end mb-2.5 font-bold font-mono">:</span>
 
                               {/* Minute Dropdown */}
                               <div className="flex-1">
@@ -473,7 +705,7 @@ export function ReservationsView() {
                                 <select
                                   value={selectedMinute}
                                   onChange={(e) => handleTimeChange("minute", e.target.value)}
-                                  className="w-full bg-card border border-card-border rounded-lg px-2 py-1.5 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
+                                  className="w-full bg-card border border-card-border rounded-lg px-2 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
                                 >
                                   {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => (
                                     <option key={m} value={m}>{m}</option>
@@ -492,9 +724,9 @@ export function ReservationsView() {
                                         key={period}
                                         type="button"
                                         onClick={() => handleTimeChange("ampm", period)}
-                                        className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all duration-300 font-sans ${isActive
-                                            ? "bg-[#2E5A44] text-white shadow-sm"
-                                            : "text-zinc-500 hover:text-foreground"
+                                        className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all duration-300 font-sans ${isActive
+                                          ? "bg-[#2E5A44] text-white shadow-sm"
+                                          : "text-zinc-500 hover:text-foreground"
                                           }`}
                                       >
                                         {period}
@@ -504,37 +736,16 @@ export function ReservationsView() {
                                 </div>
                               </div>
                             </div>
-                            {errors.time && <span className="type-error block pl-1 text-xs text-red-500 font-sans">{errors.time}</span>}
+                            {!isTable && (
+                              <span className="text-[10px] text-zinc-400 font-light block text-center mt-1">
+                                Duration: Exactly 3 Hours slot (e.g. {formData.time} - {getEndTimeString(formData.time)})
+                              </span>
+                            )}
+                            {errors.time && <span className="type-error block pl-1 text-xs text-red-500 font-sans text-center">{errors.time}</span>}
                           </div>
                         );
-                      })()
-                    ) : (
-                      <div className="space-y-2">
-                        <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                          Select Preferred Time Slot
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {timeSlots.map((slot) => {
-                            const isSelected = formData.time === slot;
-                            return (
-                              <button
-                                key={slot}
-                                type="button"
-                                onClick={() => updateField("time", slot)}
-                                className={`px-3 py-2.5 rounded-lg text-xs font-sans border transition-all duration-300 text-center flex items-center justify-center min-h-[40px] ${
-                                  isSelected
-                                    ? "bg-[#8B5E3C]/25 border-[#8B5E3C] text-[#8B5E3C] dark:text-[#EADBC8] shadow-[0_0_12px_rgba(139,94,60,0.15)] font-semibold"
-                                    : "bg-card border-card-border text-neutral-500 hover:border-brand-gold/30 hover:bg-background"
-                                }`}
-                              >
-                                {slot}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {errors.time && <span className="type-error block pl-1 text-xs text-red-500 font-sans">{errors.time}</span>}
-                      </div>
-                    )}
+                      })()}
+                    </div>
                   </div>
                 ) : (
                   <div className="relative rounded-xl overflow-hidden border border-card-border shadow-[0_10px_35px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.6)] bg-card/40 w-full aspect-[4/5] md:aspect-[3/4] group">
@@ -559,8 +770,8 @@ export function ReservationsView() {
                           type="button"
                           onClick={() => setCurrentImgIndex(idx)}
                           className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentImgIndex === idx
-                              ? "bg-[#8B5E3C] w-3.5"
-                              : "bg-white/30 hover:bg-white/60"
+                            ? "bg-emerald-600 w-3.5"
+                            : "bg-white/30 hover:bg-white/60"
                             }`}
                         />
                       ))}
@@ -576,8 +787,8 @@ export function ReservationsView() {
                   <div className="flex items-center justify-between text-center select-none">
                     {[
                       { num: 1, label: "Experience" },
-                      { num: 2, label: "Schedule" },
-                      { num: 3, label: "Guest Details" },
+                      { num: 2, label: "Reservation Details" },
+                      { num: 3, label: "Payment Details" },
                     ].map((item, idx) => {
                       const isCurrent = step === item.num;
                       const isPassed = step > item.num;
@@ -590,32 +801,32 @@ export function ReservationsView() {
                             className="group flex flex-col items-center focus:outline-none disabled:cursor-not-allowed"
                           >
                             <span className={`font-serif text-[13px] tracking-widest ${isCurrent
-                                ? "text-emerald-600 dark:text-emerald-400 font-medium scale-105"
-                                : isPassed
-                                  ? "text-[#8B5E3C] dark:text-[#D4C5B9]"
-                                  : "text-zinc-500 dark:text-zinc-600"
+                              ? "text-emerald-600 dark:text-emerald-400 font-medium scale-105"
+                              : isPassed
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-zinc-500 dark:text-zinc-600"
                               } transition-all duration-300`}>
                               0{item.num}
                             </span>
                             <span className={`font-sans text-[9px] uppercase tracking-[0.25em] mt-1.5 font-bold ${isCurrent
-                                ? "text-foreground"
-                                : isPassed
-                                  ? "text-zinc-500 dark:text-zinc-400"
-                                  : "text-zinc-500 dark:text-zinc-600"
+                              ? "text-foreground"
+                              : isPassed
+                                ? "text-zinc-500 dark:text-zinc-400"
+                                : "text-zinc-500 dark:text-zinc-600"
                               } transition-all duration-300`}>
                               {item.label}
                             </span>
                             <div className={`h-[2px] w-6 mt-2 rounded-full transition-all duration-500 ${isCurrent
-                                ? "bg-emerald-600 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] dark:shadow-[0_0_8px_rgba(16,185,129,0.8)] w-10"
-                                : isPassed
-                                  ? "bg-[#8B5E3C]"
-                                  : "bg-zinc-200 dark:bg-white/5"
+                              ? "bg-emerald-600 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] dark:shadow-[0_0_8px_rgba(16,185,129,0.8)] w-10"
+                              : isPassed
+                                ? "bg-emerald-600 dark:bg-emerald-500"
+                                : "bg-zinc-200 dark:bg-white/5"
                               }`} />
                           </button>
 
                           {idx < 2 && (
                             <div className="flex-1 flex justify-center items-center px-4 -mt-5">
-                              <div className={`h-[1px] w-full transition-all duration-700 ${step > item.num ? "bg-[#8B5E3C]/40" : "bg-zinc-200 dark:bg-white/5"
+                              <div className={`h-[1px] w-full transition-all duration-700 ${step > item.num ? "bg-emerald-600/40" : "bg-zinc-200 dark:bg-white/5"
                                 }`} />
                             </div>
                           )}
@@ -660,29 +871,23 @@ export function ReservationsView() {
                                 whileTap={{ scale: 0.99 }}
                                 onClick={() => selectType(item.type)}
                                 className={`rounded-xl border p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[310px] h-auto select-none ${isSelected
-                                    ? isTable
-                                      ? "bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1] border-emerald-600/50 shadow-[0_10px_30px_rgba(46,90,68,0.12)] text-foreground dark:from-[#07130E]/95 dark:to-[#0F261B]/95 dark:border-emerald-500/80 dark:shadow-[0_10px_30px_rgba(46,90,68,0.25)]"
-                                      : "bg-gradient-to-br from-[#FAF5F0] to-[#F1E8DF] border-[#8B5E3C]/60 shadow-[0_10px_30px_rgba(139,94,60,0.12)] text-foreground dark:from-[#120B07]/95 dark:to-[#22150D]/95 dark:border-[#8B5E3C]/80 dark:shadow-[0_10px_30px_rgba(139,94,60,0.25)]"
-                                    : "bg-card border-card-border text-neutral-500 hover:border-brand-gold/30 hover:bg-background"
+                                  ? "bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1] border-emerald-600/50 shadow-[0_10px_30px_rgba(46,90,68,0.12)] text-foreground dark:from-[#07130E]/95 dark:to-[#0F261B]/95 dark:border-emerald-500/80 dark:shadow-[0_10px_30px_rgba(46,90,68,0.25)]"
+                                  : "bg-card border-card-border text-neutral-500 hover:border-emerald-600/30 hover:bg-background"
                                   }`}
                               >
                                 <div className="space-y-4 flex-1">
                                   {/* Card Top Row */}
                                   <div className="flex justify-between items-start">
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all ${isSelected
-                                        ? isTable
-                                          ? "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-[#2E5A44]/20 dark:text-emerald-400 dark:border-emerald-500/40"
-                                          : "bg-[#8B5E3C]/10 border-[#8B5E3C]/30 text-[#8B5E3C] dark:bg-[#8B5E3C]/20 dark:text-[#EADBC8] dark:border-[#8B5E3C]/40"
-                                        : "bg-zinc-100 dark:bg-white/5 text-zinc-500 border-zinc-200 dark:border-white/5"
+                                      ? "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-[#2E5A44]/20 dark:text-emerald-400 dark:border-emerald-500/40"
+                                      : "bg-zinc-100 dark:bg-white/5 text-zinc-500 border-zinc-200 dark:border-white/5"
                                       }`}>
                                       <Icon size={18} />
                                     </div>
                                     <div className="text-right">
                                       <span className={`text-[8px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full border ${isSelected
-                                          ? isTable
-                                            ? "text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/20 dark:border-emerald-500/30"
-                                            : "text-[#8B5E3C] bg-[#8B5E3C]/10 border-[#8B5E3C]/20 dark:text-[#EADBC8] dark:bg-[#8B5E3C]/10 dark:border-[#8B5E3C]/30"
-                                          : "text-zinc-500 border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5"
+                                        ? "text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/20 dark:border-emerald-500/30"
+                                        : "text-zinc-500 border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5"
                                         }`}>
                                         {item.category}
                                       </span>
@@ -694,10 +899,8 @@ export function ReservationsView() {
                                     <div className="flex justify-between items-baseline gap-2">
                                       <h4 className="font-serif text-sm md:text-base text-foreground tracking-wide font-medium">{item.title}</h4>
                                       <span className={`font-serif text-xs italic ${isSelected
-                                          ? isTable
-                                            ? "text-emerald-700 dark:text-emerald-400"
-                                            : "text-[#8B5E3C] dark:text-[#EADBC8]"
-                                          : "text-zinc-500"
+                                        ? "text-emerald-700 dark:text-emerald-400"
+                                        : "text-zinc-500"
                                         }`}>
                                         {item.pricing}
                                       </span>
@@ -709,7 +912,7 @@ export function ReservationsView() {
                                   <ul className="space-y-1.5 pt-3 border-t border-zinc-200 dark:border-white/5">
                                     {item.features.map((feat) => (
                                       <li key={feat} className="flex items-center gap-2 font-sans text-[10px] text-zinc-600 dark:text-zinc-400 font-light">
-                                        <span className={`w-1 h-1 rounded-full ${isSelected ? isTable ? "bg-emerald-600 dark:bg-emerald-400" : "bg-[#8B5E3C]" : "bg-zinc-400 dark:bg-zinc-600"}`} />
+                                        <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-emerald-600 dark:bg-emerald-400" : "bg-zinc-400 dark:bg-zinc-600"}`} />
                                         {feat}
                                       </li>
                                     ))}
@@ -718,10 +921,8 @@ export function ReservationsView() {
 
                                 <div className="flex justify-end pt-4 border-t border-zinc-200 dark:border-white/5 mt-4">
                                   <span className={`font-sans text-[9px] uppercase tracking-widest font-bold ${isSelected
-                                      ? isTable
-                                        ? "text-emerald-700 dark:text-emerald-400"
-                                        : "text-[#8B5E3C] dark:text-[#EADBC8]"
-                                      : "text-zinc-500 dark:text-zinc-600"
+                                    ? "text-emerald-700 dark:text-emerald-400"
+                                    : "text-zinc-500 dark:text-zinc-600"
                                     }`}>
                                     {isSelected ? "● Selected" : "Choose"}
                                   </span>
@@ -744,7 +945,7 @@ export function ReservationsView() {
                       </motion.div>
                     )}
 
-                    {/* STEP 2: DATE / TIME / DETAILS */}
+                    {/* STEP 2: BOOKING DETAILS & CONTACT */}
                     {step === 2 && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
@@ -753,176 +954,46 @@ export function ReservationsView() {
                         className="space-y-6"
                       >
                         <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
-                          <h3 className="text-xl font-serif text-foreground tracking-wide">Date & Booking Details</h3>
-                          <p className="text-xs text-zinc-500 mt-1 font-light">Provide the specific coordinates of your visit.</p>
+                          <h3 className="text-xl font-serif text-foreground tracking-wide">Booking Details & Contact Info</h3>
+                          <p className="text-xs text-zinc-500 mt-1 font-light">Provide your group details and contact coordinates.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-background-alt/40 p-6 rounded-xl border border-card-border backdrop-blur-sm">
-                          {formData.eventType === "Table Reservation" ? (
-                            <>
-                              {/* Guest Count Input Field */}
-                              <div className="space-y-2 col-span-1">
-                                <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                                  Guest Count
-                                </label>
-                                <div className="relative group">
-                                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
-                                    <Users size={14} />
-                                  </div>
-                                  <input
-                                    type="number"
-                                    required
-                                    min={1}
-                                    max={4}
-                                    value={formData.guestCount || ""}
-                                    onChange={(e) => {
-                                      const val = parseInt(e.target.value);
-                                      updateField("guestCount", isNaN(val) ? "" : Math.min(4, Math.max(1, val)));
-                                    }}
-                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    placeholder="Number of guests"
-                                  />
-                                </div>
-                                <span className="text-[9px] text-zinc-500 pl-1 font-sans block">Capacity: 1 - 4 guests</span>
-                                {errors.guestCount && <span className="type-error block mt-1">{errors.guestCount}</span>}
-                              </div>
-
-                              {/* Venue / Location Address (Disabled for Table Reservation) */}
-                              <div className="space-y-2 col-span-1">
-                                <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                                  Location
-                                </label>
-                                <div className="relative group">
-                                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
-                                    <MapPin size={14} className="text-zinc-500" />
-                                  </div>
-                                  <input
-                                    type="text"
-                                    disabled
-                                    value="Antonioni Grounds - Tiaong"
-                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-zinc-500 cursor-not-allowed"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Lounge Reserve Policy Info Card */}
-                              <div className="col-span-1 md:col-span-2 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/10 mt-2">
-                                <h4 className="text-xs font-serif font-bold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase mb-1">
-                                  Antonioni Grounds - Tiaong Lounge Reserve Policy
-                                </h4>
-                                <p className="text-[11px] text-zinc-500 leading-relaxed font-light">
-                                  To ensure the ultimate sensory experience for all guests, lounge tables are reserved for a duration of 90 minutes. Reservations are held for 15 minutes past the scheduled booking. Premium pour-overs and tasting flights are available in-lounge.
-                                </p>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              {/* Guest Count Input Field */}
-                              <div className="space-y-2 col-span-1">
-                                <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                                  Guest Count
-                                </label>
-                                <div className="relative group">
-                                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-[#8B5E3C] transition-colors">
-                                    <Users size={14} />
-                                  </div>
-                                  <input
-                                    type="number"
-                                    required
-                                    min={1}
-                                    max={200}
-                                    value={formData.guestCount || ""}
-                                    onChange={(e) => {
-                                      const val = parseInt(e.target.value);
-                                      updateField("guestCount", isNaN(val) ? "" : Math.min(200, Math.max(1, val)));
-                                    }}
-                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-[#8B5E3C]/80 focus:ring-1 focus:ring-[#8B5E3C]/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    placeholder="Number of guests"
-                                  />
-                                </div>
-                                <span className="text-[9px] text-zinc-500 pl-1 font-sans block">Capacity: 1 - 200 Pax</span>
-                                {errors.guestCount && <span className="type-error block mt-1">{errors.guestCount}</span>}
-                              </div>
-
-                              {/* Venue / Location Address */}
-                              <div className="space-y-2 col-span-1">
-                                <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
-                                  Location
-                                </label>
-                                <div className="relative group">
-                                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-[#8B5E3C]">
-                                    <MapPin size={14} className="text-zinc-500 group-focus-within:text-[#8B5E3C]" />
-                                  </div>
-                                  <input
-                                    type="text"
-                                    required
-                                    placeholder="e.g. 5th Avenue Loft, New York"
-                                    value={formData.location}
-                                    onChange={(e) => updateField("location", e.target.value)}
-                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-[#8B5E3C]/80 focus:ring-1 focus:ring-[#8B5E3C]/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
-                                  />
-                                </div>
-                                {errors.location && <span className="type-error block mt-1">{errors.location}</span>}
-                              </div>
-
-                              {/* Sourcing Info Card */}
-                              <div className="col-span-1 md:col-span-2 p-4 bg-[#8B5E3C]/5 rounded-lg border border-[#8B5E3C]/10 mt-2">
-                                <h4 className="text-xs font-serif font-bold text-[#8B5E3C] dark:text-[#EADBC8] tracking-wider uppercase mb-1">
-                                  Mobile Coffee Cart Sourcing Details
-                                </h4>
-                                <p className="text-[11px] text-zinc-500 leading-relaxed font-light">
-                                  Our premium espresso bar setup is fully mobile and includes everything needed for certified master barista services at your venue. Event coordinate details and power logistics will be finalized by our event coordination team upon reservation approval.
-                                </p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        <div className="flex justify-between pt-6 border-t border-zinc-200 dark:border-white/5">
-                          <button
-                            type="button"
-                            onClick={handleBack}
-                            className="flex items-center gap-1.5 rounded-full border border-[#8B5E3C]/20 bg-[#8B5E3C]/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-[#8B5E3C] dark:text-[#D4C5B9] hover:bg-[#8B5E3C]/10 transition-all active:scale-95"
-                          >
-                            <ChevronLeft size={14} />
-                            Back
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleNext}
-                            className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)] active:scale-95"
-                          >
-                            Continue
-                            <ChevronRight size={14} />
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-
-                    {/* STEP 3: CONTACT INFO & NOTES */}
-                    {step === 3 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="space-y-6"
-                      >
-                        <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
-                          <h3 className="text-xl font-serif text-foreground tracking-wide">Contact Information & Review</h3>
-                          <p className="text-xs text-zinc-500 mt-1 font-light">Confirm your contact coordinate details before booking.</p>
-                        </div>
-
+                        {/* Booking & Contact Information Block */}
                         <div className="space-y-5 bg-background-alt/40 p-6 rounded-xl border border-card-border backdrop-blur-sm">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {formData.eventType === "Table Reservation" ? (
+                            <TableReservationForm
+                              formData={formData}
+                              errors={errors}
+                              updateField={updateField}
+                              labelAccent={labelAccent}
+                            />
+                          ) : (
+                            <CartReservationForm
+                              formData={formData}
+                              errors={errors}
+                              updateField={updateField}
+                              labelAccent={labelAccent}
+                              addressDetails={addressDetails}
+                              setAddressDetails={setAddressDetails}
+                              isAddressExpanded={isAddressExpanded}
+                              setIsAddressExpanded={setIsAddressExpanded}
+                              handleSaveAddress={handleSaveAddress}
+                              isPackageModalOpen={isPackageModalOpen}
+                              setIsPackageModalOpen={setIsPackageModalOpen}
+                            />
+                          )}
+
+                          {/* Contact Details Fields */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                             {/* Full Name */}
                             <div>
-                              <label className="type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9]">Full Name</label>
+                              <label className={`type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent}`}>Full Name</label>
                               <div className="relative">
                                 <User className="absolute left-3 top-[15px] text-zinc-500" size={16} />
                                 <input
                                   type="text"
                                   required
-                                  placeholder="Enter your name"
+                                  placeholder="e.g. Juan Dela Cruz"
                                   value={formData.fullName}
                                   onChange={(e) => updateField("fullName", e.target.value)}
                                   className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
@@ -933,13 +1004,13 @@ export function ReservationsView() {
 
                             {/* Email */}
                             <div>
-                              <label className="type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9]">Email Address</label>
+                              <label className={`type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent}`}>Email Address</label>
                               <div className="relative">
                                 <Mail className="absolute left-3 top-[15px] text-zinc-500" size={16} />
                                 <input
                                   type="email"
                                   required
-                                  placeholder="john@example.com"
+                                  placeholder="e.g. juan.delacruz@gmail.com"
                                   value={formData.email}
                                   onChange={(e) => updateField("email", e.target.value)}
                                   className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
@@ -951,7 +1022,7 @@ export function ReservationsView() {
 
                           {/* Phone */}
                           <div className="space-y-2">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
+                            <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
                               Phone Number
                             </label>
                             <div className="relative group">
@@ -961,7 +1032,7 @@ export function ReservationsView() {
                               <input
                                 type="tel"
                                 required
-                                placeholder="+1 (555) 019-2834"
+                                placeholder="e.g. 09171234567"
                                 value={formData.phone}
                                 onChange={(e) => updateField("phone", e.target.value)}
                                 className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
@@ -972,7 +1043,7 @@ export function ReservationsView() {
 
                           {/* Additional Notes */}
                           <div className="space-y-2">
-                            <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-[#8B5E3C]/90 dark:text-[#D4C5B9] block pl-1">
+                            <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
                               Special Requests / Notes
                             </label>
                             <div className="relative group">
@@ -981,7 +1052,7 @@ export function ReservationsView() {
                               </div>
                               <textarea
                                 rows={3}
-                                placeholder="e.g. Saffron allergy, custom menu engravings, special staging, custom foam art..."
+                                placeholder="e.g. Extra table for gifts, custom foam design..."
                                 value={formData.notes}
                                 onChange={(e) => updateField("notes", e.target.value)}
                                 className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none placeholder:text-neutral-400 dark:placeholder:text-zinc-700 min-h-[90px]"
@@ -990,41 +1061,58 @@ export function ReservationsView() {
                           </div>
                         </div>
 
+                        {/* Policy Info Card */}
+                        {formData.eventType === "Table Reservation" ? (
+                          <TableReservationPolicy />
+                        ) : (
+                          <CartReservationPolicy />
+                        )}
+
                         {/* Summary Block */}
                         <div className="rounded-xl border border-card-border bg-card p-6 space-y-4 mt-8 relative overflow-hidden">
                           {/* Inner emerald decorative line */}
                           <div className="absolute inset-2 border border-emerald-500/10 dark:border-emerald-950/20 rounded-lg pointer-events-none" />
                           <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/5 pb-3 relative z-10">
-                            <h4 className="font-sans text-[10px] uppercase font-bold tracking-[0.25em] text-emerald-600 dark:text-emerald-400">Review Booking Details</h4>
-                            <span className="font-serif text-[11px] text-[#8B5E3C] dark:text-[#D4C5B9] italic">Summary</span>
+                            <h4 className={`font-sans text-[10px] uppercase font-bold tracking-[0.25em] ${labelAccent}`}>Review Booking Details</h4>
+                            <span className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Summary</span>
                           </div>
 
                           <div className="space-y-3.5 pt-2 relative z-10">
-                            {[
-                              { label: "Selected Experience", value: formData.eventType, highlight: true },
-                              { label: "Reservation Date", value: formData.date },
-                              { label: "Preferred Time Slot", value: formData.time },
-                              { label: "Guests Attending", value: `${formData.guestCount} Guests` },
-                              { 
-                                label: formData.eventType === "Table Reservation" ? "Store Location" : "Venue Coordinate", 
-                                value: formData.eventType === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location 
-                              },
-                            ].map((row, idx) => (
-                              <div key={idx} className="flex justify-between items-baseline gap-4 text-xs">
-                                <span className="font-sans text-zinc-500 font-light whitespace-nowrap">{row.label}</span>
-                                <span className={`font-serif text-right ${row.highlight ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-foreground font-medium"}`}>
-                                  {row.value || "—"}
-                                </span>
-                              </div>
-                            ))}
+                            {(() => {
+                              const pricing = getPricingDetails();
+                              const endTime = getEndTimeString(formData.time);
+                              const list = [
+                                { label: "Selected Experience", value: formData.eventType === "Table Reservation" ? "Lounge Table Reservation" : '"Brew Buggy" Mobile Coffee Cart', highlight: true },
+                                { label: "Reservation Date", value: formData.date },
+                                { label: "Service Time (3 Hrs)", value: `${formData.time} - ${endTime}` },
+                                { label: "Capacity / Package", value: formData.eventType === "Table Reservation" ? `${formData.guestCount} Guests` : `${formData.guestCount} Pax Package` },
+                                { label: "Location", value: formData.eventType === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location },
+                                { label: "Package Price", value: `₱${pricing.totalPrice.toLocaleString()}` },
+                                { label: "Required Downpayment", value: `₱${pricing.downpayment.toLocaleString()}`, highlight: true }
+                              ];
+
+                              return list.map((row, idx) => (
+                                <div key={idx} className="flex justify-between items-baseline gap-4 text-xs">
+                                  <span className="font-sans text-zinc-500 dark:text-zinc-400 font-normal whitespace-nowrap">{row.label}</span>
+                                  <span className={`font-sans text-right ${row.highlight ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-foreground font-medium"}`}>
+                                    {row.value || "—"}
+                                  </span>
+                                </div>
+                              ));
+                            })()}
                           </div>
+                        </div>
+
+                        {/* Summary Policy footer note */}
+                        <div className="mt-4 px-2 text-[10px] text-zinc-500 dark:text-zinc-400 font-light leading-relaxed">
+                          {getPricingDetails().notes}
                         </div>
 
                         <div className="flex justify-between pt-6 border-t border-zinc-200 dark:border-white/5 mt-8">
                           <button
                             type="button"
                             onClick={handleBack}
-                            className="flex items-center gap-1.5 rounded-full border border-[#8B5E3C]/20 bg-[#8B5E3C]/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-[#8B5E3C] dark:text-[#D4C5B9] hover:bg-[#8B5E3C]/10 transition-all active:scale-95"
+                            className="flex items-center gap-1.5 rounded-full border border-emerald-600/20 bg-emerald-600/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 transition-all active:scale-95"
                           >
                             <ChevronLeft size={14} />
                             Back
@@ -1046,131 +1134,27 @@ export function ReservationsView() {
             </div>
           ) : (
             /* Centered success docket screen */
-            <div className="max-w-xl mx-auto py-8 print:py-0 print:max-w-none">
-              {/* STEP 4: SUCCESS CONFIRMATION SCREEN */}
-              {step === 4 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-center space-y-6 print:space-y-0"
-                >
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#2E5A44]/10 border border-[#2E5A44]/30 text-emerald-600 dark:text-emerald-400 shadow-[0_0_20px_rgba(46,90,68,0.2)] print:hidden">
-                    <CheckCircle2 size={36} className="stroke-[1.5]" />
-                  </div>
-
-                  <div className="space-y-2 print:hidden">
-                    <h3 className="text-3xl font-serif text-foreground tracking-wide font-semibold">Reservation Confirmed</h3>
-                    <p className="font-sans text-sm text-zinc-600 dark:text-zinc-400 font-light leading-relaxed max-w-md mx-auto">
-                      Thank you for choosing L&apos;OR NOIR. An elegant confirmation docket and calendar invite have been dispatched to <strong className="text-foreground font-medium">{formData.email}</strong>.
-                    </p>
-                  </div>
-
-                  {/* Visual Receipt Card */}
-                  <div
-                    id="reservation-ticket"
-                    className="max-w-md mx-auto rounded-xl border border-card-border bg-card p-8 text-left space-y-6 relative border-t-4 border-t-[#2E5A44] shadow-2xl overflow-hidden font-sans print:bg-white print:text-black print:border-t-black print:border print:border-zinc-300 print:shadow-none print:max-w-none"
-                  >
-                    {/* Punch hole cutouts on side */}
-                    <div className="absolute -left-3 top-[73%] w-6 h-6 rounded-full bg-background border-r border-card-border z-10 print:hidden" />
-                    <div className="absolute -right-3 top-[73%] w-6 h-6 rounded-full bg-background border-l border-card-border z-10 print:hidden" />
-
-                    {/* Stamp overlay */}
-                    <div className="absolute top-16 right-6 border-2 border-emerald-500/20 text-emerald-500/30 px-3 py-1 rounded text-xs font-serif uppercase tracking-[0.2em] font-bold rotate-12 select-none pointer-events-none print:border-black/20 print:text-black/30">
-                      RESERVE SECURED
-                    </div>
-
-                    {/* Monogram water mark */}
-                    <div className="absolute -right-6 -bottom-6 text-[#2E5A44]/10 pointer-events-none text-9xl font-serif select-none font-bold italic print:text-zinc-100">AG</div>
-
-                    <div className="flex justify-between items-center border-b border-zinc-200 dark:border-white/5 pb-3">
-                      <div>
-                        <span className="font-sans text-[9px] uppercase tracking-widest text-zinc-500 print:text-zinc-500 block">Reservation Docket</span>
-                        <h4 className="font-mono text-sm text-foreground print:text-black mt-1 tracking-wider">#{ticketId || "LN-XXXXXX"}</h4>
-                      </div>
-                      <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-[#2E5A44]/10 border border-[#2E5A44]/30 px-2.5 py-1 rounded font-bold shadow-[0_0_10px_rgba(16,185,129,0.1)] print:text-black print:bg-zinc-100 print:border-zinc-300 print:shadow-none">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)] print:bg-zinc-500 print:animate-none print:shadow-none" />
-                        PENDING APPROVAL
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-4 pt-2 font-sans text-zinc-600 dark:text-zinc-400 print:text-zinc-800">
-                      <div>
-                        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Guest Name</span>
-                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.fullName}</span>
-                      </div>
-                      <div>
-                        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Contact Phone</span>
-                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.phone}</span>
-                      </div>
-                      <div>
-                        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Experience</span>
-                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.eventType}</span>
-                      </div>
-                      <div>
-                        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Schedule</span>
-                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">{formData.date} at {formData.time}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">
-                          {formData.eventType === "Table Reservation" ? "Store Location" : "Venue / Sourced Location"}
-                        </span>
-                        <span className="font-serif text-sm text-foreground print:text-black font-medium mt-0.5 block">
-                          {formData.eventType === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location}
-                        </span>
-                      </div>
-                      {formData.notes && (
-                        <div className="col-span-2 border-t border-zinc-200 dark:border-white/5 print:border-zinc-200 pt-3">
-                          <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Special Requests</span>
-                          <span className="font-sans text-xs text-zinc-500 dark:text-zinc-400 print:text-zinc-700 italic font-light leading-relaxed block mt-1.5">{formData.notes}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Decorative barcode at the bottom */}
-                    <div className="flex flex-col items-center pt-6 border-t border-dashed border-zinc-200 dark:border-white/10 print:border-zinc-200 mt-8 select-none">
-                      <div className="relative w-48 h-7 overflow-hidden opacity-60 print:opacity-100">
-                        {/* Barcode line pattern */}
-                        <div className="h-full w-full bg-[repeating-linear-gradient(90deg,var(--foreground)_0px,var(--foreground)_2px,transparent_2px,transparent_5px,var(--foreground)_5px,var(--foreground)_6px,transparent_6px,transparent_10px)]" />
-                        {/* Red Laser Line */}
-                        <motion.div
-                          className="absolute left-0 right-0 h-[2px] bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] print:hidden"
-                          animate={{ top: ["0%", "100%", "0%"] }}
-                          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                        />
-                      </div>
-                      <span className="font-mono text-[9px] text-zinc-500 print:text-zinc-600 tracking-[0.25em] mt-2 uppercase">#{ticketId || "LN-XXXXXX"}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-6 flex flex-wrap justify-center gap-3.5 print:hidden">
-                    <button
-                      type="button"
-                      onClick={() => window.print()}
-                      className="rounded-full border border-[#8B5E3C]/30 bg-[#8B5E3C]/10 px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-[#8B5E3C] dark:text-[#EADBC8] hover:bg-[#8B5E3C]/20 transition-all active:scale-95 flex items-center gap-1.5"
-                    >
-                      <Printer size={13} />
-                      Print Docket
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
-                      className="rounded-full border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-white/5 px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 transition-all active:scale-95"
-                    >
-                      Book Another
-                    </button>
-                    <a
-                      href="/menu"
-                      className="rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)] active:scale-95"
-                    >
-                      Explore Menu
-                    </a>
-                  </div>
-                </motion.div>
-              )}
-            </div>
+            <SuccessDocket
+              step={step}
+              formData={formData}
+              errors={errors}
+              updateField={updateField}
+              labelAccent={labelAccent}
+              ticketId={ticketId}
+              reservationStatus={reservationStatus}
+              isPaid={isPaid}
+              showPaymentForm={showPaymentForm}
+              setShowPaymentForm={setShowPaymentForm}
+              handleConfirmPayment={handleConfirmPayment}
+              getEndTimeString={getEndTimeString}
+              getPricingDetails={getPricingDetails}
+              onFileSelect={setProofFile}
+            />
           )}
         </div>
       </div>
+
+
     </PageTransition>
   );
 }

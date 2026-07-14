@@ -10,7 +10,7 @@ interface DashboardTabProps {
   reservationsCount: number;
   loyaltyMembersCount: number;
   recentReservations: Reservation[];
-  reservationStatuses: Record<string, "Pending" | "Approved" | "Cancelled">;
+  reservationStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed">;
   onNavigate: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users") => void;
   onNewMenuItemClick: () => void;
   onRegisterLoyaltyClick: () => void;
@@ -136,11 +136,15 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   </div>
                   <span
                     className={`px-3 py-1 rounded-full text-[8px] font-bold type-ui tracking-wider border shrink-0 transition-all ${
-                      status === "Approved"
+                      status === "Completed"
+                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                        : status === "Approved"
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                        : status === "Pre-Approved"
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                         : status === "Cancelled"
                         ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                        : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
                     }`}
                   >
                     {status}

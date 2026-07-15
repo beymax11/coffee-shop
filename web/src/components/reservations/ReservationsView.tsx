@@ -5,6 +5,7 @@ import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, C
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
+import { notificationsService } from "@/utils/notifications";
 
 export type ReservationType = "Coffee Cart Booking" | "Table Reservation";
 
@@ -291,6 +292,14 @@ export function ReservationsView() {
     // Save to localStorage (always works, even offline)
     db.saveReservation(newReservation);
 
+    // Add customer notification for booking submission
+    notificationsService.addNotification(
+      newReservation.email,
+      "Reservation Submitted",
+      `We received your request for a ${newReservation.eventType} on ${newReservation.date} at ${newReservation.time}.`,
+      "reservation"
+    );
+
     // Also persist to Supabase via API
     try {
       await fetch("/api/reservations", {
@@ -386,6 +395,14 @@ export function ReservationsView() {
         window.dispatchEvent(new Event("storage"));
       }
     }
+
+    // Add customer notification for payment proof submission
+    notificationsService.addNotification(
+      formData.email,
+      "Payment Details Submitted",
+      `Your payment reference code for reservation ${ticketId} has been submitted for verification.`,
+      "reservation"
+    );
 
     // Update in Supabase
     try {

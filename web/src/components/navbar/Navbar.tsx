@@ -7,9 +7,10 @@ import { Menu, X, LogIn, UserRound, LogOut, Loader2, Sun, Moon } from "lucide-re
 import { useScroll } from "@/hooks/use-scroll";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, LoyaltyMember } from "@/utils/db";
-import { NotificationDropdown } from "./NotificationDropdown";
+import { NotificationDropdown, NotificationItem } from "./NotificationDropdown";
 import { ProfileModal } from "./ProfileModal";
 import { LoginDrawer } from "@/components/login/LoginDrawer";
+import { notificationsService } from "@/utils/notifications";
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -19,29 +20,7 @@ export const Navbar: React.FC = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Reservation Confirmed",
-      message: "Your table reservation is confirmed. See you soon!",
-      time: "5m ago",
-      unread: true,
-    },
-    {
-      id: 2,
-      title: "Double Points Active",
-      message: "Earn double stamps on any single-origin pour over today!",
-      time: "2h ago",
-      unread: true,
-    },
-    {
-      id: 3,
-      title: "Welcome Offer",
-      message: "Thanks for joining! Enjoy your personalized stamp card.",
-      time: "1d ago",
-      unread: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   // Read theme on mount
   useEffect(() => {
@@ -87,6 +66,94 @@ export const Navbar: React.FC = () => {
     window.addEventListener("storage", checkSession);
     return () => window.removeEventListener("storage", checkSession);
   }, []);
+
+  const formatNotificationTime = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMins < 1) return "Just now";
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return `${diffDays}d ago`;
+    } catch {
+      return "Recently";
+    }
+  };
+
+  // Fetch and subscribe to client-side notifications
+  useEffect(() => {
+    if (!customer?.email) {
+      setNotifications([]);
+      return;
+    }
+
+    const loadNotifications = async () => {
+      const list = await notificationsService.fetchNotifications(customer.email);
+      setNotifications(
+        list.map((n) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          time: formatNotificationTime(n.created_at),
+          unread: n.unread,
+        }))
+      );
+    };
+
+    loadNotifications();
+
+    // Listen for storage events (offline/localStorage changes)
+    window.addEventListener("storage", loadNotifications);
+
+    // Subscribe to realtime database changes on Supabase if available
+    let subscription: any = null;
+    let channel: any = null;
+    import("@/utils/supabase").then(({ supabase }) => {
+      if (supabase && customer?.email) {
+        channel = supabase.channel(`customer-notifications-${customer.email.toLowerCase()}`);
+        subscription = channel
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "notifications",
+              filter: `email=eq.${customer.email.toLowerCase()}`,
+            },
+            () => {
+              loadNotifications();
+            }
+          )
+          .subscribe();
+      }
+    });
+
+    return () => {
+      window.removeEventListener("storage", loadNotifications);
+      if (channel && subscription) {
+        channel.unsubscribe();
+      }
+    };
+  }, [customer?.email]);
+
+  const handleMarkAsRead = async (id: string) => {
+    if (!customer?.email) return;
+    await notificationsService.markAsRead(id, customer.email);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+    );
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!customer?.email) return;
+    await notificationsService.markAllAsRead(customer.email);
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+  };
 
   const handleLogout = () => {
     setIsLoggingOut(true);
@@ -188,7 +255,8 @@ export const Navbar: React.FC = () => {
             {customer && (
               <NotificationDropdown
                 notifications={notifications}
-                setNotifications={setNotifications}
+                onMarkAsRead={handleMarkAsRead}
+                onMarkAllAsRead={handleMarkAllAsRead}
               />
             )}
 

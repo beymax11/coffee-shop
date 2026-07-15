@@ -31,21 +31,23 @@ const ctaTap = { scale: 0.97 };
 
 export const HomeHero: React.FC = () => {
   return (
-    <section className="relative min-h-[calc(100vh-72px)] md:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-black py-16 sm:py-0">
+    <section className="relative min-h-[calc(100vh-72px)] md:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] py-16 sm:py-0">
       {/* Background with slow Ken Burns */}
-      <motion.div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage:
-            "url('/hero.png')",
-        }}
-        initial={{ scale: 1.12, opacity: 0 }}
-        animate={{ scale: [1.08, 1.12, 1.08], opacity: 1 }}
-        transition={{
-          opacity: { duration: 1.4, ease: EASE },
-          scale: { duration: 22, repeat: Infinity, ease: "linear" },
-        }}
-      />
+      <div className="absolute inset-0 opacity-100 dark:opacity-80 transition-opacity duration-500">
+        <motion.div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage:
+              "url('/hero.png')",
+          }}
+          initial={{ scale: 1.12, opacity: 0 }}
+          animate={{ scale: [1.08, 1.12, 1.08], opacity: 1 }}
+          transition={{
+            opacity: { duration: 1.4, ease: EASE },
+            scale: { duration: 22, repeat: Infinity, ease: "linear" },
+          }}
+        />
+      </div>
 
       {/* Overlays — left scrim for readable copy, photo stays visible on the right */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B]/95 via-[#0B0B0B]/55 to-transparent" />
@@ -54,12 +56,12 @@ export const HomeHero: React.FC = () => {
 
       {/* Ambient gold glow — anchored near left content */}
       <motion.div
-        className="absolute top-[18%] left-[8%] w-[280px] h-[280px] bg-[#2E5A44]/15 blur-[100px] rounded-full"
+        className="absolute top-[18%] left-[8%] w-[280px] h-[280px] bg-brand-green/10 dark:bg-brand-green/15 blur-[100px] rounded-full hidden dark:block"
         animate={{ opacity: [0.35, 0.55, 0.35], scale: [1, 1.06, 1] }}
         transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute bottom-[20%] right-[12%] w-[320px] h-[320px] bg-[#2E5A44]/8 blur-[110px] rounded-full"
+        className="absolute bottom-[20%] right-[12%] w-[320px] h-[320px] bg-brand-green/5 dark:bg-brand-green/8 blur-[110px] rounded-full hidden dark:block"
         animate={{ opacity: [0.2, 0.4, 0.2], scale: [1.04, 1, 1.04] }}
         transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
@@ -147,7 +149,7 @@ export const HomeHero: React.FC = () => {
       </motion.div>
 
       {/* Bottom blend into next section */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 md:h-40 bg-gradient-to-t from-background to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 md:h-40 bg-gradient-to-t from-background to-transparent hidden dark:block" />
 
       {/* Seam hairline */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />

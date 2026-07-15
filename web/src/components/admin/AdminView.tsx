@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { getMaintenanceMode, setMaintenanceMode } from "@/utils/settings";
 import { formatPhoneNumber } from "@/utils/phone";
+import { notificationsService } from "@/utils/notifications";
 
 // Import modular sub-components
 import { Sidebar } from "./sidebar/Sidebar";
@@ -483,6 +484,24 @@ export const AdminView: React.FC = () => {
     } else {
       toast.info(`Reservation for ${res.fullName} set to pending.`);
     }
+
+    // Add customer database notification
+    let notifTitle = "Reservation Updated";
+    let notifMsg = `Your reservation status has been set to ${newStatus}.`;
+    if (newStatus === "Approved") {
+      notifTitle = "Reservation Confirmed";
+      notifMsg = `Your table reservation on ${res.date} at ${res.time} has been approved. See you soon!`;
+    } else if (newStatus === "Pre-Approved") {
+      notifTitle = "Reservation Pre-Approved";
+      notifMsg = `Your booking request is pre-approved! Please submit your payment reference code to lock in your table.`;
+    } else if (newStatus === "Cancelled") {
+      notifTitle = "Reservation Cancelled";
+      notifMsg = `Your booking request for ${res.date} at ${res.time} has been cancelled.`;
+    } else if (newStatus === "Completed") {
+      notifTitle = "Reservation Completed";
+      notifMsg = `Thank you for visiting Antonioni Grounds! Your reservation is marked as completed.`;
+    }
+    notificationsService.addNotification(res.email, notifTitle, notifMsg, "reservation");
   };
 
   const handleLogout = () => {
@@ -559,6 +578,13 @@ export const AdminView: React.FC = () => {
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
     playBeep();
     toast.success(`Awarded 1 stamp to ${member.name}. (${newStamps}/9)`);
+
+    notificationsService.addNotification(
+      member.email,
+      "Stamp Earned",
+      `A new stamp was added to your loyalty card. (${newStamps}/9 stamps)`,
+      "loyalty"
+    );
   };
 
   const handleRevokeStamp = async (member: LoyaltyMember) => {
@@ -588,6 +614,13 @@ export const AdminView: React.FC = () => {
     const updated = { ...member, stamps: newStamps };
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
     toast.info(`Revoked 1 stamp from ${member.name}. (${newStamps}/9)`);
+
+    notificationsService.addNotification(
+      member.email,
+      "Stamp Revoked",
+      `A stamp was removed from your loyalty card. (${newStamps}/9 stamps)`,
+      "loyalty"
+    );
   };
   const handleRedeemFreeDrink = (member: LoyaltyMember) => {
     setConfirmModal({
@@ -621,6 +654,14 @@ export const AdminView: React.FC = () => {
 
         const updated = { ...member, stamps: 0 };
         setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+        
+        notificationsService.addNotification(
+          member.email,
+          "Loyalty Card Redeemed",
+          "You claimed your free drink reward! Your stamps have been reset to 0.",
+          "loyalty"
+        );
+
         toast.success(`Successfully redeemed free drink for ${member.name}! Stamps reset.`);
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
       }

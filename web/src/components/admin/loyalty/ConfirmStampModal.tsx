@@ -72,13 +72,13 @@ export const ConfirmStampModal: React.FC<ConfirmStampModalProps> = ({
 
                 {/* Miniature progress pill */}
                 <span className="bg-[#2E5A44]/10 dark:bg-emerald-500/10 text-brand-green dark:text-emerald-400 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border border-brand-green/20">
-                  {selectedMember.stamps} / 9
+                  {selectedMember.stamps} / 10
                 </span>
               </div>
 
               {/* Stamp visual slot preview grid */}
-              <div className="grid grid-cols-9 gap-1 sm:gap-1.5 pt-2 border-t border-card-border/40">
-                {Array.from({ length: 9 }).map((_, idx) => {
+              <div className="grid grid-cols-10 gap-1 sm:gap-1.5 pt-2 border-t border-card-border/40">
+                {Array.from({ length: 10 }).map((_, idx) => {
                   const isStamped = idx < selectedMember.stamps;
                   const isNextToStamp = idx === selectedMember.stamps;
 
@@ -118,10 +118,10 @@ export const ConfirmStampModal: React.FC<ConfirmStampModalProps> = ({
                 <div className="h-1.5 w-full bg-foreground/[0.05] rounded-full overflow-hidden border border-card-border/30">
                   <div
                     className="h-full bg-gradient-to-r from-brand-green to-emerald-500 transition-all duration-500"
-                    style={{ width: `${((selectedMember.stamps + 1) / 9) * 100}%` }}
+                    style={{ width: `${((selectedMember.stamps + 1) / 10) * 100}%` }}
                   />
                 </div>
-                {selectedMember.stamps + 1 === 9 && (
+                {selectedMember.stamps + 1 === 10 && (
                   <p className="text-[10px] text-brand-green dark:text-emerald-400 font-bold flex items-center gap-1 animate-pulse pt-1">
                     <Zap size={11} /> This stamp will unlock a complimentary drink reward!
                   </p>
@@ -141,10 +141,10 @@ export const ConfirmStampModal: React.FC<ConfirmStampModalProps> = ({
                   onAwardStamp(selectedMember);
                   onClose();
                 }}
-                disabled={selectedMember.stamps >= 9}
+                disabled={selectedMember.stamps >= 10}
                 className="w-full sm:flex-1 rounded-full bg-brand-green py-3 text-xs text-white hover:bg-brand-green-hover transition-all duration-300 font-bold disabled:opacity-40 disabled:pointer-events-none cursor-pointer green-glow shadow-md shadow-brand-green/20 min-h-[44px]"
               >
-                {selectedMember.stamps >= 9 ? "Card Full (9/9)" : "Award 1 Stamp"}
+                {selectedMember.stamps >= 10 ? "Card Full (10/10)" : "Award 1 Stamp"}
               </button>
             </div>
           </motion.div>

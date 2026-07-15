@@ -100,7 +100,7 @@ export const LoyaltyDetailsModal: React.FC<LoyaltyDetailsModalProps> = ({
                 <div className="flex justify-between items-center text-xs border-t border-card-border/40 pt-4">
                   <span className="text-neutral-500 dark:text-zinc-400 font-medium">Stamps Collected</span>
                   <span className="text-foreground font-mono font-bold text-sm bg-neutral-100 dark:bg-zinc-800/60 px-2.5 py-0.5 rounded-full border border-card-border/60">
-                    {selectedMember.stamps} / 9
+                    {selectedMember.stamps} / 10
                   </span>
                 </div>
               </div>
@@ -108,8 +108,8 @@ export const LoyaltyDetailsModal: React.FC<LoyaltyDetailsModalProps> = ({
               {/* Stamps slot preview grid inside the details modal */}
               <div className="mb-6 space-y-2.5">
                 <span className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold block">Visual Stamp Progress</span>
-                <div className="grid grid-cols-9 gap-1.5 p-3.5 bg-foreground/[0.01] rounded-xl border border-card-border/40">
-                  {Array.from({ length: 9 }).map((_, idx) => {
+                <div className="grid grid-cols-10 gap-1 p-3.5 bg-foreground/[0.01] rounded-xl border border-card-border/40">
+                  {Array.from({ length: 10 }).map((_, idx) => {
                     const isStamped = idx < selectedMember.stamps;
                     return (
                       <div
@@ -198,11 +198,11 @@ export const LoyaltyDetailsModal: React.FC<LoyaltyDetailsModalProps> = ({
                 </div>
                 <div className="flex justify-between border-t border-card-border/40 pt-2.5 mt-1">
                   <span className="text-neutral-500 dark:text-zinc-400">Current Stamps</span>
-                  <span className="text-foreground font-bold font-mono">{selectedMember.stamps} / 9</span>
+                  <span className="text-foreground font-bold font-mono">{selectedMember.stamps} / 10</span>
                 </div>
                 <div className="flex justify-between text-red-500 dark:text-red-400 font-bold">
                   <span>New Stamp Count</span>
-                  <span className="font-mono">{selectedMember.stamps - 1} / 9</span>
+                  <span className="font-mono">{selectedMember.stamps - 1} / 10</span>
                 </div>
               </div>
 

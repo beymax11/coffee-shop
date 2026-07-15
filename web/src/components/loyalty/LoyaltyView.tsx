@@ -176,7 +176,7 @@ export function LoyaltyView() {
   };
 
   const handleClaimReward = () => {
-    if (stamps < 9) return;
+    if (stamps < 10) return;
 
     setStamps(0);
     const newPoints = points + 50;
@@ -399,16 +399,16 @@ export function LoyaltyView() {
                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pr-12 gap-4">
                             <div>
                               <h3 className="type-h3 text-emerald-600 dark:text-emerald-400">Every stamp is a step toward another unforgettable brew.</h3>
-                              <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Buy 9 coffees, get the 10th complimentary.</p>
+                              <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Buy 10 coffees, get the 11th complimentary.</p>
                             </div>
 
-                            {stamps >= 9 && (
+                            {stamps >= 10 && (
                               <button
                                 onClick={handleClaimReward}
                                 className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 type-ui flex items-center gap-1.5 transition-all shadow-lg animate-pulse"
                               >
                                 <Gift size={14} className="text-emerald-300" />
-                                Claim Complimentary Geisha
+                                Claim Free Antonioni Blends Modest
                               </button>
                             )}
                           </div>
@@ -435,15 +435,19 @@ export function LoyaltyView() {
 
                           {/* Stamp Card Grid */}
                           <div className="grid grid-cols-5 gap-4 mt-6 justify-items-center">
-                            {Array.from({ length: 9 }).map((_, idx) => {
+                            {Array.from({ length: 10 }).map((_, idx) => {
                               const isStamped = idx < stamps;
+                              const isRewardSlot = idx === 9;
                               return (
                                 <div
                                   key={idx}
-                                  className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-300 ${isStamped
-                                    ? "bg-transparent border-emerald-500/40"
-                                    : "bg-zinc-100 border-zinc-200/80 dark:bg-[#181818] dark:border-white/5"
-                                    }`}
+                                  className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-300 ${
+                                    isStamped
+                                      ? "bg-transparent border-emerald-500/40"
+                                      : isRewardSlot
+                                        ? "bg-zinc-100 border-emerald-500/40 text-zinc-500 dark:bg-[#181818] dark:border-emerald-500/30 dark:text-zinc-600 cursor-pointer"
+                                        : "bg-zinc-100 border-zinc-200/80 dark:bg-[#181818] dark:border-white/5"
+                                  } ${isRewardSlot && stamps >= 10 ? "bg-emerald-50/70 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-lg gold-glow cursor-pointer" : ""} ${isRewardSlot ? "group" : ""}`}
                                 >
                                   {isStamped ? (
                                     <motion.div
@@ -462,19 +466,21 @@ export function LoyaltyView() {
                                   ) : (
                                     <span className="text-zinc-500 dark:text-zinc-600 font-bold text-base sm:text-lg font-mono">{idx + 1}</span>
                                   )}
+
+                                  {/* If it's the 10th slot, mark it with a Gift icon at the top */}
+                                  {isRewardSlot && (
+                                    <div className={`absolute -top-2.5 -right-2.5 rounded-full p-1.5 bg-emerald-500 text-white shadow-md z-20 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 ${stamps >= 10 ? "animate-bounce" : ""}`}>
+                                      <Gift size={16} />
+                                      {/* Hover tooltip for the entire 10th circle positioned on top of the Gift icon */}
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-zinc-900 dark:bg-zinc-800 text-white text-[10px] font-bold rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-lg border border-white/10 z-30">
+                                        Free Drink
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900 dark:border-t-zinc-800" />
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
-
-                            {/* Stamp 10: Reward Slot */}
-                            <div
-                              className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-500 ${stamps >= 9
-                                ? "bg-emerald-50/70 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-lg gold-glow"
-                                : "bg-zinc-100 border-zinc-200/80 border-dashed text-zinc-400 dark:bg-[#181818] dark:border-white/10 dark:text-zinc-500"
-                                }`}
-                            >
-                              <Gift size={28} className={stamps >= 9 ? "animate-bounce text-emerald-600 dark:text-emerald-400" : "text-emerald-600 dark:text-emerald-400"} />
-                            </div>
                           </div>
 
                           {/* Brand Logo & Info Alert text on Lower Right Corner */}
@@ -585,12 +591,12 @@ export function LoyaltyView() {
                               <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Your Reward at 10 Stamps</span>
                               <div className="flex items-center gap-2 mt-1">
                                 <Coffee size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                <span className="text-foreground font-semibold text-xs">Complimentary Geisha Pour Over</span>
+                                <span className="text-foreground font-semibold text-xs">Free Antonioni Blends Modest</span>
                               </div>
                               <p className="text-[9px] text-zinc-500 dark:text-zinc-400 mt-1">
-                                {stamps >= 9
+                                {stamps >= 10
                                   ? "Ready to claim!"
-                                  : `${9 - stamps} more stamp${9 - stamps === 1 ? "" : "s"} to unlock`}
+                                  : `${10 - stamps} more stamp${10 - stamps === 1 ? "" : "s"} to unlock`}
                               </p>
                             </div>
                           </div>
@@ -664,7 +670,7 @@ export function LoyaltyView() {
               <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 text-[10px] tracking-[0.25em] block">Transaction Success</span>
               <h3 className="type-h3 text-foreground font-serif mt-2 font-bold">Reward Claimed!</h3>
               <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-2">
-                Your complimentary Geisha Pour Over order has been successfully generated. Present this to your barista.
+                Your Free Antonioni Blends Modest order has been successfully generated. Present this to your barista.
               </p>
 
               <div className="my-6 rounded-xl bg-background-alt/50 border border-card-border p-4 space-y-2 text-left">
@@ -674,7 +680,7 @@ export function LoyaltyView() {
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-500">Offer Code</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">GEISHA-FREE</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">MODEST-FREE</span>
                 </div>
                 <div className="flex justify-between text-xs border-t border-card-border pt-2">
                   <span className="text-zinc-500">Points Awarded</span>

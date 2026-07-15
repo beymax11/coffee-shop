@@ -152,7 +152,7 @@ export function LoyaltyPreviewSection() {
                   </div>
                   <div className="flex justify-between text-[10px] text-zinc-400">
                     <span>{stamps} coffees purchased</span>
-                    <span>{10 - stamps} stamps left to free Geisha</span>
+                    <span>{10 - stamps} stamps left to Free Antonioni Blends Modest</span>
                   </div>
                 </div>
 
@@ -162,7 +162,7 @@ export function LoyaltyPreviewSection() {
                   <div className="space-y-2 text-xs text-neutral-600 dark:text-zinc-400">
                     <div className="flex items-center gap-3">
                       <Coffee size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>Complimentary Geisha pour at 10 stamps</span>
+                      <span>Free Antonioni Blends Modest at 10 stamps</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Sparkles size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />

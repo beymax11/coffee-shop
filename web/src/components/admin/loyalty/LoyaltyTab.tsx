@@ -83,7 +83,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
       } else if (stampFilter === "has") {
         matchesStamp = member.stamps > 0;
       } else if (stampFilter === "reward") {
-        matchesStamp = member.stamps === 9;
+        matchesStamp = member.stamps === 10;
       }
 
       return matchesSearch && matchesStamp;
@@ -123,7 +123,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
               <h3 className="type-ui text-sm text-foreground font-bold tracking-wider uppercase">Stamp Station</h3>
             </div>
             <p className="type-caption text-neutral-500 dark:text-zinc-400 leading-relaxed text-xs">
-              Scan customer QR code or enter Member ID manually to award loyalty stamps. Buy 9 cups, get the 10th free.
+              Scan customer QR code or enter Member ID manually to award loyalty stamps. Buy 10 cups, get the 11th free.
             </p>
           </div>
 

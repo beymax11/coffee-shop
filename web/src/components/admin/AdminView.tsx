@@ -550,7 +550,7 @@ export const AdminView: React.FC = () => {
 
   // --- STAMP HANDLERS: All Supabase-first ---
   const handleAwardStamp = async (member: LoyaltyMember) => {
-    if (member.stamps >= 9) return;
+    if (member.stamps >= 10) return;
     const newStamps = member.stamps + 1;
 
     try {
@@ -577,12 +577,12 @@ export const AdminView: React.FC = () => {
     const updated = { ...member, stamps: newStamps };
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
     playBeep();
-    toast.success(`Awarded 1 stamp to ${member.name}. (${newStamps}/9)`);
+    toast.success(`Awarded 1 stamp to ${member.name}. (${newStamps}/10)`);
 
     notificationsService.addNotification(
       member.email,
       "Stamp Earned",
-      `A new stamp was added to your loyalty card. (${newStamps}/9 stamps)`,
+      `A new stamp was added to your loyalty card. (${newStamps}/10 stamps)`,
       "loyalty"
     );
   };
@@ -613,12 +613,12 @@ export const AdminView: React.FC = () => {
 
     const updated = { ...member, stamps: newStamps };
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
-    toast.info(`Revoked 1 stamp from ${member.name}. (${newStamps}/9)`);
+    toast.info(`Revoked 1 stamp from ${member.name}. (${newStamps}/10)`);
 
     notificationsService.addNotification(
       member.email,
       "Stamp Revoked",
-      `A stamp was removed from your loyalty card. (${newStamps}/9 stamps)`,
+      `A stamp was removed from your loyalty card. (${newStamps}/10 stamps)`,
       "loyalty"
     );
   };

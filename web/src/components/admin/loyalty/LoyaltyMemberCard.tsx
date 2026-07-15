@@ -26,7 +26,7 @@ export const LoyaltyMemberCard: React.FC<LoyaltyMemberCardProps> = ({
   onViewDetails,
   onDeleteClick,
 }) => {
-  const freeDrinkEarned = member.stamps === 9;
+  const freeDrinkEarned = member.stamps >= 10;
 
   return (
     <motion.div
@@ -95,12 +95,12 @@ export const LoyaltyMemberCard: React.FC<LoyaltyMemberCardProps> = ({
         <div className="mt-3 border-t border-card-border/40 pt-3">
           <div className="flex justify-between items-center mb-3">
             <span className="type-label text-[10px] text-neutral-500 dark:text-zinc-400 flex items-center gap-1.5 font-bold">
-              <Zap size={11} className="text-brand-green" /> stamps collected: {member.stamps} / 9
+              <Zap size={11} className="text-brand-green" /> stamps collected: {member.stamps} / 10
             </span>
           </div>
 
-          <div className="grid grid-cols-9 gap-1.5 sm:gap-2.5 max-w-full">
-            {[...Array(9)].map((_, idx) => {
+          <div className="grid grid-cols-10 gap-1 sm:gap-1.5 max-w-full">
+            {[...Array(10)].map((_, idx) => {
               const isStamped = idx < member.stamps;
               return (
                 <div

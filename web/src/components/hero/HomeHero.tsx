@@ -31,7 +31,7 @@ const ctaTap = { scale: 0.97 };
 
 export const HomeHero: React.FC = () => {
   return (
-    <section className="relative min-h-[calc(100vh-72px)] md:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] py-16 sm:py-0">
+    <section className="relative min-h-[60vh] md:min-h-[70vh] w-full flex items-center overflow-hidden bg-[#0B0B0B] py-16 sm:py-0">
       {/* Background with slow Ken Burns */}
       <div className="absolute inset-0 opacity-100 dark:opacity-80 transition-opacity duration-500">
         <motion.div
@@ -78,12 +78,12 @@ export const HomeHero: React.FC = () => {
 
       {/* Content */}
       <motion.div
-        className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 lg:px-16 text-left"
+        className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 lg:px-16 text-center md:text-left"
         variants={heroStagger}
         initial="hidden"
         animate="show"
       >
-        <div className="max-w-xl md:max-w-2xl">
+        <div className="max-w-xl md:max-w-2xl mx-auto md:mx-0">
           {/* Eyebrow badge */}
           <motion.div
             variants={heroItem}
@@ -109,7 +109,7 @@ export const HomeHero: React.FC = () => {
           {/* Subcopy */}
           <motion.p
             variants={heroItem}
-            className="type-body mt-4 sm:mt-6 text-zinc-300/90 max-w-lg drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-sm sm:text-base md:text-[1.05rem]"
+            className="type-body mt-4 sm:mt-6 text-zinc-300/90 max-w-lg mx-auto md:mx-0 drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-sm sm:text-base md:text-[1.05rem]"
           >
             Experience handcrafted coffee, thoughtfully prepared with quality beans, warm hospitality, and a space made for meaningful moments.
           </motion.p>
@@ -117,12 +117,12 @@ export const HomeHero: React.FC = () => {
           {/* CTAs */}
           <motion.div
             variants={heroItem}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-3 sm:gap-4 pt-6 sm:pt-9"
+            className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-4 pt-6 sm:pt-9"
           >
-            <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
+            <motion.div whileHover={ctaHover} whileTap={ctaTap}>
               <Link
                 href="/loyalty"
-                className="type-ui group relative w-full sm:w-auto flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-6 sm:px-8 py-3.5 sm:py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] text-xs"
+                className="type-ui group relative flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-6 sm:px-8 py-3.5 sm:py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] text-xs"
               >
                 <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
                 <span className="relative flex items-center gap-2">
@@ -132,10 +132,10 @@ export const HomeHero: React.FC = () => {
               </Link>
             </motion.div>
 
-            <motion.div whileHover={ctaHover} whileTap={ctaTap} className="w-full sm:w-auto">
+            <motion.div whileHover={ctaHover} whileTap={ctaTap}>
               <Link
                 href="/reservations"
-                className="type-ui group w-full sm:w-auto flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-6 sm:px-8 py-3.5 sm:py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)] text-xs"
+                className="type-ui group flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-6 sm:px-8 py-3.5 sm:py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)] text-xs"
               >
                 <Calendar
                   size={14}

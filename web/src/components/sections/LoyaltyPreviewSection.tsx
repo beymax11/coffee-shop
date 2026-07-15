@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Coffee, Gift, ArrowRight, Sparkles } from "lucide-react";
 import { FadeUp } from "@/components/animations";
 import { db } from "@/utils/db";
-import { getTierInfo } from "@/utils/loyalty";
 
 export function LoyaltyPreviewSection() {
   const [memberName, setMemberName] = useState<string>("Alexander Vance");
@@ -49,10 +48,8 @@ export function LoyaltyPreviewSection() {
     return () => window.removeEventListener("storage", syncFromDb);
   }, []);
 
-  const tier = getTierInfo(points).label;
-
   return (
-    <section className="py-20 bg-background text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">
+    <section className="py-10 md:py-16 bg-background text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">
       {/* Subtle Background Glows */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#2E5A44]/5 rounded-full filter blur-[100px] pointer-events-none" />
 
@@ -133,13 +130,6 @@ export function LoyaltyPreviewSection() {
                     <p className="text-[10px] text-zinc-500 tracking-wider uppercase">Active Progress</p>
                     <p className="text-xl font-bold font-serif text-foreground">{stamps} / 10 Stamps</p>
                   </div>
-                  <div className="space-y-0.5 text-right">
-                    <p className="text-[10px] text-zinc-500 tracking-wider uppercase">Member Level</p>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      <Sparkles size={10} />
-                      {tier} Tier
-                    </span>
-                  </div>
                 </div>
 
                 {/* Micro Progress Bar */}
@@ -166,11 +156,11 @@ export function LoyaltyPreviewSection() {
                     </div>
                     <div className="flex items-center gap-3">
                       <Sparkles size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>Earn {points} points toward tier upgrades</span>
+                      <span>Freshly brewed coffee and handcrafted beverages made daily.</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Gift size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>Exclusive invitations to coffee tasting masterclasses</span>
+                      <span>Discover our signature drinks and seasonal specialties.</span>
                     </div>
                   </div>
                 </div>

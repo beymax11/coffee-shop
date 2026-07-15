@@ -52,37 +52,39 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2">
               {/* Left Column: Image Area */}
-              <div className="relative h-72 w-full md:h-full min-h-[350px]">
+              <div className="h-72 w-full md:h-full min-h-[350px]">
                 <img
                   src={imageSrc}
                   alt={item.name}
                   className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-card dark:from-[#121212] via-transparent to-transparent md:bg-gradient-to-r" />
-                
-                {/* Floating Tags */}
-                <div className="absolute top-4 left-4 flex flex-col gap-2">
-                  {item.tags?.map((tag) => (
-                    <span key={tag} className="rounded bg-[#2E5A44] px-2 py-0.5 type-ui text-white">
-                      {tag}
-                    </span>
-                  ))}
-                  <span className="rounded bg-background dark:bg-[#1c1c1c] border border-card-border dark:border-white/10 px-2 py-0.5 type-eyebrow text-zinc-700 dark:text-zinc-300">
-                    {item.category}
-                  </span>
-                </div>
               </div>
 
               {/* Right Column: Information Area */}
               <div className="flex flex-col justify-between p-8 md:p-10">
                 <div>
-                  <h2 className="type-h2 text-foreground dark:text-white">
+                  {/* Category & Tags Row */}
+                  <div className="flex flex-wrap gap-2 mb-3 items-center">
+                    <span className="text-[10px] font-sans font-extrabold tracking-widest text-[#2E5A44] dark:text-emerald-450 uppercase">
+                      {item.category}
+                    </span>
+                    {item.tags?.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-[8px] font-sans font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-emerald-500/5 border border-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <h2 className="text-2xl font-sans font-black tracking-tight text-foreground dark:text-white uppercase">
                     {item.name}
                   </h2>
 
                   {/* Rating & Price */}
                   <div className="mt-4 flex items-center justify-between border-b border-card-border dark:border-white/5 pb-4">
-                    <span className="type-h3 text-emerald-600 dark:text-emerald-400 font-serif">
+                    <span className="text-lg font-sans font-extrabold text-[#2E5A44] dark:text-emerald-400">
                       ₱{item.price.toFixed(2)}
                     </span>
                   </div>

@@ -63,7 +63,7 @@ export const EventShowcase: React.FC = () => {
   const activeExp = EXPERIENCES[activeIndex];
 
   return (
-    <section className="py-24 bg-background relative transition-colors duration-500 overflow-hidden">
+    <section className="py-12 md:py-20 bg-background relative transition-colors duration-500 overflow-hidden">
       {/* Decorative ambient gold glows */}
       <div className="absolute top-1/3 -left-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/3 -right-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
@@ -71,7 +71,7 @@ export const EventShowcase: React.FC = () => {
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         
         {/* Section Header */}
-        <div className="text-center max-w-xl mx-auto mb-16">
+        <div className="text-center max-w-xl mx-auto mb-8 md:mb-12">
           <span className="type-eyebrow">Bespoke Bookings</span>
           <h2 className="type-h2 text-foreground mt-2">
             Curated Coffee Experiences
@@ -82,7 +82,7 @@ export const EventShowcase: React.FC = () => {
         </div>
 
         {/* Tab Buttons Selector */}
-        <div className="flex justify-center mb-10">
+        <div className="flex justify-center mb-6 md:mb-8">
           <div className="inline-flex rounded-full border border-card-border p-1 bg-card/60 backdrop-blur-md shadow-sm">
             {EXPERIENCES.map((exp, index) => {
               const isActive = index === activeIndex;
@@ -170,14 +170,14 @@ export const EventShowcase: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-4 flex justify-end lg:justify-start">
                   <Link
                     href={`/reservations?type=${activeExp.id}`}
                     className="type-ui group relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-3.5 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] active:scale-95 cursor-pointer"
                   >
                     <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
                     <span className="relative flex items-center gap-2">
-                      Configure Experience
+                      Book Now
                       <Calendar size={13} className="transition-transform duration-300 group-hover:scale-110" />
                     </span>
                   </Link>
@@ -187,7 +187,7 @@ export const EventShowcase: React.FC = () => {
           </div>
 
           {/* Right Image Column */}
-          <div className="w-full lg:w-[450px] shrink-0 relative">
+          <div className="hidden lg:block w-full lg:w-[450px] shrink-0 relative">
             <div className="absolute -inset-2 bg-[#2E5A44]/5 rounded-2xl filter blur-md pointer-events-none" />
             
             <div className="relative h-[340px] md:h-[400px] w-full rounded-xl overflow-hidden border border-card-border bg-neutral-900 shadow-lg">

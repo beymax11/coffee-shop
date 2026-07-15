@@ -333,14 +333,14 @@ export const LifestyleGrid: React.FC = () => {
   if (posts.length === 0) return null;
 
   return (
-    <section className="py-24 bg-background border-t border-card-border transition-colors duration-500 relative overflow-hidden">
+    <section className="py-12 md:py-20 bg-background border-t border-card-border transition-colors duration-500 relative overflow-hidden">
       {/* Dynamic Background accents */}
       <div className="absolute top-1/3 right-0 w-80 h-80 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/3 left-0 w-80 h-80 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         {/* Section Header */}
-        <div className="text-center max-w-xl mx-auto mb-16">
+        <div className="text-center max-w-xl mx-auto mb-8 md:mb-12">
           <span className="type-eyebrow">Social Curation</span>
           <h2 className="type-h2 text-foreground mt-2 font-serif">
             Antonioni Grounds Lifestyle

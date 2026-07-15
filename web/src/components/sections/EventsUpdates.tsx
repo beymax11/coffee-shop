@@ -68,7 +68,7 @@ export const EventsUpdates: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-24 bg-background border-t border-card-border relative overflow-hidden min-h-[400px] flex items-center justify-center">
+      <section className="py-12 md:py-20 bg-background border-t border-card-border relative overflow-hidden min-h-[400px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-green border-t-transparent" />
           <p className="text-xs text-neutral-500 font-sans tracking-widest uppercase">Loading happenings...</p>
@@ -82,7 +82,7 @@ export const EventsUpdates: React.FC = () => {
   }
 
   return (
-    <section className="py-24 bg-background border-t border-card-border relative transition-colors duration-500 overflow-hidden">
+    <section className="py-12 md:py-20 bg-background border-t border-card-border relative transition-colors duration-500 overflow-hidden">
       {/* Decorative ambient gold glows */}
       <div className="absolute top-1/4 -right-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 -left-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
@@ -90,7 +90,7 @@ export const EventsUpdates: React.FC = () => {
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         
         {/* Section Header */}
-        <div className="text-center max-w-xl mx-auto mb-16">
+        <div className="text-center max-w-xl mx-auto mb-8 md:mb-12">
           <span className="type-eyebrow">Events & Announcements</span>
           <h2 className="type-h2 text-foreground mt-2">
             Latest Happenings & Updates

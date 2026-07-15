@@ -463,6 +463,61 @@ export function ReservationsView() {
   const todayActiveDot = "bg-emerald-500";
   const labelAccent = "text-emerald-600 dark:text-emerald-400";
 
+  const renderStepper = () => (
+    <div className="max-w-xl mx-auto mb-10 relative print:hidden">
+      <div className="flex items-center justify-between text-center select-none">
+        {[
+          { num: 1, label: "Experience" },
+          { num: 2, label: "Reservation Details" },
+          { num: 3, label: "Payment Details" },
+        ].map((item, idx) => {
+          const isCurrent = step === item.num;
+          const isPassed = step > item.num;
+          return (
+            <React.Fragment key={item.num}>
+              <button
+                type="button"
+                disabled={item.num > step}
+                onClick={() => setStep(item.num)}
+                className="group flex flex-col items-center focus:outline-none disabled:cursor-not-allowed"
+              >
+                <span className={`font-serif text-[13px] tracking-widest ${isCurrent
+                  ? "text-emerald-600 dark:text-emerald-400 font-medium scale-105"
+                  : isPassed
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-zinc-500 dark:text-zinc-600"
+                  } transition-all duration-300`}>
+                  0{item.num}
+                </span>
+                <span className={`font-sans text-[9px] uppercase tracking-[0.25em] mt-1.5 font-bold ${isCurrent
+                  ? "text-foreground"
+                  : isPassed
+                    ? "text-zinc-500 dark:text-zinc-400"
+                    : "text-zinc-500 dark:text-zinc-600"
+                  } transition-all duration-300`}>
+                  {item.label}
+                </span>
+                <div className={`h-[2px] w-6 mt-2 rounded-full transition-all duration-500 ${isCurrent
+                  ? "bg-emerald-600 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] dark:shadow-[0_0_8px_rgba(16,185,129,0.8)] w-10"
+                  : isPassed
+                    ? "bg-emerald-600 dark:bg-emerald-500"
+                    : "bg-zinc-200 dark:bg-white/5"
+                  }`} />
+              </button>
+
+              {idx < 2 && (
+                <div className="flex-1 flex justify-center items-center px-4 -mt-5">
+                  <div className={`h-[1px] w-full transition-all duration-700 ${step > item.num ? "bg-emerald-600/40" : "bg-zinc-200 dark:bg-white/5"
+                    }`} />
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   const getEndTimeString = (startTimeStr: string) => {
     if (!startTimeStr) return "";
     const match = startTimeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -589,9 +644,15 @@ export function ReservationsView() {
 
         <div className="mx-auto max-w-7xl px-4 md:px-8 relative z-10 print:px-0">
           {step < 3 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
+            <div className="flex flex-col">
+              {/* Stepper only visible on mobile/tablet view above the layout */}
+              <div className="lg:hidden w-full">
+                {renderStepper()}
+              </div>
 
-              <div className="lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
+
+              <div className={`lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden ${step === 1 ? 'hidden lg:block' : ''}`}>
                 <span className={`text-[10px] uppercase font-bold tracking-[0.35em] block mb-3 font-sans transition-colors duration-300 ${step >= 2 ? labelAccent : "text-emerald-500/90"}`}>
                   {step >= 2 ? "Reservation Details" : "Bespoke Experience"}
                 </span>
@@ -799,58 +860,9 @@ export function ReservationsView() {
 
               {/* Right Column: Form & Stepper */}
               <div className="lg:col-span-8 order-2">
-                {/* Stepper indicators */}
-                <div className="max-w-xl mx-auto mb-10 relative print:hidden">
-                  <div className="flex items-center justify-between text-center select-none">
-                    {[
-                      { num: 1, label: "Experience" },
-                      { num: 2, label: "Reservation Details" },
-                      { num: 3, label: "Payment Details" },
-                    ].map((item, idx) => {
-                      const isCurrent = step === item.num;
-                      const isPassed = step > item.num;
-                      return (
-                        <React.Fragment key={item.num}>
-                          <button
-                            type="button"
-                            disabled={item.num > step}
-                            onClick={() => setStep(item.num)}
-                            className="group flex flex-col items-center focus:outline-none disabled:cursor-not-allowed"
-                          >
-                            <span className={`font-serif text-[13px] tracking-widest ${isCurrent
-                              ? "text-emerald-600 dark:text-emerald-400 font-medium scale-105"
-                              : isPassed
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-zinc-500 dark:text-zinc-600"
-                              } transition-all duration-300`}>
-                              0{item.num}
-                            </span>
-                            <span className={`font-sans text-[9px] uppercase tracking-[0.25em] mt-1.5 font-bold ${isCurrent
-                              ? "text-foreground"
-                              : isPassed
-                                ? "text-zinc-500 dark:text-zinc-400"
-                                : "text-zinc-500 dark:text-zinc-600"
-                              } transition-all duration-300`}>
-                              {item.label}
-                            </span>
-                            <div className={`h-[2px] w-6 mt-2 rounded-full transition-all duration-500 ${isCurrent
-                              ? "bg-emerald-600 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] dark:shadow-[0_0_8px_rgba(16,185,129,0.8)] w-10"
-                              : isPassed
-                                ? "bg-emerald-600 dark:bg-emerald-500"
-                                : "bg-zinc-200 dark:bg-white/5"
-                              }`} />
-                          </button>
-
-                          {idx < 2 && (
-                            <div className="flex-1 flex justify-center items-center px-4 -mt-5">
-                              <div className={`h-[1px] w-full transition-all duration-700 ${step > item.num ? "bg-emerald-600/40" : "bg-zinc-200 dark:bg-white/5"
-                                }`} />
-                            </div>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
+                {/* Stepper indicators only visible on desktop */}
+                <div className="hidden lg:block">
+                  {renderStepper()}
                 </div>
 
                 {/* Form Content Wrapper */}
@@ -1149,6 +1161,7 @@ export function ReservationsView() {
               </div>
 
             </div>
+          </div>
           ) : (
             /* Centered success docket screen */
             <SuccessDocket

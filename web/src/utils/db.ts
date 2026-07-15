@@ -294,7 +294,9 @@ export const db = {
             .update({
               name: member.name,
               points: member.points,
-              member_id: member.id
+              member_id: member.id,
+              username: member.username,
+              phone: member.phone
             })
             .eq("email", member.email.toLowerCase())
             .then(({ error }) => {

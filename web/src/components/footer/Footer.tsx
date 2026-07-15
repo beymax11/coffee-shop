@@ -107,6 +107,15 @@ export const Footer: React.FC = () => {
             <a href="#" className="hover:underline">Accessibility</a>
           </div>
         </div>
+
+        {/* Brand Signature */}
+        <div className="flex justify-center pt-8 pb-4">
+          <img
+            src="/signature.png"
+            alt="Antonioni Signature"
+            className="h-28 sm:h-40 md:h-52 w-auto object-contain dark:invert opacity-75 hover:opacity-100 transition-all duration-500 pointer-events-none select-none"
+          />
+        </div>
       </div>
     </footer>
   );

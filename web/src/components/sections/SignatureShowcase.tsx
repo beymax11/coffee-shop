@@ -65,7 +65,7 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
   });
 
   return (
-    <section className="py-28 bg-background-alt dark:bg-[#0a0a0a] text-foreground dark:text-white relative border-y border-card-border dark:border-zinc-900 transition-colors duration-500 overflow-hidden">
+    <section className="py-12 md:py-20 bg-background-alt dark:bg-[#0a0a0a] text-foreground dark:text-white relative border-y border-card-border dark:border-zinc-900 transition-colors duration-500 overflow-hidden">
       {/* Cinematic Ambient Glows */}
       <div className="absolute top-1/4 left-1/4 w-[450px] h-[450px] bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
@@ -78,7 +78,7 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         
         {/* Header Block */}
-        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-20 gap-8">
+        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-8 md:mb-14 gap-8">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
                <Film size={12} className="text-emerald-500 animate-pulse" />

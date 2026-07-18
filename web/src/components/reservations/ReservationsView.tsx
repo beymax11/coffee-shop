@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText, Printer, Check } from "lucide-react";
+import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText, Printer, Check, Search, Eye, Loader2, X, ExternalLink } from "lucide-react";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
@@ -83,7 +83,66 @@ export function ReservationsView() {
   const [isPaid, setIsPaid] = useState(false);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [existingReservations, setExistingReservations] = useState<any[]>([]);
+  const [dbReservations, setDbReservations] = useState<any[]>([]);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+
+  // Status tracking states
+  const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
+  const [searchTicketId, setSearchTicketId] = useState("");
+  const [trackedReservation, setTrackedReservation] = useState<any | null>(null);
+  const [isTrackingLoading, setIsTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateSession = () => {
+      setSessionEmail(localStorage.getItem("customer_session"));
+    };
+    updateSession();
+    window.addEventListener("storage", updateSession);
+    return () => window.removeEventListener("storage", updateSession);
+  }, []);
+
+  const handleTrackSearch = async (idToSearch: string) => {
+    const trimmedId = idToSearch.trim();
+    if (!trimmedId) return;
+
+    setIsTrackingLoading(true);
+    setTrackingError(null);
+    setTrackedReservation(null);
+
+    try {
+      const response = await fetch(`/api/reservations/${trimmedId}`);
+      if (!response.ok) {
+        // Fallback to local storage in case db is not synced or offline
+        const localMerged = db.getReservations();
+        const foundLocal = localMerged.find((r: any) => r.id?.toLowerCase() === trimmedId.toLowerCase());
+        if (foundLocal) {
+          setTrackedReservation(foundLocal);
+          setIsTrackingLoading(false);
+          return;
+        }
+        throw new Error("Reservation not found. Please check your ID.");
+      }
+      const data = await response.json();
+      if (data && data.reservation) {
+        setTrackedReservation(data.reservation);
+      } else {
+        throw new Error("No reservation details returned.");
+      }
+    } catch (err: any) {
+      // Local storage fallback lookup
+      const localMerged = db.getReservations();
+      const foundLocal = localMerged.find((r: any) => r.id?.toLowerCase() === trimmedId.toLowerCase());
+      if (foundLocal) {
+        setTrackedReservation(foundLocal);
+      } else {
+        setTrackingError(err.message || "Failed to retrieve status. Please try again.");
+      }
+    } finally {
+      setIsTrackingLoading(false);
+    }
+  };
 
   useEffect(() => {
     const loadReservations = async () => {
@@ -112,6 +171,8 @@ export function ReservationsView() {
               proofOfPayment: r.proof_of_payment,
               created_at: r.created_at,
             }));
+
+            setDbReservations(mapped);
 
             const local = db.getReservations();
             const remoteIds = new Set(mapped.map((r: any) => r.id));
@@ -713,16 +774,34 @@ export function ReservationsView() {
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
 
-              <div className={`lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden ${step === 1 ? 'hidden lg:block' : ''}`}>
-                <span className={`text-[10px] uppercase font-bold tracking-[0.35em] block mb-3 font-sans transition-colors duration-300 ${step >= 2 ? labelAccent : "text-emerald-500/90"}`}>
-                  {step >= 2 ? "Reservation Details" : "Bespoke Experience"}
-                </span>
-                <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-2">
-                  {step >= 2 ? "Select Date & Time" : "Secure Your Ritual"}
-                </h1>
-                <div className="w-16 h-[1px] bg-brand-gold mt-6 mb-6" />
+              <div className={`lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden`}>
+                {/* Track Status Button */}
+                <div className="mb-6 flex">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTrackModalOpen(true);
+                      setTrackingError(null);
+                      setTrackedReservation(null);
+                      setSearchTicketId("");
+                    }}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-600/5 px-4.5 py-2.5 font-sans text-[11px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 hover:border-emerald-600/50 transition-all active:scale-95 cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.06)]"
+                  >
+                    <Search size={12} className="stroke-[2.5]" />
+                    Track Booking Status
+                  </button>
+                </div>
 
-                {step === 2 ? (
+                <div className={step === 1 ? 'hidden lg:block' : ''}>
+                  <span className={`text-[10px] uppercase font-bold tracking-[0.35em] block mb-3 font-sans transition-colors duration-300 ${step >= 2 ? labelAccent : "text-emerald-500/90"}`}>
+                    {step >= 2 ? "Reservation Details" : "Bespoke Experience"}
+                  </span>
+                  <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-2">
+                    {step >= 2 ? "Select Date & Time" : "Secure Your Ritual"}
+                  </h1>
+                  <div className="w-16 h-[1px] bg-brand-gold mt-6 mb-6" />
+
+                  {step === 2 ? (
                   <div className="space-y-6">
                     {/* Custom Interactive Calendar */}
                     <div className="rounded-xl border border-card-border bg-card/45 backdrop-blur-md p-5 shadow-md relative max-w-[420px] mx-auto w-full">
@@ -947,6 +1026,7 @@ export function ReservationsView() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
 
               {/* Right Column: Form & Stepper */}
@@ -1369,6 +1449,326 @@ export function ReservationsView() {
             />
           )}
         </div>
+
+        {/* Reservation Tracking Modal */}
+        <AnimatePresence>
+          {isTrackModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+              onClick={() => setIsTrackModalOpen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 15 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 15 }}
+                transition={{ type: "spring", duration: 0.4 }}
+                className="relative w-full max-w-lg rounded-2xl border border-card-border bg-card/95 p-6 shadow-2xl overflow-hidden backdrop-blur-xl max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Decorative gradients inside modal */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#2E5A44]/5 blur-3xl rounded-full pointer-events-none" />
+
+                {/* Modal Header */}
+                <div className="flex items-start justify-between border-b border-zinc-200 dark:border-white/5 pb-4 mb-5">
+                  <div>
+                    <h3 className="text-xl font-serif text-foreground font-semibold">Track Reservation Status</h3>
+                    <p className="text-xs text-zinc-500 mt-1 font-light">Verify the real-time status of your booking.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsTrackModalOpen(false)}
+                    className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-400 hover:text-foreground transition-all cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Search Input and Action */}
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-3 text-zinc-500" size={16} />
+                      <input
+                        type="text"
+                        placeholder="Enter Booking ID (e.g. LN-123456)"
+                        value={searchTicketId}
+                        onChange={(e) => setSearchTicketId(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleTrackSearch(searchTicketId);
+                        }}
+                        className="w-full rounded-xl border border-card-border bg-background-alt/40 pl-10 pr-4 py-2.5 font-mono text-sm text-foreground outline-none focus:border-emerald-500 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isTrackingLoading || !searchTicketId.trim()}
+                      onClick={() => handleTrackSearch(searchTicketId)}
+                      className="rounded-xl bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      {isTrackingLoading ? (
+                        <Loader2 className="animate-spin" size={14} />
+                      ) : (
+                        "Search"
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Errors */}
+                  {trackingError && (
+                    <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans">
+                      {trackingError}
+                    </div>
+                  )}
+
+                  {/* Recent Bookings Shortcut List */}
+                  {!trackedReservation && !isTrackingLoading && (() => {
+                    const seenIds = new Set();
+                    const localBookings = (sessionEmail 
+                      ? dbReservations.filter((r: any) => r.email && r.email.toLowerCase() === sessionEmail.toLowerCase())
+                      : db.getReservations()
+                    ).filter(
+                      (r: any) => {
+                        if (!r.id || !r.id.startsWith("LN-") || seenIds.has(r.id)) {
+                          return false;
+                        }
+                        seenIds.add(r.id);
+                        return true;
+                      }
+                    );
+
+                    return (
+                      <div className="space-y-2.5">
+                        <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-zinc-500 pl-1 block">
+                          {sessionEmail ? `Recent Bookings for ${sessionEmail}` : "Recent Bookings on this device"}
+                        </span>
+
+                        {localBookings.length === 0 ? (
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-600 font-light italic pl-1">
+                            {sessionEmail 
+                              ? "No bookings found in our records for your email." 
+                              : "No recent bookings detected on this browser session."}
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-2 max-h-[160px] overflow-y-auto pr-1">
+                            {localBookings.map((r: any) => (
+                              <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => {
+                                  setSearchTicketId(r.id);
+                                  handleTrackSearch(r.id);
+                                }}
+                                className="w-full flex items-center justify-between p-3 rounded-xl border border-card-border bg-card/40 hover:bg-[#2E5A44]/5 hover:border-emerald-500/30 text-left transition-all duration-300 group cursor-pointer"
+                              >
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-xs font-bold text-foreground">{r.id}</span>
+                                    <span className="text-[9px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                                      {r.fullName}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-zinc-500 font-light mt-0.5">
+                                    {r.eventType} • {r.date}
+                                  </div>
+                                </div>
+                                <ChevronRight size={14} className="text-zinc-400 group-hover:text-emerald-500 transition-colors" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Tracked Reservation Details */}
+                  {trackedReservation && (
+                    <div className="space-y-5 pt-2">
+                      <div className="p-4 rounded-xl border border-card-border bg-card/65 space-y-4">
+                        <div className="flex justify-between items-start border-b border-zinc-200 dark:border-white/5 pb-2.5">
+                          <div>
+                            <span className="text-[9px] uppercase text-zinc-500 font-sans tracking-wide block">Reservation ID</span>
+                            <span className="font-mono text-sm font-semibold text-foreground tracking-wider">{trackedReservation.id}</span>
+                          </div>
+                          
+                          {/* Premium Status Badge */}
+                          {(() => {
+                            const status = trackedReservation.status;
+                            const isPaid = trackedReservation.referenceNumber && trackedReservation.proofOfPayment;
+                            
+                            if (status === "Approved") {
+                              return (
+                                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+                                  APPROVED & PAID
+                                </span>
+                              );
+                            }
+                            if (isPaid) {
+                              return (
+                                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                                  PENDING VERIFICATION
+                                </span>
+                              );
+                            }
+                            if (status === "Pre-Approved") {
+                              return (
+                                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400" />
+                                  PRE-APPROVED
+                                </span>
+                              );
+                            }
+                            if (status === "Cancelled") {
+                              return (
+                                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400" />
+                                  CANCELLED
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400 bg-zinc-500/10 border border-zinc-500/20 px-2 py-0.5 rounded font-bold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 dark:bg-zinc-400" />
+                                PENDING APPROVAL
+                              </span>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Details Table */}
+                        <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
+                          <div>
+                            <span className="text-[9px] uppercase text-zinc-500 font-sans tracking-wide block">Customer</span>
+                            <span className="text-foreground font-medium">{trackedReservation.fullName}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] uppercase text-zinc-500 font-sans tracking-wide block">Phone</span>
+                            <span className="text-foreground font-medium">{trackedReservation.phone}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] uppercase text-zinc-500 font-sans tracking-wide block">Experience</span>
+                            <span className="text-foreground font-medium">{trackedReservation.eventType}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] uppercase text-zinc-500 font-sans tracking-wide block">Date & Time</span>
+                            <span className="text-foreground font-medium">{trackedReservation.date} @ {trackedReservation.time}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Interactive Visual Timeline */}
+                      {trackedReservation.status !== "Cancelled" && (
+                        <div className="space-y-4 bg-background-alt/25 p-4 rounded-xl border border-card-border">
+                          <span className="text-[9px] uppercase font-bold tracking-[0.25em] text-zinc-500 pl-1 block">
+                            Booking Journey Tracker
+                          </span>
+
+                          <div className="relative pl-6 space-y-5">
+                            {/* Vertical Line */}
+                            <div className="absolute left-[7px] top-1.5 bottom-1.5 w-[2px] bg-zinc-200 dark:bg-white/5" />
+
+                            {/* Journey Steps */}
+                            {(() => {
+                              const status = trackedReservation.status;
+                              const isPaid = trackedReservation.referenceNumber && trackedReservation.proofOfPayment;
+                              
+                              const steps = [
+                                {
+                                  label: "Booking Submitted",
+                                  desc: "We received your reservation request.",
+                                  isDone: true,
+                                  isCurrent: status === "Pending",
+                                },
+                                {
+                                  label: "Administrative Review",
+                                  desc: "Our team verifies scheduling & capacity.",
+                                  isDone: status !== "Pending",
+                                  isCurrent: status === "Pre-Approved" && !isPaid,
+                                },
+                                {
+                                  label: "Downpayment Submission",
+                                  desc: isPaid ? "Downpayment received & pending verification." : "Submit downpayment reference to lock your slot.",
+                                  isDone: status === "Approved",
+                                  isCurrent: (status === "Pre-Approved" || isPaid) && status !== "Approved",
+                                },
+                                {
+                                  label: "Reservation Fully Confirmed",
+                                  desc: "Downpayment verified. Your slot is officially secured!",
+                                  isDone: status === "Approved" || status === "Completed",
+                                  isCurrent: status === "Approved",
+                                }
+                              ];
+
+                              return steps.map((step, idx) => (
+                                <div key={idx} className="relative text-xs">
+                                  {/* Dot */}
+                                  <div className={`absolute -left-[24px] top-0.5 w-4.5 h-4.5 rounded-full flex items-center justify-center border transition-all duration-300 ${
+                                    step.isDone 
+                                      ? "bg-emerald-600 border-emerald-500 text-white" 
+                                      : step.isCurrent 
+                                        ? "bg-amber-500 border-amber-400 text-white animate-pulse" 
+                                        : "bg-card border-card-border text-zinc-400"
+                                  }`}>
+                                    {step.isDone ? <Check size={10} className="stroke-[3]" /> : <Clock size={10} />}
+                                  </div>
+                                  <div>
+                                    <h4 className={`font-semibold ${step.isDone || step.isCurrent ? "text-foreground" : "text-zinc-500 font-normal"}`}>
+                                      {step.label}
+                                    </h4>
+                                    <p className="text-[10px] text-zinc-500 mt-0.5 leading-relaxed font-light">
+                                      {step.desc}
+                                    </p>
+                                  </div>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* If Cancelled */}
+                      {trackedReservation.status === "Cancelled" && (
+                        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-left">
+                          <h4 className="font-semibold text-xs text-rose-500">Reservation Cancelled</h4>
+                          <p className="text-[10px] text-rose-500/80 mt-1 leading-relaxed font-light">
+                            This reservation request has been cancelled by our system or the admin team. Please request a new booking session or contact host services.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Quick Action Button */}
+                      <div className="pt-2 flex justify-end gap-3.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTrackedReservation(null);
+                            setSearchTicketId("");
+                            setTrackingError(null);
+                          }}
+                          className="rounded-full border border-card-border bg-card hover:bg-background-alt px-5 py-2 font-sans text-[10px] uppercase font-bold tracking-wider text-zinc-500 hover:text-foreground transition-all active:scale-95 cursor-pointer"
+                        >
+                          Clear Result
+                        </button>
+                        <a
+                          href={`/reservations/${trackedReservation.id}`}
+                          className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-6 py-2 font-sans text-[10px] uppercase font-bold tracking-wider text-white transition-all active:scale-95 shadow-[0_2px_12px_rgba(46,90,68,0.2)] cursor-pointer"
+                        >
+                          Open Invoice & Pay
+                          <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
 

@@ -4,6 +4,7 @@ import React from "react";
 import { Check, X, Mail, Phone, Calendar, Users, MapPin, MessageSquare, Clock, CreditCard, FileText, RefreshCw, Eye } from "lucide-react";
 import { Reservation } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
+import { ConfirmModal } from "../common/ConfirmModal";
 
 interface ReservationDetailsModalProps {
   isOpen: boolean;
@@ -23,6 +24,25 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
   onUpdateStatus,
 }) => {
   const [showProofPanel, setShowProofPanel] = React.useState(false);
+  const [updatingStatus, setUpdatingStatus] = React.useState<"Completed" | "Cancelled" | null>(null);
+  const [confirmAction, setConfirmAction] = React.useState<{
+    type: "Complete" | "Cancel";
+    targetStatus: "Completed" | "Cancelled";
+  } | null>(null);
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction || !reservation) return;
+    const targetStatus = confirmAction.targetStatus;
+    setConfirmAction(null);
+    setUpdatingStatus(targetStatus);
+    try {
+      await onUpdateStatus(reservation, targetStatus);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
   const [isFetchingProof, setIsFetchingProof] = React.useState(false);
   const [livePaymentData, setLivePaymentData] = React.useState<{
     referenceNumber?: string;
@@ -185,6 +205,11 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                 <h3 className="type-h3 text-foreground font-serif font-bold text-2xl tracking-tight pr-8">
                   {reservation.fullName}
                 </h3>
+                {reservation.id && (
+                  <p className="text-xs text-neutral-500 dark:text-zinc-400 font-mono mt-1.5 select-all">
+                    ID: {reservation.id}
+                  </p>
+                )}
               </div>
 
               {/* Details Section */}
@@ -347,15 +372,22 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                       <>
                         <button
                           onClick={() => onUpdateStatus(reservation, "Pre-Approved")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-amber-500/40 cursor-pointer"
+                          disabled={updatingStatus !== null}
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-amber-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Check size={12} /> Pre-Approve
                         </button>
                         <button
-                          onClick={() => onUpdateStatus(reservation, "Cancelled")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer"
+                          onClick={() => setConfirmAction({ type: "Cancel", targetStatus: "Cancelled" })}
+                          disabled={updatingStatus !== null}
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <X size={12} /> Cancel
+                          {updatingStatus === "Cancelled" ? (
+                            <RefreshCw size={12} className="animate-spin" />
+                          ) : (
+                            <X size={12} />
+                          )}
+                          {updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
                         </button>
                       </>
                     )}
@@ -364,15 +396,22 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                       <>
                         <button
                           onClick={() => onUpdateStatus(reservation, "Approved")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-emerald-500/40 cursor-pointer"
+                          disabled={updatingStatus !== null}
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-emerald-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Check size={12} /> Approve & Paid
                         </button>
                         <button
-                          onClick={() => onUpdateStatus(reservation, "Cancelled")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer"
+                          onClick={() => setConfirmAction({ type: "Cancel", targetStatus: "Cancelled" })}
+                          disabled={updatingStatus !== null}
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <X size={12} /> Cancel
+                          {updatingStatus === "Cancelled" ? (
+                            <RefreshCw size={12} className="animate-spin" />
+                          ) : (
+                            <X size={12} />
+                          )}
+                          {updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
                         </button>
                       </>
                     )}
@@ -380,16 +419,28 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                     {currentStatus === "Approved" && (
                       <>
                         <button
-                          onClick={() => onUpdateStatus(reservation, "Completed")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-blue-500/40 cursor-pointer"
+                          onClick={() => setConfirmAction({ type: "Complete", targetStatus: "Completed" })}
+                          disabled={updatingStatus !== null}
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-blue-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Check size={12} /> Complete
+                          {updatingStatus === "Completed" ? (
+                            <RefreshCw size={12} className="animate-spin" />
+                          ) : (
+                            <Check size={12} />
+                          )}
+                          {updatingStatus === "Completed" ? "Completing..." : "Complete"}
                         </button>
                         <button
-                          onClick={() => onUpdateStatus(reservation, "Cancelled")}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer"
+                          onClick={() => setConfirmAction({ type: "Cancel", targetStatus: "Cancelled" })}
+                          disabled={updatingStatus !== null}
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <X size={12} /> Cancel
+                          {updatingStatus === "Cancelled" ? (
+                            <RefreshCw size={12} className="animate-spin" />
+                          ) : (
+                            <X size={12} />
+                          )}
+                          {updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
                         </button>
                       </>
                     )}
@@ -397,7 +448,8 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                     {currentStatus === "Completed" && (
                       <button
                         onClick={() => onUpdateStatus(reservation, "Approved")}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-zinc-500/40 cursor-pointer"
+                        disabled={updatingStatus !== null}
+                        className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-zinc-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Restore to Active (Approved)
                       </button>
@@ -406,7 +458,8 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                     {currentStatus === "Cancelled" && (
                       <button
                         onClick={() => onUpdateStatus(reservation, "Pending")}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-zinc-500/40 cursor-pointer"
+                        disabled={updatingStatus !== null}
+                        className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-zinc-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Restore to Pending
                       </button>
@@ -599,7 +652,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                     >
                       <X size={20} />
                     </button>
-
+ 
                     <div className="rounded-xl overflow-hidden border border-white/10 bg-zinc-950 flex items-center justify-center p-2 shadow-2xl">
                       {lightboxImage.startsWith("http") || lightboxImage.startsWith("data:image") ? (
                         <img
@@ -630,6 +683,21 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                 </div>
               )}
             </AnimatePresence>
+
+            {/* Confirmation Modal */}
+            <ConfirmModal
+              isOpen={confirmAction !== null}
+              onClose={() => setConfirmAction(null)}
+              title={confirmAction?.type === "Complete" ? "Complete Booking" : "Cancel Booking"}
+              message={
+                confirmAction?.type === "Complete"
+                  ? `Are you sure you want to mark ${reservation.fullName}'s reservation as completed? This will update their status and send a thank you email.`
+                  : `Are you sure you want to cancel ${reservation.fullName}'s reservation? This action cannot be undone.`
+              }
+              confirmText={confirmAction?.type === "Complete" ? "Complete" : "Cancel Reservation"}
+              variant={confirmAction?.type === "Complete" ? "warning" : "danger"}
+              onConfirm={handleConfirmAction}
+            />
           </div>
         </div>
       )}

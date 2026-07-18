@@ -82,6 +82,51 @@ export function ReservationsView() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [existingReservations, setExistingReservations] = useState<any[]>([]);
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadReservations = async () => {
+      let merged = db.getReservations();
+      setExistingReservations(merged);
+
+      try {
+        const response = await fetch("/api/reservations");
+        if (response.ok) {
+          const { reservations } = await response.json();
+          if (reservations) {
+            const mapped = reservations.map((r: any) => ({
+              id: r.id,
+              fullName: r.full_name,
+              email: r.email,
+              phone: r.phone,
+              eventType: r.event_type,
+              date: r.date,
+              time: r.time,
+              guestCount: r.guest_count,
+              location: r.location,
+              notes: r.notes,
+              status: r.status,
+              paymentMethod: r.payment_method,
+              referenceNumber: r.reference_number,
+              proofOfPayment: r.proof_of_payment,
+              created_at: r.created_at,
+            }));
+
+            const local = db.getReservations();
+            const remoteIds = new Set(mapped.map((r: any) => r.id));
+            const onlyLocal = local.filter((r) => r.id && !remoteIds.has(r.id));
+            merged = [...mapped, ...onlyLocal];
+            setExistingReservations(merged);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not sync reservations from backend API:", err);
+      }
+    };
+
+    loadReservations();
+  }, []);
 
   useEffect(() => {
     if (step !== 3 || !ticketId) return;
@@ -306,6 +351,7 @@ export function ReservationsView() {
 
     // Save to localStorage (always works, even offline)
     db.saveReservation(newReservation);
+    setExistingReservations((prev) => [newReservation, ...prev]);
 
     // Add customer notification for booking submission
     notificationsService.addNotification(
@@ -679,7 +725,7 @@ export function ReservationsView() {
                 {step === 2 ? (
                   <div className="space-y-6">
                     {/* Custom Interactive Calendar */}
-                    <div className="rounded-xl border border-card-border bg-card/45 backdrop-blur-md p-5 shadow-md relative overflow-hidden max-w-[420px] mx-auto w-full">
+                    <div className="rounded-xl border border-card-border bg-card/45 backdrop-blur-md p-5 shadow-md relative max-w-[420px] mx-auto w-full">
                       <div className="flex items-center justify-between mb-5">
                         <button
                           type="button"
@@ -727,28 +773,58 @@ export function ReservationsView() {
                           const dateStr = formatDateString(day.date);
                           const isSelected = formData.date === dateStr;
                           const isToday = formatDateString(new Date()) === dateStr;
+                          const isFullyBooked = existingReservations.some(
+                            (r) => r.date === dateStr &&
+                                   r.eventType === formData.eventType &&
+                                   (r.status === "Approved" || r.status === "Completed")
+                          );
+
                           return (
-                            <button
+                            <div
                               key={idx}
-                              type="button"
-                              disabled={day.isPast}
-                              onClick={() => {
-                                updateField("date", dateStr);
-                              }}
-                              className={`aspect-square flex items-center justify-center text-xs font-sans rounded-full transition-all duration-200 relative ${isSelected
-                                ? `${activeColor} font-bold text-white`
-                                : day.isPast
-                                  ? "text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-30"
-                                  : day.isCurrentMonth
-                                    ? "text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
-                                    : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
-                                }`}
+                              className="relative"
+                              onMouseEnter={() => setHoveredDate(dateStr)}
+                              onMouseLeave={() => setHoveredDate(null)}
                             >
-                              {day.date.getDate()}
-                              {isToday && !isSelected && (
-                                <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${todayActiveDot}`} />
-                              )}
-                            </button>
+                              <button
+                                type="button"
+                                disabled={day.isPast}
+                                onClick={() => {
+                                  if (isFullyBooked) return;
+                                  updateField("date", dateStr);
+                                }}
+                                className={`w-full aspect-square flex items-center justify-center text-xs font-sans rounded-full transition-all duration-200 relative ${isSelected
+                                  ? `${activeColor} font-bold text-white`
+                                  : day.isPast
+                                    ? "text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-30"
+                                    : isFullyBooked
+                                      ? "text-rose-500/60 dark:text-rose-400/50 line-through cursor-not-allowed bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20"
+                                      : day.isCurrentMonth
+                                        ? "text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
+                                        : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
+                                  }`}
+                              >
+                                {day.date.getDate()}
+                                {isToday && !isSelected && (
+                                  <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${todayActiveDot}`} />
+                                )}
+                              </button>
+
+                              <AnimatePresence>
+                                {hoveredDate === dateStr && isFullyBooked && !day.isPast && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-30 px-2.5 py-1 text-[10px] font-sans font-bold uppercase tracking-wider text-white bg-rose-600 dark:bg-rose-500 rounded shadow-[0_4px_12px_rgba(244,63,94,0.3)] whitespace-nowrap pointer-events-none"
+                                  >
+                                    Fully Booked
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-rose-600 dark:border-t-rose-500" />
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
                           );
                         })}
                       </div>

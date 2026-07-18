@@ -47,6 +47,10 @@ export async function POST(req: NextRequest) {
       paymentMethod,
       referenceNumber,
       proofOfPayment,
+      coffeeFlavor1,
+      coffeeFlavor2,
+      nonCoffeeFlavor1,
+      nonCoffeeFlavor2,
     } = body;
 
     const { data, error } = await supabase
@@ -67,6 +71,10 @@ export async function POST(req: NextRequest) {
           payment_method: paymentMethod || null,
           reference_number: referenceNumber || null,
           proof_of_payment: proofOfPayment || null,
+          coffee_flavor_1: coffeeFlavor1 || null,
+          coffee_flavor_2: coffeeFlavor2 || null,
+          non_coffee_flavor_1: nonCoffeeFlavor1 || null,
+          non_coffee_flavor_2: nonCoffeeFlavor2 || null,
           created_at: new Date().toISOString(),
         },
       ])

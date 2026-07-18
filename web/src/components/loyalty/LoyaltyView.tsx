@@ -39,39 +39,98 @@ export function LoyaltyView() {
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const prevStampsRef = React.useRef<number | null>(null);
 
-  const triggerConfetti = async () => {
+  const triggerConfetti = async (fromTop: boolean = false) => {
     try {
       const confetti = (await import("canvas-confetti")).default;
-      
-      // Premium gold & green confetti burst
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706", "#34D399", "#FBBF24"]
-      });
 
-      // Left fan
-      setTimeout(() => {
-        confetti({
-          particleCount: 40,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0, y: 0.8 },
-          colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
-        });
-      }, 150);
+      const colors = ["#2E5A44", "#10B981", "#F59E0B", "#D97706", "#34D399", "#FBBF24"];
 
-      // Right fan
-      setTimeout(() => {
+      if (fromTop) {
+        // Rain from the top downwards
+        // Left-side top spray
         confetti({
-          particleCount: 40,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1, y: 0.8 },
-          colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
+          particleCount: 150,
+          angle: 270,
+          spread: 120,
+          origin: { x: 0.3, y: -0.1 },
+          colors: colors,
+          gravity: 0.95,
+          scalar: 1.1
         });
-      }, 300);
+
+        // Right-side top spray
+        confetti({
+          particleCount: 150,
+          angle: 270,
+          spread: 120,
+          origin: { x: 0.7, y: -0.1 },
+          colors: colors,
+          gravity: 0.95,
+          scalar: 1.1
+        });
+
+        // High capacity left cannon
+        setTimeout(() => {
+          confetti({
+            particleCount: 75,
+            angle: 60,
+            spread: 70,
+            origin: { x: 0, y: 0.8 },
+            colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
+          });
+        }, 150);
+
+        // High capacity right cannon
+        setTimeout(() => {
+          confetti({
+            particleCount: 75,
+            angle: 120,
+            spread: 70,
+            origin: { x: 1, y: 0.8 },
+            colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
+          });
+        }, 300);
+      } else {
+        // 1. Initial main center burst (high particle count)
+        confetti({
+          particleCount: 180,
+          spread: 90,
+          origin: { y: 0.6 },
+          colors: colors
+        });
+
+        // 2. Delayed secondary center burst (to fill the air)
+        setTimeout(() => {
+          confetti({
+            particleCount: 120,
+            spread: 120,
+            origin: { y: 0.55 },
+            colors: colors
+          });
+        }, 200);
+
+        // 3. High capacity left cannon
+        setTimeout(() => {
+          confetti({
+            particleCount: 75,
+            angle: 60,
+            spread: 70,
+            origin: { x: 0, y: 0.8 },
+            colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
+          });
+        }, 150);
+
+        // 4. High capacity right cannon
+        setTimeout(() => {
+          confetti({
+            particleCount: 75,
+            angle: 120,
+            spread: 70,
+            origin: { x: 1, y: 0.8 },
+            colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
+          });
+        }, 300);
+      }
     } catch (err) {
       console.error("Failed to load or trigger confetti:", err);
     }
@@ -79,9 +138,9 @@ export function LoyaltyView() {
 
   useEffect(() => {
     if (isLoaded && prevStampsRef.current !== null && stamps > prevStampsRef.current) {
-      triggerConfetti();
+      triggerConfetti(true);
     }
-    
+
     if (isLoaded) {
       prevStampsRef.current = stamps;
     }
@@ -224,10 +283,10 @@ export function LoyaltyView() {
       import("@/utils/supabase").then(({ supabase }) => {
         if (supabase) {
           const isEmail = sessionEmail.includes("@");
-          const filterStr = isEmail 
+          const filterStr = isEmail
             ? `email=eq.${sessionEmail.toLowerCase()}`
             : `phone=eq.${sessionEmail}`;
-          
+
           channel = supabase.channel(`customer-profile-${sessionEmail}`);
           subscription = channel
             .on(
@@ -269,7 +328,7 @@ export function LoyaltyView() {
     const newPoints = points + 50;
     setPoints(newPoints); // bonus points for claiming
     setShowClaimSuccess(true);
-    triggerConfetti();
+    triggerConfetti(true);
 
     // Save back to db
     const members = db.getLoyaltyMembers();
@@ -282,7 +341,7 @@ export function LoyaltyView() {
       });
     }
   };
-  
+
   const downloadQrCode = () => {
     if (!qrCodeUrl) return;
 
@@ -340,7 +399,7 @@ export function LoyaltyView() {
       const qrContainerSize = 190;
       const qrContainerX = (canvas.width - qrContainerSize) / 2;
       const qrContainerY = 100;
-      
+
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
       if (typeof ctx.roundRect === "function") {
@@ -484,25 +543,22 @@ export function LoyaltyView() {
                       >
                         <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/40 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 p-8 glassmorphism-green shadow-xl flex flex-col justify-start gap-4 h-full">
                           {/* Front Card Header */}
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pr-12 gap-4">
-                            <div>
-                              <h3 className="type-h3 text-emerald-600 dark:text-emerald-400">Every stamp is a step toward another unforgettable brew.</h3>
-                              <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Buy 10 coffees, get the 11th complimentary.</p>
-                            </div>
-
-                            {stamps >= 10 && (
-                              <button
-                                onClick={handleClaimReward}
-                                className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 type-ui flex items-center gap-1.5 transition-all shadow-lg animate-pulse"
-                              >
-                                <Gift size={14} className="text-emerald-300" />
-                                Claim Free Antonioni Blends Modest
-                              </button>
-                            )}
+                          <div className="pr-12 sm:pr-64">
+                            <h3 className="type-h3 text-emerald-600 dark:text-emerald-400">Every stamp is a step toward another unforgettable brew.</h3>
+                            <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Buy 10 coffees, get the 11th complimentary.</p>
                           </div>
 
                           {/* Card Actions Group */}
                           <div className="absolute top-8 right-8 flex items-center gap-2 z-20">
+                            {stamps >= 10 && (
+                              <button
+                                onClick={handleClaimReward}
+                                className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 type-ui flex items-center gap-1.5 transition-all shadow-lg animate-pulse whitespace-nowrap"
+                              >
+                                <Gift size={14} className="text-emerald-300" />
+                                Claim Free Drink
+                              </button>
+                            )}
                             {/* Fullscreen Button */}
                             <button
                               onClick={() => setIsFullscreen(!isFullscreen)}
@@ -529,13 +585,12 @@ export function LoyaltyView() {
                               return (
                                 <div
                                   key={idx}
-                                  className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-300 ${
-                                    isStamped
+                                  className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-300 ${isStamped
                                       ? "bg-transparent border-emerald-500/40"
                                       : isRewardSlot
                                         ? "bg-zinc-100 border-emerald-500/40 text-zinc-500 dark:bg-[#181818] dark:border-emerald-500/30 dark:text-zinc-600 cursor-pointer"
                                         : "bg-zinc-100 border-zinc-200/80 dark:bg-[#181818] dark:border-white/5"
-                                  } ${isRewardSlot && stamps >= 10 ? "bg-emerald-50/70 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-lg gold-glow cursor-pointer" : ""} ${isRewardSlot ? "group" : ""}`}
+                                    } ${isRewardSlot && stamps >= 10 ? "bg-emerald-50/70 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-lg gold-glow cursor-pointer" : ""} ${isRewardSlot ? "group" : ""}`}
                                 >
                                   {isStamped ? (
                                     <motion.div
@@ -749,38 +804,40 @@ export function LoyaltyView() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-sm bg-card border border-card-border rounded-2xl p-8 z-10 glassmorphism shadow-2xl text-center"
+              className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/60 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 p-8 glassmorphism-green shadow-2xl text-center flex flex-col items-center gap-6"
             >
-              <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-6">
-                <Gift size={32} className="animate-bounce" />
+              {/* Premium Glow Decorative Background */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[40px] rounded-full pointer-events-none" />
+              <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-amber-500/5 blur-[30px] rounded-full pointer-events-none" />
+
+              {/* Glowing Icon Emblem */}
+              <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500/20 to-emerald-500/5 border border-emerald-500/30 shadow-lg shadow-emerald-500/5">
+                <Gift size={36} className="text-emerald-500 animate-pulse" />
+                <div className="absolute inset-0 rounded-full border border-white/10" />
               </div>
 
-              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 text-[10px] tracking-[0.25em] block">Transaction Success</span>
-              <h3 className="type-h3 text-foreground font-serif mt-2 font-bold">Reward Claimed!</h3>
-              <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-2">
-                Your Free Antonioni Blends Modest order has been successfully generated. Present this to your barista.
-              </p>
-
-              <div className="my-6 rounded-xl bg-background-alt/50 border border-card-border p-4 space-y-2 text-left">
-                <div className="flex justify-between text-xs">
-                  <span className="text-zinc-500">Reward Ticket</span>
-                  <span className="text-foreground font-mono font-semibold">#LN-REW-9988</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-zinc-500">Offer Code</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">MODEST-FREE</span>
-                </div>
-                <div className="flex justify-between text-xs border-t border-card-border pt-2">
-                  <span className="text-zinc-500">Points Awarded</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">+50 pts</span>
-                </div>
+              {/* Text Group */}
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-400 font-bold font-sans">
+                  Transaction Success
+                </span>
+                <h3 className="type-h3 text-foreground font-serif mt-1 font-bold text-2xl tracking-wide">
+                  Reward Claimed!
+                </h3>
+                <p className="type-body-sm text-neutral-500 dark:text-zinc-400 leading-relaxed max-w-xs">
+                  Your Free Antonioni Blends Modest order has been successfully generated. Present your Digital Loyalty Card at the counter to redeem.
+                </p>
               </div>
 
+              {/* Subtle elegant divider */}
+              <div className="w-full h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent my-1" />
+
+              {/* Actions */}
               <button
                 onClick={() => setShowClaimSuccess(false)}
-                className="w-full rounded-full bg-[#2E5A44] text-white py-2.5 type-ui hover:bg-[#234533] transition-colors font-bold"
+                className="w-full rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white py-3 text-sm font-semibold transition-all duration-300 shadow-md shadow-emerald-950/20 hover:shadow-lg active:scale-95 cursor-pointer flex items-center justify-center gap-2"
               >
-                Close Ticket
+                Done
               </button>
             </motion.div>
           </div>

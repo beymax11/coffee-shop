@@ -39,6 +39,10 @@ export async function GET(
       paymentMethod: data.payment_method,
       referenceNumber: data.reference_number,
       proofOfPayment: data.proof_of_payment,
+      coffeeFlavor1: data.coffee_flavor_1,
+      coffeeFlavor2: data.coffee_flavor_2,
+      nonCoffeeFlavor1: data.non_coffee_flavor_1,
+      nonCoffeeFlavor2: data.non_coffee_flavor_2,
       created_at: data.created_at,
     };
 

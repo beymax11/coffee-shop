@@ -241,6 +241,10 @@ export const AdminView: React.FC = () => {
           paymentMethod: r.payment_method,
           referenceNumber: r.reference_number,
           proofOfPayment: r.proof_of_payment,
+          coffeeFlavor1: r.coffee_flavor_1,
+          coffeeFlavor2: r.coffee_flavor_2,
+          nonCoffeeFlavor1: r.non_coffee_flavor_1,
+          nonCoffeeFlavor2: r.non_coffee_flavor_2,
           created_at: r.created_at,
         }));
 

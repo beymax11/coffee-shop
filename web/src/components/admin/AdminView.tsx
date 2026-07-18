@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { getMaintenanceMode, setMaintenanceMode } from "@/utils/settings";
 import { formatPhoneNumber } from "@/utils/phone";
 import { notificationsService } from "@/utils/notifications";
+import { eraseCookie } from "@/utils/cookies";
 
 // Import modular sub-components
 import { Sidebar } from "./sidebar/Sidebar";
@@ -520,6 +521,9 @@ export const AdminView: React.FC = () => {
   const handleLogout = () => {
     localStorage.removeItem("admin_session");
     localStorage.removeItem("admin_profile");
+    eraseCookie("admin_session");
+    eraseCookie("admin_role");
+    eraseCookie("sb-access-token");
     router.push("/login");
   };
   const handleResetDb = () => {

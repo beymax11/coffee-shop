@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
 import { formatPhoneNumber } from "@/utils/phone";
+import { setCookie, eraseCookie } from "@/utils/cookies";
 
 export interface LoginDrawerProps {
   isOpen: boolean;
@@ -89,6 +90,9 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
             localStorage.setItem("customer_session", matchedMockUser.email || matchedMockUser.phone || "");
             localStorage.removeItem("admin_session");
             localStorage.removeItem("admin_profile");
+            eraseCookie("admin_session");
+            eraseCookie("admin_role");
+            eraseCookie("sb-access-token");
           } else {
             setErrorMsg("No account found with this phone number (Mock).");
             return;
@@ -119,12 +123,18 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
               role: userRole
             }));
             localStorage.removeItem("customer_session");
+            setCookie("admin_session", "true", 7);
+            setCookie("admin_role", userRole, 7);
+            eraseCookie("sb-access-token");
           } else if (matchedMockUser && password === "customer123") {
             setSuccessMessage("Welcome back. Logging you in...");
             setIsSuccess(true);
             localStorage.setItem("customer_session", matchedMockUser.email);
             localStorage.removeItem("admin_session");
             localStorage.removeItem("admin_profile");
+            eraseCookie("admin_session");
+            eraseCookie("admin_role");
+            eraseCookie("sb-access-token");
           } else {
             setErrorMsg("Invalid credentials (Mock). Try 'admin' / 'admin123' or 'customer123'.");
             return;
@@ -179,10 +189,18 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
           role: actualRole
         }));
         localStorage.removeItem("customer_session");
+        setCookie("admin_session", "true", 7);
+        setCookie("admin_role", actualRole, 7);
+        if (data.session?.access_token) {
+          setCookie("sb-access-token", data.session.access_token, 7);
+        }
       } else {
         // Customer Sign In
         setSuccessMessage("Welcome back. Redirecting to reserve account...");
         setIsSuccess(true);
+        eraseCookie("admin_session");
+        eraseCookie("admin_role");
+        eraseCookie("sb-access-token");
 
         const members = db.getLoyaltyMembers();
         const userPhone = user.phone || formattedPhone;
@@ -210,6 +228,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
             existingMember.stamps = profile.stamps ?? existingMember.stamps;
             existingMember.points = profile.points ?? existingMember.points;
             existingMember.name = profile.name ?? existingMember.name;
+            existingMember.username = profile.username ?? existingMember.username;
             existingMember.phone = profile.phone ?? existingMember.phone;
             db.saveLoyaltyMember(existingMember);
           }
@@ -233,6 +252,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
           db.saveLoyaltyMember({
             id: memberIdToUse,
             name: capitalizedName,
+            username: profile?.username || "",
             email: user.email || "",
             phone: profile?.phone || formattedPhone || "",
             stamps: profile?.stamps || 0,

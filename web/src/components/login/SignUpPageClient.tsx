@@ -72,6 +72,7 @@ export function SignUpPageClient() {
         db.saveLoyaltyMember({
           id: randomId,
           name: name.trim(),
+          username: trimmedUsername,
           email: activeEmail,
           phone: activePhone,
           stamps: 0,
@@ -88,104 +89,94 @@ export function SignUpPageClient() {
         return;
       }
 
-      // Supabase Active mode registrations
-      const signUpCredentials = authMethod === "email"
-        ? {
-            email: activeEmail,
-            password,
-            options: {
-              data: {
-                name: name.trim(),
-                username: username.trim().toLowerCase(),
-                role: "customer",
-              },
+      // Route registrations based on authMethod
+      if (authMethod === "phone") {
+        const { data, error } = await supabase.auth.signUp({
+          phone: activePhone,
+          password,
+          options: {
+            data: {
+              name: name.trim(),
+              username: username.trim().toLowerCase(),
+              role: "customer",
             },
+          },
+        });
+
+        if (error) throw error;
+
+        const user = data.user;
+        if (user) {
+          const userPhone = user.phone || activePhone;
+          const members = db.getLoyaltyMembers();
+          const existingMember = members.find((m) => m.phone && userPhone && m.phone.trim() === userPhone.trim());
+
+          if (!existingMember) {
+            db.saveLoyaltyMember({
+              id: randomId,
+              name: name.trim(),
+              username: username.trim().toLowerCase(),
+              email: user.email || "",
+              phone: userPhone,
+              stamps: 0,
+              points: 0,
+              joinedAt: new Date().toISOString().split("T")[0],
+            });
           }
-        : {
-            phone: activePhone,
-            password,
-            options: {
-              data: {
-                name: name.trim(),
-                username: username.trim().toLowerCase(),
-                role: "customer",
-              },
-            },
-          };
-
-      const { data, error } = await supabase.auth.signUp(signUpCredentials);
-
-      if (error) throw error;
-
-      const user = data.user;
-      if (user) {
-        const userEmail = user.email || "";
-        const userPhone = user.phone || activePhone;
-        const members = db.getLoyaltyMembers();
-        const existingMember = members.find(
-          (m) => (m.email && user.email && m.email.toLowerCase() === user.email.toLowerCase()) ||
-                 (m.phone && userPhone && m.phone.trim() === userPhone.trim())
-        );
-
-        if (!existingMember) {
-          db.saveLoyaltyMember({
-            id: randomId,
-            name: name.trim(),
-            email: userEmail,
-            phone: userPhone,
-            stamps: 0,
-            points: 0,
-            joinedAt: new Date().toISOString().split("T")[0],
-          });
         }
 
-        // Delay to wait for trigger database creation and then update/insert profile with member_id
+        setSuccessMessage("Account created successfully! Redirecting to sign in...");
+        setIsSuccess(true);
         setTimeout(() => {
-          const client = supabase;
-          if (client) {
-            client
-              .from("profiles")
-              .select("id")
-              .eq("id", user.id)
-              .single()
-              .then(({ data: profileData }) => {
-                if (profileData) {
-                  client
-                    .from("profiles")
-                    .update({ 
-                      member_id: existingMember?.id || randomId,
-                      phone: userPhone
-                    })
-                    .eq("id", user.id)
-                    .then(({ error }) => {
-                      if (error) {
-                        console.error("Error updating profile in Supabase profiles:", error);
-                      }
-                    });
-                } else {
-                  client
-                    .from("profiles")
-                    .insert({
-                      id: user.id,
-                      name: name.trim(),
-                      username: username.trim().toLowerCase(),
-                      email: userEmail || "",
-                      phone: userPhone || null,
-                      role: "customer",
-                      member_id: existingMember?.id || randomId,
-                      stamps: 0,
-                      points: 0
-                    })
-                    .then(({ error }) => {
-                      if (error) {
-                        console.error("Error explicitly creating profile in Supabase profiles:", error);
-                      }
-                    });
-                }
-              });
-          }
+          router.replace("/login?view=page");
         }, 1500);
+        return;
+      }
 
+      // Email Auth Method -> Route through custom API
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: activeEmail,
+          password,
+          name: name.trim(),
+          username: username.trim().toLowerCase(),
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to register account.");
+      }
+
+      const resData = await res.json();
+
+      // Sync with local mock loyalty database for dashboard consistency
+      const members = db.getLoyaltyMembers();
+      const existingMember = members.find(
+        (m) => m.email && activeEmail && m.email.toLowerCase() === activeEmail.toLowerCase()
+      );
+
+      if (!existingMember) {
+        db.saveLoyaltyMember({
+          id: randomId,
+          name: name.trim(),
+          username: username.trim().toLowerCase(),
+          email: activeEmail,
+          phone: activePhone,
+          stamps: 0,
+          points: 0,
+          joinedAt: new Date().toISOString().split("T")[0],
+        });
+      }
+
+      if (resData.emailConfirmRequired) {
+        setSuccessMessage(
+          "Registration successful! A verification link has been sent to your email. Please check your inbox and verify your account before logging in."
+        );
+        setIsSuccess(true);
+      } else {
         setSuccessMessage("Account created successfully! Redirecting to sign in...");
         setIsSuccess(true);
         setTimeout(() => {

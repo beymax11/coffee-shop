@@ -21,10 +21,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { getTierInfo } from "@/utils/loyalty";
 import QRCode from "qrcode";
+import { supabase } from "@/utils/supabase";
 
 export function LoyaltyView() {
   const [memberId, setMemberId] = useState<string>("AG-882-901");
   const [memberName, setMemberName] = useState<string>("Alexander Vance");
+  const [memberUsername, setMemberUsername] = useState<string>("");
   const [isGuest, setIsGuest] = useState<boolean>(true);
 
   const [stamps, setStamps] = useState<number>(1);
@@ -224,6 +226,7 @@ export function LoyaltyView() {
               const updatedMember = {
                 id: memberIdToUse,
                 name: profile.name || existing?.name || (isEmail ? sessionEmail.split("@")[0] : sessionEmail),
+                username: profile.username || existing?.username || "",
                 email: isEmail ? sessionEmail : (profile.email || ""),
                 phone: isEmail ? (profile.phone || "") : sessionEmail,
                 stamps: profile.stamps ?? existing?.stamps ?? 0,
@@ -267,6 +270,7 @@ export function LoyaltyView() {
         }
         setMemberId(current.id);
         setMemberName(current.name);
+        setMemberUsername(current.username || "");
         setStamps(currentStamps);
         setPoints(current.points);
         setIsGuest(guestState);
@@ -276,40 +280,35 @@ export function LoyaltyView() {
     syncFromDb();
 
     // Listen for real-time profile updates on Supabase
-    let subscription: any = null;
     let channel: any = null;
     const sessionEmail = typeof window !== "undefined" ? localStorage.getItem("customer_session") : null;
-    if (sessionEmail) {
-      import("@/utils/supabase").then(({ supabase }) => {
-        if (supabase) {
-          const isEmail = sessionEmail.includes("@");
-          const filterStr = isEmail
-            ? `email=eq.${sessionEmail.toLowerCase()}`
-            : `phone=eq.${sessionEmail}`;
+    if (sessionEmail && supabase) {
+      const isEmail = sessionEmail.includes("@");
+      const filterStr = isEmail
+        ? `email=eq.${sessionEmail.toLowerCase()}`
+        : `phone=eq.${sessionEmail}`;
 
-          channel = supabase.channel(`customer-profile-${sessionEmail}`);
-          subscription = channel
-            .on(
-              "postgres_changes",
-              {
-                event: "UPDATE",
-                schema: "public",
-                table: "profiles",
-                filter: filterStr,
-              },
-              () => {
-                syncFromDb();
-              }
-            )
-            .subscribe();
-        }
-      });
+      channel = supabase.channel(`customer-profile-${sessionEmail}`);
+      channel
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: filterStr,
+          },
+          () => {
+            syncFromDb();
+          }
+        )
+        .subscribe();
     }
 
     window.addEventListener("storage", syncFromDb);
     return () => {
       window.removeEventListener("storage", syncFromDb);
-      if (channel && subscription) {
+      if (channel) {
         channel.unsubscribe();
       }
     };
@@ -673,7 +672,9 @@ export function LoyaltyView() {
                           <div className="flex flex-col justify-start gap-3 h-full w-[48%] min-w-0 z-10 relative pb-14">
                             <div>
                               <span className="text-[10px] tracking-[0.25em] text-[#2E5A44] dark:text-emerald-400 font-bold uppercase block font-sans">Antonioni Grounds Reserve</span>
-                              <h2 className="type-h1 text-foreground mt-1 truncate">{memberName}</h2>
+                              <h2 className="type-h1 text-foreground mt-1 truncate uppercase">
+                                {memberUsername || memberName}
+                              </h2>
                               {isGuest && <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Guest Preview Card</p>}
                             </div>
 
@@ -682,7 +683,7 @@ export function LoyaltyView() {
                               {/* Integrated Large QR Code */}
                               <div
                                 onClick={() => setIsQrExpanded(true)}
-                                className="w-32 h-32 bg-white p-2.5 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-inner shrink-0 group cursor-pointer"
+                                className="w-36 h-36 bg-white p-2.5 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-inner shrink-0 group cursor-pointer"
                               >
                                 {/* Real QR Code Representation */}
                                 {qrCodeUrl ? (

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing reservation data" }, { status: 400 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://antonionigrounds.vercel.app";
     const reservationLink = `${baseUrl}/reservations/${reservation.id}`;
     const { amount, totalLabel } = getDownpaymentAmount(reservation.eventType, reservation.guestCount);
 

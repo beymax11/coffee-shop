@@ -204,7 +204,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               {/* Initials Avatar (Left side) */}
               <div className="relative flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-brand-green to-[#234533] dark:from-[#2E5A44] dark:to-[#14281E] shadow-[0_4px_16px_rgba(46,90,68,0.2)] border border-brand-green/30 group transition-transform duration-500 hover:scale-105 shrink-0">
                 <span className="text-xl font-serif font-bold text-white tracking-wide">
-                  {(isEditing ? editName : customer.name)
+                  {(isEditing ? editUsername || editName : customer.username || customer.name)
                     .split(" ")
                     .filter(Boolean)
                     .map((n) => n[0])
@@ -224,7 +224,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   id="profile-modal-title"
                   className="type-h3 text-foreground font-serif tracking-tight font-bold truncate w-full text-left"
                 >
-                  {isEditing ? editName : customer.name}
+                  {isEditing 
+                    ? (editUsername || editName) 
+                    : (customer.username || customer.name)}
                 </h4>
                 <span className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1 font-medium tracking-wide">
                   <Calendar size={12} className="text-brand-green dark:text-emerald-400" />
@@ -277,9 +279,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         />
                       ) : (
                         <span className="text-sm font-medium text-foreground block truncate">
-                          {field.label === "Username"
-                            ? `@${field.value}`
-                            : field.value || "—"}
+                          {field.value || "—"}
                         </span>
                       )}
                     </div>

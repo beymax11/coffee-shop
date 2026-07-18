@@ -196,8 +196,8 @@ export function MenuView() {
                           key={category}
                           onClick={() => setSelectedCategory(category)}
                           className={`relative flex items-center gap-2 rounded-xl px-4 py-2 sm:px-5 sm:py-2.5 lg:px-4 lg:py-2.5 type-ui border text-[10px] tracking-wider transition-all duration-300 whitespace-nowrap cursor-pointer z-10 lg:w-full lg:justify-start ${isSelected
-                              ? "border-transparent text-white font-bold"
-                              : "border-card-border bg-background-alt/20 dark:border-zinc-900 dark:bg-zinc-900/20 text-zinc-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white hover:border-emerald-500/30 hover:bg-background"
+                            ? "border-transparent text-white font-bold"
+                            : "border-card-border bg-background-alt/20 dark:border-zinc-900 dark:bg-zinc-900/20 text-zinc-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white hover:border-emerald-500/30 hover:bg-background"
                             }`}
                           whileHover={{ y: -1 }}
                           whileTap={{ scale: 0.98 }}
@@ -330,7 +330,7 @@ export function MenuView() {
                               <span
                                 className="text-[8px] sm:text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400 group-hover:text-foreground dark:group-hover:text-white flex items-center gap-1 transition-colors duration-300"
                               >
-                                Explore
+                                View
                                 <ArrowRight size={10} className="text-emerald-500 transition-transform duration-300 group-hover:translate-x-1" />
                               </span>
                             </div>

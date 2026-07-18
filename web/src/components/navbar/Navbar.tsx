@@ -289,11 +289,11 @@ export const Navbar: React.FC = () => {
               >
                 <div className="absolute inset-0 rounded-full bg-brand-green/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none" />
                 <div className="relative w-5 h-5 rounded-full border border-brand-green/30 bg-background flex items-center justify-center text-brand-green dark:text-emerald-400 text-[9px] font-bold shadow-[0_0_8px_rgba(46,90,68,0.15)] select-none">
-                  {customer.name.charAt(0).toUpperCase()}
+                  {(customer.username || customer.name).charAt(0).toUpperCase()}
                   <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse sm:hidden" />
                 </div>
                 <span className="relative hidden sm:inline text-[10px] uppercase tracking-[0.15em] font-sans font-bold text-neutral-500 dark:text-zinc-300 group-hover:text-foreground dark:group-hover:text-white transition-colors">
-                  {customer.name.split(" ")[0]}
+                  {customer.username || customer.name.split(" ")[0]}
                   <span className="absolute -top-1 -right-2 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 </span>
               </button>
@@ -465,14 +465,14 @@ export const Navbar: React.FC = () => {
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-xl border border-brand-green/20 bg-brand-green/5 flex items-center justify-center text-brand-green font-bold text-base shadow-[inset_0_1px_1px_rgba(46,90,68,0.1)] shrink-0">
-                          {customer.name.charAt(0).toUpperCase()}
+                          {(customer.username || customer.name).charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
                           <span className="text-[9px] uppercase tracking-[0.15em] font-sans font-bold text-brand-green/80">
                             Reserve Member
                           </span>
                           <div className="text-sm font-semibold text-foreground truncate mt-0.5">
-                            {customer.name}
+                            {customer.username || customer.name}
                           </div>
                           <div className="text-[9px] text-zinc-400 dark:text-zinc-500 font-mono mt-0.5">
                             {customer.id}

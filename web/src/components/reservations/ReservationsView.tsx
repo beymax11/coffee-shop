@@ -78,7 +78,7 @@ export function ReservationsView() {
 
   const [isMounted, setIsMounted] = useState(false);
   const [ticketId, setTicketId] = useState("");
-  const [reservationStatus, setReservationStatus] = useState<"Pending" | "Approved" | "Cancelled">("Pending");
+  const [reservationStatus, setReservationStatus] = useState<"Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Cancellation Requested">("Pending");
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -1599,6 +1599,22 @@ export function ReservationsView() {
                             const status = trackedReservation.status;
                             const isPaid = trackedReservation.referenceNumber && trackedReservation.proofOfPayment;
                             
+                            if (status === "Cancelled") {
+                              return (
+                                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400" />
+                                  CANCELLED
+                                </span>
+                              );
+                            }
+                            if (status === "Cancellation Requested") {
+                              return (
+                                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-orange-600 dark:text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-600 dark:bg-orange-400 animate-pulse" />
+                                  CANCELLATION REQUESTED
+                                </span>
+                              );
+                            }
                             if (status === "Approved") {
                               return (
                                 <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-bold">
@@ -1620,14 +1636,6 @@ export function ReservationsView() {
                                 <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400" />
                                   PRE-APPROVED
-                                </span>
-                              );
-                            }
-                            if (status === "Cancelled") {
-                              return (
-                                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded font-bold">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400" />
-                                  CANCELLED
                                 </span>
                               );
                             }
@@ -1661,8 +1669,24 @@ export function ReservationsView() {
                         </div>
                       </div>
 
+                      {/* Cancellation Requested notice */}
+                      {trackedReservation.status === "Cancellation Requested" && (
+                        <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-left space-y-2">
+                          <h4 className="font-semibold text-xs text-orange-500">Cancellation Under Review</h4>
+                          <p className="text-[10px] text-orange-500/80 leading-relaxed font-light">
+                            Your cancellation request has been received. Our admin team will review it and process your request shortly. You will be notified of the outcome via email.
+                          </p>
+                          {trackedReservation.cancellationReason && (
+                            <div className="pt-2 border-t border-orange-500/20">
+                              <span className="text-[9px] uppercase tracking-wide text-orange-600 dark:text-orange-400 font-bold block mb-1">Your Reason</span>
+                              <p className="text-[11px] text-foreground italic">"{trackedReservation.cancellationReason}"</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Interactive Visual Timeline */}
-                      {trackedReservation.status !== "Cancelled" && (
+                      {trackedReservation.status !== "Cancelled" && trackedReservation.status !== "Cancellation Requested" && (
                         <div className="space-y-4 bg-background-alt/25 p-4 rounded-xl border border-card-border">
                           <span className="text-[9px] uppercase font-bold tracking-[0.25em] text-zinc-500 pl-1 block">
                             Booking Journey Tracker

@@ -11,7 +11,7 @@ export interface Reservation {
   guestCount: number;
   location: string;
   notes?: string;
-  status?: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed";
+  status?: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested";
   created_at?: string;
   paymentMethod?: "GCash" | "Bank Transfer" | "QRPh";
   referenceNumber?: string;
@@ -20,4 +20,5 @@ export interface Reservation {
   coffeeFlavor2?: string;
   nonCoffeeFlavor1?: string;
   nonCoffeeFlavor2?: string;
+  cancellationReason?: string;
 }

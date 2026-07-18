@@ -45,7 +45,7 @@ export const AdminView: React.FC = () => {
   // Search/Filters
   const [menuSearch, setMenuSearch] = useState("");
   const [menuCatFilter, setMenuCatFilter] = useState("All");
-  const [reservationFilter, setReservationFilter] = useState<"All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed">("All");
+  const [reservationFilter, setReservationFilter] = useState<"All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested">("All");
   const [reservationSearch, setReservationSearch] = useState("");
   const [loyaltySearch, setLoyaltySearch] = useState("");
 
@@ -84,7 +84,7 @@ export const AdminView: React.FC = () => {
     stamps: 0
   });
   // Status mappings for reservations (we store approval state locally)
-  const [reservationStatuses, setReservationStatuses] = useState<Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed">>({});
+  const [reservationStatuses, setReservationStatuses] = useState<Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested">>({});
 
   // Custom Confirmation Modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -245,6 +245,7 @@ export const AdminView: React.FC = () => {
           coffeeFlavor2: r.coffee_flavor_2,
           nonCoffeeFlavor1: r.non_coffee_flavor_1,
           nonCoffeeFlavor2: r.non_coffee_flavor_2,
+          cancellationReason: r.cancellation_reason,
           created_at: r.created_at,
         }));
 
@@ -268,19 +269,25 @@ export const AdminView: React.FC = () => {
   };
 
   const syncLocalReservationStatuses = (loadedReservations: Reservation[]) => {
-    const savedStatuses = localStorage.getItem("admin_reservation_statuses");
-    if (savedStatuses) {
-      setReservationStatuses(JSON.parse(savedStatuses));
-    } else {
-      const initialStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed"> = {};
-      loadedReservations.forEach((res, index) => {
+    const savedStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested"> = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("admin_reservation_statuses") || "{}");
+      } catch { return {}; }
+    })();
+
+    // Always prefer the status from Supabase (DB is source of truth for customer-initiated changes)
+    const merged: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested"> = { ...savedStatuses };
+    loadedReservations.forEach((res) => {
+      if (res.status) {
         const key = `${res.fullName}-${res.date}-${res.time}`;
-        initialStatuses[key] = index === 0 ? "Approved" : "Pending";
-      });
-      setReservationStatuses(initialStatuses);
-      localStorage.setItem("admin_reservation_statuses", JSON.stringify(initialStatuses));
-    }
+        merged[key] = res.status as "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested";
+      }
+    });
+
+    setReservationStatuses(merged);
+    localStorage.setItem("admin_reservation_statuses", JSON.stringify(merged));
   };
+
 
   // Load non-loyalty data (menu, reservations)
   const loadLocalData = () => {
@@ -396,7 +403,7 @@ export const AdminView: React.FC = () => {
     await fetchUsers();
   };
 
-  const updateReservationStatus = async (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed") => {
+  const updateReservationStatus = async (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested") => {
     const key = `${res.fullName}-${res.date}-${res.time}`;
     const updated = { ...reservationStatuses, [key]: newStatus };
     setReservationStatuses(updated);
@@ -466,6 +473,8 @@ export const AdminView: React.FC = () => {
       }
     } else if (newStatus === "Cancelled") {
       toast.error(`Reservation for ${res.fullName} has been cancelled.`);
+    } else if (newStatus === "Cancellation Requested") {
+      toast.warning(`Cancellation request received from ${res.fullName}.`);
     } else if (newStatus === "Completed") {
       toast.success(`Reservation for ${res.fullName} has been completed.`);
       // Send thank you email

@@ -8,10 +8,10 @@ import { ConfirmModal } from "../common/ConfirmModal";
 
 interface ReservationsTabProps {
   reservations: Reservation[];
-  reservationStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed">;
-  reservationFilter: "All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed";
-  setReservationFilter: (filter: "All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed") => void;
-  onUpdateStatus: (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed") => void;
+  reservationStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested">;
+  reservationFilter: "All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested";
+  setReservationFilter: (filter: "All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested") => void;
+  onUpdateStatus: (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested") => void;
   reservationSearch: string;
   setReservationSearch: (search: string) => void;
   onOpenDetails: (res: Reservation) => void;
@@ -86,12 +86,13 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
     return matchesFilter && matchesSearch;
   });
 
-  const filterStates: Array<"All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed"> = [
+  const filterStates: Array<"All" | "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested"> = [
     "All",
     "Pending",
     "Pre-Approved",
     "Approved",
     "Completed",
+    "Cancellation Requested",
     "Cancelled",
   ];
 
@@ -158,7 +159,7 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
             >
               {/* Highlight background glow */}
               <div className={`absolute top-0 right-0 w-24 h-24 blur-[35px] rounded-full pointer-events-none opacity-20 ${
-                status === "Completed" ? "bg-blue-500" : status === "Approved" ? "bg-emerald-500" : status === "Pre-Approved" ? "bg-amber-500" : status === "Cancelled" ? "bg-red-500" : "bg-zinc-500"
+                status === "Completed" ? "bg-blue-500" : status === "Approved" ? "bg-emerald-500" : status === "Pre-Approved" ? "bg-amber-500" : status === "Cancellation Requested" ? "bg-orange-500" : status === "Cancelled" ? "bg-red-500" : "bg-zinc-500"
               }`} />
 
               <div className="space-y-4">
@@ -172,6 +173,8 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                         ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                         : status === "Pre-Approved"
                         ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                        : status === "Cancellation Requested"
+                        ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 animate-pulse"
                         : status === "Cancelled"
                         ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
                         : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
@@ -305,6 +308,15 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                       {isCardUpdating && updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
                     </button>
                   </>
+                )}
+
+                {status === "Cancellation Requested" && (
+                  <button
+                    onClick={() => onOpenDetails(res)}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/20 py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 hover:border-orange-500/40 cursor-pointer"
+                  >
+                    Review Cancellation Request
+                  </button>
                 )}
 
                 {status === "Completed" && (

@@ -43,6 +43,7 @@ export async function GET(
       coffeeFlavor2: data.coffee_flavor_2,
       nonCoffeeFlavor1: data.non_coffee_flavor_1,
       nonCoffeeFlavor2: data.non_coffee_flavor_2,
+      cancellationReason: data.cancellation_reason,
       created_at: data.created_at,
     };
 
@@ -65,7 +66,7 @@ export async function PATCH(
 
   try {
     const body = await req.json();
-    const { status, paymentMethod, referenceNumber, proofOfPayment } = body;
+    const { status, paymentMethod, referenceNumber, proofOfPayment, cancellationReason } = body;
 
     const updatePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -75,6 +76,7 @@ export async function PATCH(
     if (paymentMethod !== undefined) updatePayload.payment_method = paymentMethod;
     if (referenceNumber !== undefined) updatePayload.reference_number = referenceNumber;
     if (proofOfPayment !== undefined) updatePayload.proof_of_payment = proofOfPayment;
+    if (cancellationReason !== undefined) updatePayload.cancellation_reason = cancellationReason;
 
     const { data, error } = await supabase
       .from("reservations")

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
-import { Loader2, AlertCircle, ChevronLeft, CheckCircle2, Check, CreditCard, Hash, Upload, QrCode } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, AlertCircle, ChevronLeft, CheckCircle2, Check, CreditCard, Hash, Upload, QrCode, X, AlertTriangle } from "lucide-react";
 import { PageTransition } from "@/components/animations";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -18,10 +18,11 @@ interface ReservationData {
   guestCount: number;
   location: string;
   notes?: string;
-  status: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed";
+  status: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested";
   paymentMethod?: string;
   referenceNumber?: string;
   proofOfPayment?: string;
+  cancellationReason?: string;
   created_at?: string;
 }
 
@@ -62,6 +63,28 @@ function StatusBadge({
   status: ReservationData["status"];
   isPaid: boolean;
 }) {
+  if (status === "Cancelled")
+    return (
+      <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 px-2.5 py-1 rounded font-bold">
+        <span className="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400" />
+        CANCELLED
+      </span>
+    );
+  if (status === "Completed")
+    return (
+      <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2.5 py-1 rounded font-bold">
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+        COMPLETED
+      </span>
+    );
+  if (status === "Cancellation Requested") {
+    return (
+      <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-orange-600 dark:text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 rounded font-bold shadow-[0_0_10px_rgba(249,115,22,0.1)]">
+        <span className="w-1.5 h-1.5 rounded-full bg-orange-600 dark:bg-orange-400 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
+        CANCELLATION REQUESTED
+      </span>
+    );
+  }
   if (status === "Approved") {
     return (
       <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-[#2E5A44]/10 border border-[#2E5A44]/30 px-2.5 py-1 rounded font-bold shadow-[0_0_10px_rgba(16,185,129,0.1)]">
@@ -86,20 +109,6 @@ function StatusBadge({
       </span>
     );
   }
-  if (status === "Cancelled")
-    return (
-      <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 px-2.5 py-1 rounded font-bold">
-        <span className="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400" />
-        CANCELLED
-      </span>
-    );
-  if (status === "Completed")
-    return (
-      <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2.5 py-1 rounded font-bold">
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
-        COMPLETED
-      </span>
-    );
   return (
     <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-zinc-500 dark:text-zinc-400 bg-zinc-500/10 border border-zinc-500/30 px-2.5 py-1 rounded font-bold">
       <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 dark:bg-zinc-400 animate-pulse shadow-[0_0_8px_rgba(113,113,122,0.8)]" />
@@ -148,7 +157,6 @@ function PaymentForm({
           reader.onerror = (error) => reject(error);
         });
       };
-
       try {
         finalProofUrl = await getBase64(file);
       } catch (err) {
@@ -175,132 +183,154 @@ function PaymentForm({
           }
         }
       } catch (err) {
-        console.warn("Supabase upload failed:", err);
+        console.error("Failed to upload proof of payment file:", err);
       }
 
-      const res = await fetch(`/api/reservations/${reservationId}`, {
+      // Update via DB API
+      const patchRes = await fetch(`/api/reservations/${reservationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentMethod, referenceNumber, proofOfPayment: finalProofUrl }),
+        body: JSON.stringify({
+          paymentMethod,
+          referenceNumber,
+          proofOfPayment: finalProofUrl,
+        }),
       });
-      if (!res.ok) throw new Error("Failed to submit payment");
+
+      if (!patchRes.ok) throw new Error("Failed to submit payment reference.");
+
+      // Locally update mock storage
+      if (typeof window !== "undefined") {
+        try {
+          const reservations = JSON.parse(localStorage.getItem("reservations") || "[]");
+          const idx = reservations.findIndex((r: any) => r.id === reservationId);
+          if (idx >= 0) {
+            reservations[idx] = {
+              ...reservations[idx],
+              paymentMethod,
+              referenceNumber,
+              proofOfPayment: finalProofUrl,
+            };
+            localStorage.setItem("reservations", JSON.stringify(reservations));
+            window.dispatchEvent(new Event("storage"));
+          }
+        } catch { /* ignore fallback write errors */ }
+      }
+
       onSuccess({ paymentMethod, referenceNumber, proofOfPayment: finalProofUrl });
-    } catch {
-      setErrors({ submit: "Failed to submit payment. Please try again." });
+    } catch (err) {
+      setErrors({ submit: err instanceof Error ? err.message : "Submission failed" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const paymentMethods = [
-    { id: "GCash" as const, title: "GCash E-Wallet", desc: "Fast downpayment via mobile wallet.", icon: "⚡" },
-    { id: "Bank Transfer" as const, title: "Bank Transfer (BPI)", desc: "Direct deposit to our bank account.", icon: CreditCard },
-    { id: "QRPh" as const, title: "QRPh Instant Pay", desc: "Scan from any bank or wallet app.", icon: QrCode },
-  ];
-
   return (
     <div className="space-y-6">
-      <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-2">
-        <h3 className="text-xl font-serif text-foreground tracking-wide">Submit Downpayment</h3>
-        <p className="text-xs text-zinc-500 mt-1 font-light">Required: ₱{pricing.downpayment.toLocaleString()}</p>
+      <div className="border-b border-zinc-200 dark:border-white/5 pb-4">
+        <h3 className="text-lg font-serif text-foreground font-semibold">Select Downpayment Method</h3>
+        <p className="text-xs text-zinc-500 mt-1">Please transfer the downpayment to confirm your booking reservation slot.</p>
       </div>
 
-      {/* Payment Method */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {paymentMethods.map((method) => {
-          const isSelected = paymentMethod === method.id;
-          const Icon = method.icon;
+      <div className="grid grid-cols-3 gap-3">
+        {(["GCash", "Bank Transfer", "QRPh"] as const).map((method) => {
+          const active = paymentMethod === method;
           return (
             <button
-              key={method.id}
+              key={method}
               type="button"
-              onClick={() => setPaymentMethod(method.id)}
-              className={`rounded-xl border p-5 text-left transition-all duration-300 flex flex-col justify-between min-h-[120px] select-none outline-none ${
-                isSelected
-                  ? "bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1] border-emerald-600/50 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 dark:border-emerald-500/80"
-                  : "bg-card border-card-border text-neutral-500 hover:border-emerald-600/30"
+              onClick={() => setPaymentMethod(method)}
+              className={`rounded-xl border p-4 text-center cursor-pointer transition-all duration-300 ${
+                active
+                  ? "bg-[#2E5A44]/10 border-[#2E5A44] text-emerald-500 font-bold"
+                  : "bg-background border-card-border hover:bg-foreground/[0.02] text-zinc-400"
               }`}
             >
-              <div className="flex justify-between items-start">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center border text-sm ${
-                  isSelected ? "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-[#2E5A44]/20 dark:text-emerald-400 dark:border-emerald-500/40" : "bg-zinc-100 dark:bg-white/5 text-zinc-500 border-zinc-200 dark:border-white/5"
-                }`}>
-                  {typeof Icon === "string" ? <span>{Icon}</span> : <Icon size={16} />}
-                </div>
-                {isSelected && <Check size={16} className="text-emerald-600 dark:text-emerald-400" />}
-              </div>
-              <div className="mt-3">
-                <h4 className="font-sans font-bold text-xs text-foreground tracking-wide">{method.title}</h4>
-                <p className="font-sans text-[10px] text-zinc-500 dark:text-zinc-400 font-light mt-1">{method.desc}</p>
-              </div>
+              <CreditCard size={18} className="mx-auto mb-2 text-inherit" />
+              <span className="text-[10px] uppercase tracking-wider block">{method}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Instructions */}
-      <div className="p-4 border border-card-border bg-[#0D1D16]/45 dark:bg-[#07130E]/65 rounded-xl text-xs text-zinc-400 space-y-1 font-light leading-relaxed">
-        {paymentMethod === "GCash" && (
-          <><p>1. Send the downpayment to GCash account: <strong className="text-foreground font-mono">0917-123-4567 (ANTONIONI G.)</strong></p><p>2. Enter the reference number and upload your screenshot below.</p></>
-        )}
-        {paymentMethod === "Bank Transfer" && (
-          <><p>1. Transfer to BPI — Account Name: <strong className="text-foreground">Antonioni Grounds Café</strong>, Account No: <strong className="text-foreground font-mono">1234-5678-9012</strong></p><p>2. Enter the transaction number and upload your receipt below.</p></>
-        )}
-        {paymentMethod === "QRPh" && (
-          <p>Scan the QRPh code using your bank app or e-wallet (GCash, Maya, BPI, BDO). Enter the reference number and upload your screenshot below.</p>
-        )}
-      </div>
-
-      {/* Reference Number */}
-      <div className="space-y-2">
-        <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-500 block pl-1">
-          Reference / Transaction Number
-        </label>
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
-            <Hash size={14} />
-          </div>
-          <input
-            type="text"
-            placeholder="e.g. 5001 1234 5678"
-            value={referenceNumber}
-            onChange={(e) => setReferenceNumber(e.target.value)}
-            className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-mono text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-zinc-600"
-          />
+      {/* Payment details container */}
+      <div className="rounded-xl border border-card-border bg-[#2E5A44]/[0.02] p-4 text-xs space-y-4">
+        <div className="flex justify-between items-center border-b border-card-border/40 pb-2">
+          <span className="text-zinc-500">Downpayment Amount</span>
+          <span className="text-emerald-500 font-bold font-mono text-sm">₱{pricing.downpayment.toLocaleString()}</span>
         </div>
-        {errors.referenceNumber && <span className="text-xs text-red-500 block">{errors.referenceNumber}</span>}
+
+        {paymentMethod === "GCash" && (
+          <div className="space-y-1 leading-relaxed">
+            <p className="font-bold text-foreground">GCash Transfer Details:</p>
+            <p className="text-zinc-400">Account Name: <strong className="text-foreground">ANTONIONI G.</strong></p>
+            <p className="text-zinc-400">Account Number: <strong className="text-foreground font-mono">0917-123-4567</strong></p>
+          </div>
+        )}
+
+        {paymentMethod === "Bank Transfer" && (
+          <div className="space-y-1 leading-relaxed">
+            <p className="font-bold text-foreground">Bank Account Details (BDO):</p>
+            <p className="text-zinc-400">Account Name: <strong className="text-foreground">Antonioni Grounds Inc.</strong></p>
+            <p className="text-zinc-400">Account Number: <strong className="text-foreground font-mono">0012-3456-7890</strong></p>
+          </div>
+        )}
+
+        {paymentMethod === "QRPh" && (
+          <div className="space-y-3 leading-relaxed flex flex-col items-center">
+            <p className="font-bold text-foreground self-start">Scan QRPh Code to pay:</p>
+            <div className="w-32 h-32 bg-white rounded-lg p-2 border border-zinc-200 flex items-center justify-center relative">
+              <QrCode size={110} className="text-black" />
+            </div>
+            <p className="text-[10px] text-zinc-500 text-center">Scan with GCash, PayMaya, BDO, or any banking app.</p>
+          </div>
+        )}
       </div>
 
-      {/* Proof Upload */}
-      <div className="space-y-2">
-        <label className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-500 block pl-1">
-          Screenshot Proof of Payment
-        </label>
-        <label className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-6 cursor-pointer transition-all ${
-          proofFile ? "border-emerald-500/50 bg-emerald-500/5" : "border-card-border hover:border-emerald-500/30 hover:bg-foreground/[0.02]"
-        }`}>
-          <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => setProofFile(e.target.files?.[0] || null)} />
-          {proofFile ? (
-            <><Check size={24} className="text-emerald-500" /><span className="text-sm font-medium text-emerald-500">{proofFile.name}</span></>
-          ) : (
-            <><Upload size={24} className="text-zinc-500" /><div className="text-center"><p className="text-sm text-zinc-400">Click to upload screenshot</p><p className="text-xs text-zinc-600 mt-0.5">PNG, JPG, PDF accepted</p></div></>
-          )}
-        </label>
-        {errors.proofFile && <span className="text-xs text-red-500 block">{errors.proofFile}</span>}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#2E5A44] block pl-1">Reference Number</label>
+          <div className="relative">
+            <Hash className="absolute left-3 top-3.5 text-zinc-500" size={14} />
+            <input
+              type="text"
+              placeholder="Enter payment reference ID code"
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
+              className="w-full rounded-lg border border-card-border bg-background/50 pl-9 pr-4 py-3 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
+            />
+          </div>
+          {errors.referenceNumber && <span className="text-xs text-red-500 block pl-1">{errors.referenceNumber}</span>}
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#2E5A44] block pl-1">Upload Receipt Screenshot</label>
+          <label className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all duration-300 ${
+            proofFile ? "border-emerald-500/50 bg-emerald-500/5" : "border-card-border hover:border-emerald-500/30 hover:bg-foreground/[0.02]"
+          }`}>
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => setProofFile(e.target.files?.[0] || null)} />
+            {proofFile ? (
+              <><Check size={24} className="text-emerald-500" /><span className="text-sm font-medium text-emerald-500">{proofFile.name}</span></>
+            ) : (
+              <><Upload size={24} className="text-zinc-500" /><div className="text-center"><p className="text-sm text-zinc-400">Click to upload screenshot</p><p className="text-xs text-zinc-600 mt-0.5">PNG, JPG, PDF accepted</p></div></>
+            )}
+          </label>
+          {errors.proofFile && <span className="text-xs text-red-500 block">{errors.proofFile}</span>}
+        </div>
+
+        {errors.submit && (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs text-red-400">{errors.submit}</div>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="w-full flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white py-3.5 text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(46,90,68,0.3)] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
+        >
+          {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> Submitting...</> : <><Check size={14} /> Confirm Downpayment</>}
+        </button>
       </div>
-
-      {errors.submit && (
-        <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs text-red-400">{errors.submit}</div>
-      )}
-
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={isSubmitting}
-        className="w-full flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white py-3.5 text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(46,90,68,0.3)] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
-      >
-        {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> Submitting...</> : <><Check size={14} /> Confirm Downpayment</>}
-      </button>
     </div>
   );
 }
@@ -314,6 +344,12 @@ export default function ReservationDetailView({ reservationId }: { reservationId
   const [showPayment, setShowPayment] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
   const [paidData, setPaidData] = useState<{ paymentMethod: string; referenceNumber: string } | null>(null);
+
+  // Cancellation States
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelReasonError, setCancelReasonError] = useState("");
+  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
 
   const fetchReservation = useCallback(async () => {
     try {
@@ -336,7 +372,60 @@ export default function ReservationDetailView({ reservationId }: { reservationId
     }
   }, [reservationId]);
 
-  useEffect(() => { fetchReservation(); }, [fetchReservation]);
+  useEffect(() => {
+    fetchReservation();
+    const interval = setInterval(() => {
+      fetchReservation();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [fetchReservation]);
+
+  const handleSubmitCancellation = async () => {
+    if (!cancelReason.trim()) {
+      setCancelReasonError("Please provide a reason for cancellation.");
+      return;
+    }
+    setCancelReasonError("");
+    setIsSubmittingCancel(true);
+
+    try {
+      const patchRes = await fetch(`/api/reservations/${reservationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "Cancellation Requested",
+          cancellationReason: cancelReason.trim(),
+        }),
+      });
+
+      if (!patchRes.ok) throw new Error("Failed to submit cancellation request");
+
+      // Locally update mock storage
+      if (typeof window !== "undefined") {
+        try {
+          const reservations = JSON.parse(localStorage.getItem("reservations") || "[]");
+          const idx = reservations.findIndex((r: any) => r.id === reservationId);
+          if (idx >= 0) {
+            reservations[idx] = {
+              ...reservations[idx],
+              status: "Cancellation Requested",
+              cancellationReason: cancelReason.trim(),
+            };
+            localStorage.setItem("reservations", JSON.stringify(reservations));
+            window.dispatchEvent(new Event("storage"));
+          }
+        } catch { /* ignore fallback errors */ }
+      }
+
+      setReservation((prev) => prev ? { ...prev, status: "Cancellation Requested", cancellationReason: cancelReason.trim() } : prev);
+      setShowCancelModal(false);
+      setCancelReason("");
+    } catch (err) {
+      console.error("Cancellation submission error:", err);
+    } finally {
+      setIsSubmittingCancel(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -397,6 +486,16 @@ export default function ReservationDetailView({ reservationId }: { reservationId
 
   const { notes, coffeeFlavor1, coffeeFlavor2, nonCoffeeFlavor1, nonCoffeeFlavor2 } = parseNotesAndFlavors(reservation.notes || "");
 
+  // Cancellation Policy computation
+  const isTable = reservation.eventType === "Table Reservation";
+  const policyTitle = isTable ? "Table Reservation Cancellation Policy" : "Mobile Cart Reservation Cancellation Policy";
+  const fullRefundLine = isTable 
+    ? "Reservations cancelled at least 24 hours before the scheduled booking date are eligible for a full refund." 
+    : "Reservations cancelled at least 1 week before the scheduled booking date are eligible for a full refund.";
+  const nonRefundLine = isTable 
+    ? "Downpayment is non-refundable if cancelled less than 24 hours before the scheduled booking date." 
+    : "Downpayment is non-refundable if cancelled less than 1 week before the scheduled booking date.";
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-background pt-8 pb-20 md:pt-16 text-foreground font-sans relative overflow-hidden">
@@ -419,15 +518,19 @@ export default function ReservationDetailView({ reservationId }: { reservationId
               <CheckCircle2 size={36} className="stroke-[1.5]" />
             </div>
             <h1 className="text-3xl font-serif text-foreground tracking-tight font-semibold">
-              {isPaid ? "Booking Secured" : reservation.status === "Cancelled" ? "Booking Cancelled" : "Reservation Confirmed"}
+              {reservation.status === "Cancelled" ? "Booking Cancelled" : reservation.status === "Approved" ? "Booking Secured" : reservation.status === "Cancellation Requested" ? "Cancellation Requested" : isPaid ? "Payment Pending Verification" : "Reservation Confirmed"}
             </h1>
             <p className="text-sm text-zinc-500 font-light mt-2 leading-relaxed max-w-sm mx-auto">
-              {isPaid ? (
+              {reservation.status === "Cancelled" ? (
+                <>Your booking has been <strong className="text-red-500">cancelled</strong>. Contact us if you think this is an error.</>
+              ) : reservation.status === "Approved" ? (
                 <>Your downpayment has been received. Your booking is now <strong className="text-emerald-500">fully secured</strong>. We look forward to hosting you!</>
+              ) : reservation.status === "Cancellation Requested" ? (
+                <>Your cancellation request is submitted and <strong className="text-orange-500">pending admin review</strong>.</>
+              ) : isPaid ? (
+                <>Your payment information has been submitted successfully. We are now <strong className="text-amber-500">verifying your downpayment receipt</strong>. We will notify you once approved.</>
               ) : canPay ? (
                 <>Your booking is <strong className="text-amber-500">pre-approved</strong>! Click <strong className="text-foreground">Pay Now</strong> below to submit your downpayment and fully secure your slot.</>
-              ) : reservation.status === "Cancelled" ? (
-                <>Your booking has been <strong className="text-red-500">cancelled</strong>. Contact us if you think this is an error.</>
               ) : reservation.status === "Completed" ? (
                 <>Thank you for visiting Antonioni Grounds! We hope you had a wonderful experience.</>
               ) : (
@@ -459,7 +562,7 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                     setIsPaid(true);
                     setPaidData(data);
                     setShowPayment(false);
-                    setReservation((prev) => prev ? { ...prev, ...data } : prev);
+                    setReservation((prev) => prev ? { ...prev, ...data, status: "Approved" } : prev);
                   }}
                 />
               </div>
@@ -554,7 +657,7 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                   )}
 
                   {/* Paid confirmation */}
-                  {isPaid && paidData && (
+                  {(isPaid || reservation.status === "Approved" || reservation.status === "Cancellation Requested") && paidData && (
                     <div className="border-t border-emerald-500/20 pt-4 bg-emerald-500/[0.03] rounded-b-xl -mx-8 -mb-8 px-8 pb-6">
                       <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-wider mb-2">✓ Downpayment Submitted</p>
                       <div className="grid grid-cols-2 gap-2 text-xs">
@@ -572,17 +675,42 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                 </div>
 
                 {/* CTAs */}
-                <div className="flex justify-center gap-3.5">
+                <div className="flex justify-center gap-3.5 flex-wrap">
                   <a
                     href="/menu"
                     className="rounded-full border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-white/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-white/10 transition-all active:scale-95 cursor-pointer flex items-center justify-center"
                   >
                     Explore Menu
                   </a>
-                  {isPaid ? (
-                    <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-                      <Check size={14} className="stroke-[2.5]" />
-                      Paid & Secured
+                  {reservation.status === "Cancelled" ? (
+                    <div className="flex items-center gap-1.5 rounded-full bg-red-500/10 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-red-600 dark:text-red-400 border border-red-500/20">
+                      <X size={14} className="stroke-[2.5]" />
+                      Cancelled
+                    </div>
+                  ) : isPaid || reservation.status === "Approved" || reservation.status === "Cancellation Requested" ? (
+                    <div className="flex items-center gap-2 flex-wrap justify-center">
+                      <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                        <Check size={14} className="stroke-[2.5]" />
+                        Paid & Secured
+                      </div>
+                      
+                      {reservation.status !== "Cancellation Requested" && (
+                        <button
+                          type="button"
+                          onClick={() => setShowCancelModal(true)}
+                          className="flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/5 px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition-all active:scale-95 cursor-pointer"
+                        >
+                          <X size={13} className="stroke-[2.5]" />
+                          Cancel Reservation
+                        </button>
+                      )}
+
+                      {reservation.status === "Cancellation Requested" && (
+                        <div className="flex items-center gap-1.5 rounded-full bg-orange-500/10 px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-orange-600 dark:text-orange-400 border border-orange-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                          Cancellation Requested
+                        </div>
+                      )}
                     </div>
                   ) : canPay ? (
                     <button
@@ -621,6 +749,110 @@ export default function ReservationDetailView({ reservationId }: { reservationId
           </motion.div>
         </div>
       </div>
+
+      {/* Cancellation Modal */}
+      <AnimatePresence>
+        {showCancelModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowCancelModal(false); setCancelReason(""); setCancelReasonError(""); }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="relative z-10 w-full max-w-md rounded-2xl border border-card-border bg-card p-6 shadow-2xl font-sans"
+            >
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={() => { setShowCancelModal(false); setCancelReason(""); setCancelReasonError(""); }}
+                className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-500 hover:text-foreground hover:bg-foreground/5 dark:hover:bg-white/5 transition-all cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+
+              {/* Header */}
+              <div className="space-y-1.5 mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                    <AlertTriangle size={16} className="text-red-500" />
+                  </div>
+                  <h3 className="font-serif text-lg text-foreground font-semibold tracking-tight">Cancel Reservation</h3>
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-light leading-relaxed pl-[2.6rem]">
+                  Please read the cancellation policy before proceeding.
+                </p>
+              </div>
+
+              {/* Policy Card */}
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4 mb-5 space-y-2.5">
+                <h4 className="text-[9px] uppercase tracking-[0.2em] font-bold text-amber-600 dark:text-amber-400">{policyTitle}</h4>
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                    <p className="text-foreground leading-relaxed">{fullRefundLine}</p>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                    <p className="text-foreground leading-relaxed">{nonRefundLine}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reason Field */}
+              <div className="space-y-2 mb-5">
+                <label className="text-[10px] uppercase font-bold tracking-[0.2em] text-red-600 dark:text-red-400 block">
+                  Reason for Cancellation <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Please describe why you are cancelling this reservation..."
+                  value={cancelReason}
+                  onChange={(e) => { setCancelReason(e.target.value); if (cancelReasonError) setCancelReasonError(""); }}
+                  className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-red-500/60 focus:ring-1 focus:ring-red-500/20 transition-all resize-none placeholder:text-neutral-400 dark:placeholder:text-zinc-600 min-h-[90px]"
+                />
+                {cancelReasonError && (
+                  <p className="text-xs text-red-500 font-sans">{cancelReasonError}</p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowCancelModal(false); setCancelReason(""); setCancelReasonError(""); }}
+                  disabled={isSubmittingCancel}
+                  className="flex-1 rounded-full border border-card-border bg-card hover:bg-background-alt px-4 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-zinc-500 hover:text-foreground transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Keep Reservation
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitCancellation}
+                  disabled={isSubmittingCancel}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-600 hover:bg-red-700 px-4 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-red-600/30 transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_2px_12px_rgba(239,68,68,0.25)]"
+                >
+                  {isSubmittingCancel ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <X size={13} className="stroke-[2.5]" />
+                  )}
+                  {isSubmittingCancel ? "Submitting..." : "Submit Request"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </PageTransition>
   );
 }

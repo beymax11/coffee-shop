@@ -10,8 +10,8 @@ interface ReservationDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   reservation: Reservation | null;
-  reservationStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed">;
-  onUpdateStatus: (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed") => void;
+  reservationStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested">;
+  onUpdateStatus: (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested") => void;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -24,10 +24,10 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
   onUpdateStatus,
 }) => {
   const [showProofPanel, setShowProofPanel] = React.useState(false);
-  const [updatingStatus, setUpdatingStatus] = React.useState<"Completed" | "Cancelled" | null>(null);
+  const [updatingStatus, setUpdatingStatus] = React.useState<"Completed" | "Cancelled" | "Approved" | null>(null);
   const [confirmAction, setConfirmAction] = React.useState<{
-    type: "Complete" | "Cancel";
-    targetStatus: "Completed" | "Cancelled";
+    type: "Complete" | "Cancel" | "ApproveCancellation" | "RejectCancellation";
+    targetStatus: "Completed" | "Cancelled" | "Approved";
   } | null>(null);
 
   const handleConfirmAction = async () => {
@@ -152,7 +152,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
               className="w-full max-w-lg rounded-2xl border border-card-border bg-card p-6 sm:p-8 shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto font-sans"
             >
               {/* Glow Background */}
-              <div className={`absolute top-0 right-0 w-32 h-32 blur-[40px] rounded-full pointer-events-none opacity-20 transition-all duration-500 ${currentStatus === "Completed" ? "bg-blue-500" : currentStatus === "Approved" ? "bg-emerald-500" : currentStatus === "Pre-Approved" ? "bg-amber-500" : currentStatus === "Cancelled" ? "bg-red-500" : "bg-zinc-500"
+              <div className={`absolute top-0 right-0 w-32 h-32 blur-[40px] rounded-full pointer-events-none opacity-20 transition-all duration-500 ${currentStatus === "Completed" ? "bg-blue-500" : currentStatus === "Approved" ? "bg-emerald-500" : currentStatus === "Pre-Approved" ? "bg-amber-500" : currentStatus === "Cancelled" ? "bg-red-500" : currentStatus === "Cancellation Requested" ? "bg-orange-500" : "bg-zinc-500"
                 }`} />
 
               {currentStatus === "Pre-Approved" && (
@@ -194,9 +194,11 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                           : currentStatus === "Pre-Approved"
                             ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                            : currentStatus === "Cancelled"
-                              ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-                              : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
+                            : currentStatus === "Cancellation Requested"
+                              ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20"
+                              : currentStatus === "Cancelled"
+                                ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+                                : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
                       }`}
                   >
                     {currentStatus}
@@ -367,6 +369,93 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                 {/* Quick Action buttons */}
                 <div className="border-t border-card-border/40 pt-5 space-y-3" onClick={(e) => e.stopPropagation()}>
                   <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Manage Status</h4>
+
+                  {/* Cancellation Requested — Admin Review Panel */}
+                  {currentStatus === "Cancellation Requested" && (() => {
+                    const bookingDate = new Date(reservation.date);
+                    const now = new Date();
+                    const diffMs = bookingDate.getTime() - now.getTime();
+                    const diffHours = diffMs / (1000 * 60 * 60);
+                    const diffDays = diffHours / 24;
+                    const isTable = reservation.eventType === "Table Reservation";
+                    // Table: full refund if >= 24h before; Cart: full refund if >= 7 days before
+                    const isEligibleForRefund = isTable ? diffHours >= 24 : diffDays >= 7;
+                    const policyThreshold = isTable ? "24 hours" : "1 week";
+
+                    return (
+                      <div className="space-y-3">
+                        {/* Cancellation Request Info */}
+                        <div className="rounded-xl border border-orange-500/20 bg-orange-500/[0.03] p-4 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-orange-500/15 flex items-center justify-center">
+                              <span className="text-orange-500 text-[10px]">!</span>
+                            </div>
+                            <span className="text-[9px] uppercase tracking-wider font-bold text-orange-600 dark:text-orange-400">Cancellation Request</span>
+                          </div>
+
+                          {/* Customer Reason */}
+                          {reservation.cancellationReason && (
+                            <div className="space-y-1">
+                              <span className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Customer Reason</span>
+                              <p className="text-xs text-foreground/90 italic leading-relaxed rounded-lg bg-foreground/[0.03] border border-card-border/40 p-3">
+                                "{reservation.cancellationReason}"
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Refund Eligibility */}
+                          <div className={`rounded-lg p-3 border text-xs ${
+                            isEligibleForRefund
+                              ? "bg-emerald-500/[0.05] border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                              : "bg-red-500/[0.05] border-red-500/20 text-red-600 dark:text-red-400"
+                          }`}>
+                            <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-wider mb-1">
+                              {isEligibleForRefund ? (
+                                <><Check size={11} /> Full Refund Eligible</>
+                              ) : (
+                                <><X size={11} /> Downpayment Non-Refundable</>
+                              )}
+                            </div>
+                            <p className="text-[10px] opacity-80 leading-relaxed">
+                              {isEligibleForRefund
+                                ? `Booking is ${isTable ? `${Math.floor(diffHours)}h` : `${Math.floor(diffDays)}d`} away — qualifies for a full refund (threshold: ${policyThreshold}).`
+                                : `Booking is ${isTable ? `${Math.max(0, Math.floor(diffHours))}h` : `${Math.max(0, Math.floor(diffDays))}d`} away — downpayment is non-refundable (threshold: ${policyThreshold}).`
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Approve / Reject Buttons */}
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => setConfirmAction({ type: "ApproveCancellation", targetStatus: "Cancelled" })}
+                            disabled={updatingStatus !== null}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {updatingStatus === "Cancelled" ? (
+                              <RefreshCw size={12} className="animate-spin" />
+                            ) : (
+                              <X size={12} />
+                            )}
+                            {updatingStatus === "Cancelled" ? "Processing..." : "Approve Cancellation"}
+                          </button>
+                          <button
+                            onClick={() => setConfirmAction({ type: "RejectCancellation", targetStatus: "Approved" })}
+                            disabled={updatingStatus !== null}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-emerald-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {updatingStatus === "Approved" ? (
+                              <RefreshCw size={12} className="animate-spin" />
+                            ) : (
+                              <Check size={12} />
+                            )}
+                            {updatingStatus === "Approved" ? "Processing..." : "Reject Cancellation"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="flex gap-3">
                     {currentStatus === "Pending" && (
                       <>
@@ -688,14 +777,28 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
             <ConfirmModal
               isOpen={confirmAction !== null}
               onClose={() => setConfirmAction(null)}
-              title={confirmAction?.type === "Complete" ? "Complete Booking" : "Cancel Booking"}
+              title={
+                confirmAction?.type === "Complete" ? "Complete Booking"
+                  : confirmAction?.type === "ApproveCancellation" ? "Approve Cancellation"
+                  : confirmAction?.type === "RejectCancellation" ? "Reject Cancellation"
+                  : "Cancel Booking"
+              }
               message={
                 confirmAction?.type === "Complete"
                   ? `Are you sure you want to mark ${reservation.fullName}'s reservation as completed? This will update their status and send a thank you email.`
-                  : `Are you sure you want to cancel ${reservation.fullName}'s reservation? This action cannot be undone.`
+                  : confirmAction?.type === "ApproveCancellation"
+                    ? `Approve ${reservation.fullName}'s cancellation request? This will set the status to CANCELLED and process any applicable refund.`
+                    : confirmAction?.type === "RejectCancellation"
+                      ? `Reject the cancellation request from ${reservation.fullName}? Their reservation status will revert to APPROVED & PAID.`
+                      : `Are you sure you want to cancel ${reservation.fullName}'s reservation? This action cannot be undone.`
               }
-              confirmText={confirmAction?.type === "Complete" ? "Complete" : "Cancel Reservation"}
-              variant={confirmAction?.type === "Complete" ? "warning" : "danger"}
+              confirmText={
+                confirmAction?.type === "Complete" ? "Complete"
+                  : confirmAction?.type === "ApproveCancellation" ? "Approve Cancellation"
+                  : confirmAction?.type === "RejectCancellation" ? "Reject Cancellation"
+                  : "Cancel Reservation"
+              }
+              variant={confirmAction?.type === "Complete" || confirmAction?.type === "RejectCancellation" ? "warning" : "danger"}
               onConfirm={handleConfirmAction}
             />
           </div>

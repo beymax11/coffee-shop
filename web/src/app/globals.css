@@ -19,8 +19,8 @@
   --brand-espresso: #2D1F18;
   --brand-beige: #D4C5B9;
   
-  --font-serif: var(--font-cormorant);
-  --font-sans: var(--font-inter);
+  --font-serif: var(--font-harmonique-display);
+  --font-sans: var(--font-harmonique);
 }
 
 .dark {

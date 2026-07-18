@@ -22,6 +22,10 @@ export interface FormData {
   paymentMethod: "GCash" | "Bank Transfer" | "QRPh";
   referenceNumber: string;
   proofOfPayment: string;
+  coffeeFlavor1?: string;
+  coffeeFlavor2?: string;
+  nonCoffeeFlavor1?: string;
+  nonCoffeeFlavor2?: string;
 }
 
 import { TableReservationForm, TableReservationPolicy, TableReservationReceipt } from "./TableReservation";
@@ -44,6 +48,10 @@ export function ReservationsView() {
     paymentMethod: "GCash",
     referenceNumber: "",
     proofOfPayment: "",
+    coffeeFlavor1: "",
+    coffeeFlavor2: "",
+    nonCoffeeFlavor1: "",
+    nonCoffeeFlavor2: "",
   });
 
   const [addressDetails, setAddressDetails] = useState({
@@ -255,6 +263,13 @@ export function ReservationsView() {
       const isExternalEvent = formData.eventType === "Coffee Cart Booking";
       if (isExternalEvent && !formData.location) {
         newErrors.location = "Event location / venue address is required";
+      }
+
+      if (isExternalEvent) {
+        if (!formData.coffeeFlavor1) newErrors.coffeeFlavor1 = "Please select Coffee Flavor 1";
+        if (!formData.coffeeFlavor2) newErrors.coffeeFlavor2 = "Please select Coffee Flavor 2";
+        if (!formData.nonCoffeeFlavor1) newErrors.nonCoffeeFlavor1 = "Please select Non-Coffee Flavor 1";
+        if (!formData.nonCoffeeFlavor2) newErrors.nonCoffeeFlavor2 = "Please select Non-Coffee Flavor 2";
       }
 
       if (!formData.fullName.trim()) newErrors.fullName = "Full name is required";
@@ -1089,6 +1104,102 @@ export function ReservationsView() {
                             </div>
                           </div>
                         </div>
+
+                        {/* Flavor Selection Dropdowns (Only for Coffee Cart Booking) */}
+                        {formData.eventType === "Coffee Cart Booking" && (
+                          <div className="space-y-5 bg-background-alt/45 p-6 rounded-xl border border-card-border backdrop-blur-sm">
+                            <div className="border-b border-zinc-200/10 pb-2 mb-4 flex justify-between items-baseline">
+                              <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-600 dark:text-emerald-400 block pl-1 font-sans">
+                                Customize Package Flavors
+                              </span>
+                              <span className="text-[8px] uppercase text-zinc-500 font-sans tracking-wide">Required Selection</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Coffee Flavor 1 */}
+                              <div className="space-y-2">
+                                <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                  Coffee Flavor 1 (Iced/Hot)
+                                </label>
+                                <select
+                                  value={formData.coffeeFlavor1 || ""}
+                                  onChange={(e) => updateField("coffeeFlavor1", e.target.value)}
+                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
+                                >
+                                  <option value="" disabled>Select Coffee Flavor 1</option>
+                                  <option value="Spanish Latté">Spanish Latté</option>
+                                  <option value="Salted Caramel Latté">Salted Caramel Latté</option>
+                                  <option value="White Mocha Latté">White Mocha Latté</option>
+                                  <option value="Dark Mocha Latté">Dark Mocha Latté</option>
+                                  <option value="Vanilla Bean Latté">Vanilla Bean Latté</option>
+                                  <option value="Hazelnut Praline Latté">Hazelnut Praline Latté</option>
+                                </select>
+                                {errors.coffeeFlavor1 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.coffeeFlavor1}</span>}
+                              </div>
+
+                              {/* Coffee Flavor 2 */}
+                              <div className="space-y-2">
+                                <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                  Coffee Flavor 2 (Iced/Hot)
+                                </label>
+                                <select
+                                  value={formData.coffeeFlavor2 || ""}
+                                  onChange={(e) => updateField("coffeeFlavor2", e.target.value)}
+                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
+                                >
+                                  <option value="" disabled>Select Coffee Flavor 2</option>
+                                  <option value="Spanish Latté">Spanish Latté</option>
+                                  <option value="Salted Caramel Latté">Salted Caramel Latté</option>
+                                  <option value="White Mocha Latté">White Mocha Latté</option>
+                                  <option value="Dark Mocha Latté">Dark Mocha Latté</option>
+                                  <option value="Vanilla Bean Latté">Vanilla Bean Latté</option>
+                                  <option value="Hazelnut Praline Latté">Hazelnut Praline Latté</option>
+                                </select>
+                                {errors.coffeeFlavor2 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.coffeeFlavor2}</span>}
+                              </div>
+
+                              {/* Non-Coffee Flavor 1 */}
+                              <div className="space-y-2">
+                                <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                  Non-Coffee Flavor 1 (Over Ice)
+                                </label>
+                                <select
+                                  value={formData.nonCoffeeFlavor1 || ""}
+                                  onChange={(e) => updateField("nonCoffeeFlavor1", e.target.value)}
+                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
+                                >
+                                  <option value="" disabled>Select Non-Coffee Flavor 1</option>
+                                  <option value="Uji Matcha Latté">Uji Matcha Latté</option>
+                                  <option value="Ecuadorian Dark Cocoa">Ecuadorian Dark Cocoa</option>
+                                  <option value="Strawberry Sakura Milk">Strawberry Sakura Milk</option>
+                                  <option value="Hibiscus Berry Iced Tea">Hibiscus Berry Iced Tea</option>
+                                  <option value="Premium Peach Blossom Soda">Premium Peach Blossom Soda</option>
+                                </select>
+                                {errors.nonCoffeeFlavor1 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.nonCoffeeFlavor1}</span>}
+                              </div>
+
+                              {/* Non-Coffee Flavor 2 */}
+                              <div className="space-y-2">
+                                <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                  Non-Coffee Flavor 2 (Over Ice)
+                                </label>
+                                <select
+                                  value={formData.nonCoffeeFlavor2 || ""}
+                                  onChange={(e) => updateField("nonCoffeeFlavor2", e.target.value)}
+                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
+                                >
+                                  <option value="" disabled>Select Non-Coffee Flavor 2</option>
+                                  <option value="Uji Matcha Latté">Uji Matcha Latté</option>
+                                  <option value="Ecuadorian Dark Cocoa">Ecuadorian Dark Cocoa</option>
+                                  <option value="Strawberry Sakura Milk">Strawberry Sakura Milk</option>
+                                  <option value="Hibiscus Berry Iced Tea">Hibiscus Berry Iced Tea</option>
+                                  <option value="Premium Peach Blossom Soda">Premium Peach Blossom Soda</option>
+                                </select>
+                                {errors.nonCoffeeFlavor2 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.nonCoffeeFlavor2}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Policy Info Card */}
                         {formData.eventType === "Table Reservation" ? (

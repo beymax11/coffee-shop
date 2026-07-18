@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Users, MapPin, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FormData } from "./ReservationsView";
+import { createPortal } from "react-dom";
 
 interface AddressDetails {
   landmark: string;
@@ -38,6 +39,11 @@ export function CartReservationForm({
   isPackageModalOpen,
   setIsPackageModalOpen,
 }: CartReservationFormProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-zinc-200 dark:border-white/5">
@@ -185,94 +191,99 @@ export function CartReservationForm({
       </div>
 
       {/* Brew Buggy Package Selection Modal */}
-      <AnimatePresence>
-        {isPackageModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsPackageModalOpen(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
+      {mounted && typeof document !== "undefined" ? createPortal(
+        <AnimatePresence>
+          {isPackageModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsPackageModalOpen(false)}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
 
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-card border border-card-border rounded-2xl w-full max-w-lg p-6 md:p-8 shadow-2xl relative overflow-hidden z-10"
-            >
-              {/* Decorative glows */}
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-              <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-card border border-card-border rounded-t-3xl sm:rounded-2xl w-full max-w-lg p-6 md:p-8 shadow-2xl relative overflow-hidden z-10"
+                style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+              >
+                {/* Decorative glows */}
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
 
-              <div className="relative">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-600 dark:text-emerald-400 block font-sans">
-                      Brew Buggy Mobile Cart
-                    </span>
-                    <h3 className="text-xl font-serif text-foreground font-semibold mt-1">Select Guest Package</h3>
+                <div className="relative">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-600 dark:text-emerald-400 block font-sans">
+                        Brew Buggy Mobile Cart
+                      </span>
+                      <h3 className="text-xl font-serif text-foreground font-semibold mt-1">Select Guest Package</h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsPackageModalOpen(false)}
+                      className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-400 hover:text-foreground"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPackageModalOpen(false)}
-                    className="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-400 hover:text-foreground"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
 
-                <div className="space-y-3.5">
-                  {[
-                    { pax: 50, price: 5500, desc: "Perfect for intimate gatherings, small birthdays, or private office events." },
-                    { pax: 100, price: 11000, desc: "Great for medium weddings, corporate seminars, and product launch previews." },
-                    { pax: 150, price: 16500, desc: "Designed for large celebrations, school events, or company anniversaries." },
-                    { pax: 200, price: 22000, desc: "Ideal for massive festival crowds, major corporate galas, and concert receptions." }
-                  ].map((pkg) => {
-                    const isSelected = formData.guestCount === pkg.pax;
-                    const dp = pkg.price * 0.10;
-                    return (
-                      <button
-                        key={pkg.pax}
-                        type="button"
-                        onClick={() => {
-                          updateField("guestCount", pkg.pax);
-                          setIsPackageModalOpen(false);
-                        }}
-                        className={`w-full text-left p-4 rounded-xl border transition-all duration-300 flex items-start gap-4 ${isSelected
-                          ? "bg-emerald-500/10 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
-                          : "bg-background-alt/30 border-card-border hover:border-emerald-500/40 hover:bg-background-alt/50"
-                          }`}
-                      >
-                        <div className={`mt-1.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? "border-emerald-500" : "border-zinc-400"}`}>
-                          {isSelected && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-baseline">
-                            <span className="font-sans font-bold text-sm text-foreground">{pkg.pax} Pax Package</span>
-                            <span className="font-sans font-bold text-base text-emerald-600 dark:text-emerald-400">₱{pkg.price.toLocaleString()}</span>
+                  <div className="space-y-3.5">
+                    {[
+                      { pax: 50, price: 5500, desc: "Perfect for intimate gatherings, small birthdays, or private office events." },
+                      { pax: 100, price: 11000, desc: "Great for medium weddings, corporate seminars, and product launch previews." },
+                      { pax: 150, price: 16500, desc: "Designed for large celebrations, school events, or company anniversaries." },
+                      { pax: 200, price: 22000, desc: "Ideal for massive festival crowds, major corporate galas, and concert receptions." }
+                    ].map((pkg) => {
+                      const isSelected = formData.guestCount === pkg.pax;
+                      const dp = pkg.price * 0.10;
+                      return (
+                        <button
+                          key={pkg.pax}
+                          type="button"
+                          onClick={() => {
+                            updateField("guestCount", pkg.pax);
+                            setIsPackageModalOpen(false);
+                          }}
+                          className={`w-full text-left p-4 rounded-xl border transition-all duration-300 flex items-start gap-4 ${isSelected
+                            ? "bg-emerald-500/10 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+                            : "bg-background-alt/30 border-card-border hover:border-emerald-500/40 hover:bg-background-alt/50"
+                            }`}
+                        >
+                          <div className={`mt-1.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? "border-emerald-500" : "border-zinc-400"}`}>
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
                           </div>
-                          <p className="text-[11px] text-zinc-500 font-light mt-1 leading-normal pr-4">{pkg.desc}</p>
-                          <div className="flex gap-4 mt-2 text-[9px] font-sans text-zinc-400 dark:text-zinc-500">
-                            <span>Downpayment (10%): ₱{dp.toLocaleString()}</span>
-                            <span>•</span>
-                            <span>Refundable up to 1 week prior</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-baseline">
+                              <span className="font-sans font-bold text-sm text-foreground">{pkg.pax} Pax Package</span>
+                              <span className="font-sans font-bold text-base text-emerald-600 dark:text-emerald-400">₱{pkg.price.toLocaleString()}</span>
+                            </div>
+                            <p className="text-[11px] text-zinc-500 font-light mt-1 leading-normal pr-4">{pkg.desc}</p>
+                            <div className="flex gap-4 mt-2 text-[9px] font-sans text-zinc-400 dark:text-zinc-500">
+                              <span>Downpayment (10%): ₱{dp.toLocaleString()}</span>
+                              <span>•</span>
+                              <span>Refundable up to 1 week prior</span>
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      ) : null}
     </>
   );
 }
@@ -342,6 +353,24 @@ export function CartReservationReceipt({
         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Special Requests</span>
         <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-0.5 block italic">{formData.notes || "None"}</span>
       </div>
+      {formData.coffeeFlavor1 && (
+        <div className="col-span-2 grid grid-cols-2 gap-4 border-t border-zinc-200/10 dark:border-white/5 pt-3">
+          <div>
+            <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Selected Coffee Flavors</span>
+            <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-1 block">
+              1. {formData.coffeeFlavor1}<br />
+              2. {formData.coffeeFlavor2}
+            </span>
+          </div>
+          <div>
+            <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Selected Non-Coffee Flavors</span>
+            <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-1 block">
+              1. {formData.nonCoffeeFlavor1}<br />
+              2. {formData.nonCoffeeFlavor2}
+            </span>
+          </div>
+        </div>
+      )}
       {formData.referenceNumber && (
         <>
           <div>

@@ -16,4 +16,8 @@ export interface Reservation {
   paymentMethod?: "GCash" | "Bank Transfer" | "QRPh";
   referenceNumber?: string;
   proofOfPayment?: string;
+  coffeeFlavor1?: string;
+  coffeeFlavor2?: string;
+  nonCoffeeFlavor1?: string;
+  nonCoffeeFlavor2?: string;
 }

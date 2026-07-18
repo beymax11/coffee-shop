@@ -368,6 +368,35 @@ export default function ReservationDetailView({ reservationId }: { reservationId
   const endTime = getEndTime(reservation.time);
   const canPay = (reservation.status === "Pre-Approved" || reservation.status === "Approved") && !isPaid;
 
+  const parseNotesAndFlavors = (notesText: string = "") => {
+    let notes = notesText;
+    let coffeeFlavor1 = "";
+    let coffeeFlavor2 = "";
+    let nonCoffeeFlavor1 = "";
+    let nonCoffeeFlavor2 = "";
+
+    if (notesText.includes("Coffee Flavor 1:")) {
+      const parts = notesText.split(" | ");
+      const notesPart = parts.find(p => p.startsWith("Notes: "));
+      const cf1Part = parts.find(p => p.startsWith("Coffee Flavor 1: "));
+      const cf2Part = parts.find(p => p.startsWith("Coffee Flavor 2: "));
+      const ncf1Part = parts.find(p => p.startsWith("Non-Coffee Flavor 1: "));
+      const ncf2Part = parts.find(p => p.startsWith("Non-Coffee Flavor 2: "));
+
+      if (notesPart) notes = notesPart.replace("Notes: ", "");
+      else notes = "";
+
+      if (cf1Part) coffeeFlavor1 = cf1Part.replace("Coffee Flavor 1: ", "");
+      if (cf2Part) coffeeFlavor2 = cf2Part.replace("Coffee Flavor 2: ", "");
+      if (ncf1Part) nonCoffeeFlavor1 = ncf1Part.replace("Non-Coffee Flavor 1: ", "");
+      if (ncf2Part) nonCoffeeFlavor2 = ncf2Part.replace("Non-Coffee Flavor 2: ", "");
+    }
+
+    return { notes, coffeeFlavor1, coffeeFlavor2, nonCoffeeFlavor1, nonCoffeeFlavor2 };
+  };
+
+  const { notes, coffeeFlavor1, coffeeFlavor2, nonCoffeeFlavor1, nonCoffeeFlavor2 } = parseNotesAndFlavors(reservation.notes || "");
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-background pt-8 pb-20 md:pt-16 text-foreground font-sans relative overflow-hidden">
@@ -481,10 +510,28 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                       <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Store Location</span>
                       <span className="text-foreground font-semibold">{reservation.location}</span>
                     </div>
-                    {reservation.notes && (
-                      <div>
+                    {notes && (
+                      <div className="col-span-2">
                         <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Special Requests</span>
-                        <span className="text-foreground font-semibold italic">{reservation.notes}</span>
+                        <span className="text-foreground font-semibold italic">{notes}</span>
+                      </div>
+                    )}
+                    {coffeeFlavor1 && (
+                      <div className="col-span-2 border-t border-zinc-200 dark:border-white/5 pt-3 grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Coffee Flavors</span>
+                          <span className="text-foreground font-semibold text-xs leading-relaxed block mt-0.5">
+                            1. {coffeeFlavor1}<br />
+                            2. {coffeeFlavor2}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Non-Coffee Flavors</span>
+                          <span className="text-foreground font-semibold text-xs leading-relaxed block mt-0.5">
+                            1. {nonCoffeeFlavor1}<br />
+                            2. {nonCoffeeFlavor2}
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>

@@ -29,6 +29,7 @@ export function LoyaltyView() {
 
   const [stamps, setStamps] = useState<number>(1);
   const [points, setPoints] = useState<number>(720);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const tier = getTierInfo(points).label;
   const [showClaimSuccess, setShowClaimSuccess] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<boolean>(false);
@@ -36,6 +37,55 @@ export function LoyaltyView() {
   const [isQrExpanded, setIsQrExpanded] = useState<boolean>(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const prevStampsRef = React.useRef<number | null>(null);
+
+  const triggerConfetti = async () => {
+    try {
+      const confetti = (await import("canvas-confetti")).default;
+      
+      // Premium gold & green confetti burst
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706", "#34D399", "#FBBF24"]
+      });
+
+      // Left fan
+      setTimeout(() => {
+        confetti({
+          particleCount: 40,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0, y: 0.8 },
+          colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
+        });
+      }, 150);
+
+      // Right fan
+      setTimeout(() => {
+        confetti({
+          particleCount: 40,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1, y: 0.8 },
+          colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
+        });
+      }, 300);
+    } catch (err) {
+      console.error("Failed to load or trigger confetti:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoaded && prevStampsRef.current !== null && stamps > prevStampsRef.current) {
+      triggerConfetti();
+    }
+    
+    if (isLoaded) {
+      prevStampsRef.current = stamps;
+    }
+  }, [stamps, isLoaded]);
 
   useEffect(() => {
     if (isFullscreen) {
@@ -162,11 +212,48 @@ export function LoyaltyView() {
         setPoints(current.points);
         setIsGuest(guestState);
       }
+      setIsLoaded(true);
     };
     syncFromDb();
 
+    // Listen for real-time profile updates on Supabase
+    let subscription: any = null;
+    let channel: any = null;
+    const sessionEmail = typeof window !== "undefined" ? localStorage.getItem("customer_session") : null;
+    if (sessionEmail) {
+      import("@/utils/supabase").then(({ supabase }) => {
+        if (supabase) {
+          const isEmail = sessionEmail.includes("@");
+          const filterStr = isEmail 
+            ? `email=eq.${sessionEmail.toLowerCase()}`
+            : `phone=eq.${sessionEmail}`;
+          
+          channel = supabase.channel(`customer-profile-${sessionEmail}`);
+          subscription = channel
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "profiles",
+                filter: filterStr,
+              },
+              () => {
+                syncFromDb();
+              }
+            )
+            .subscribe();
+        }
+      });
+    }
+
     window.addEventListener("storage", syncFromDb);
-    return () => window.removeEventListener("storage", syncFromDb);
+    return () => {
+      window.removeEventListener("storage", syncFromDb);
+      if (channel && subscription) {
+        channel.unsubscribe();
+      }
+    };
   }, []);
 
   const copyMemberId = () => {
@@ -182,6 +269,7 @@ export function LoyaltyView() {
     const newPoints = points + 50;
     setPoints(newPoints); // bonus points for claiming
     setShowClaimSuccess(true);
+    triggerConfetti();
 
     // Save back to db
     const members = db.getLoyaltyMembers();

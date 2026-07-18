@@ -63,6 +63,35 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
 
   if (!reservation) return null;
 
+  const parseNotesAndFlavors = (notesText: string = "") => {
+    let notes = notesText;
+    let coffeeFlavor1 = reservation.coffeeFlavor1 || "";
+    let coffeeFlavor2 = reservation.coffeeFlavor2 || "";
+    let nonCoffeeFlavor1 = reservation.nonCoffeeFlavor1 || "";
+    let nonCoffeeFlavor2 = reservation.nonCoffeeFlavor2 || "";
+
+    if (notesText.includes("Coffee Flavor 1:")) {
+      const parts = notesText.split(" | ");
+      const notesPart = parts.find(p => p.startsWith("Notes: "));
+      const cf1Part = parts.find(p => p.startsWith("Coffee Flavor 1: "));
+      const cf2Part = parts.find(p => p.startsWith("Coffee Flavor 2: "));
+      const ncf1Part = parts.find(p => p.startsWith("Non-Coffee Flavor 1: "));
+      const ncf2Part = parts.find(p => p.startsWith("Non-Coffee Flavor 2: "));
+
+      if (notesPart) notes = notesPart.replace("Notes: ", "");
+      else notes = "";
+
+      if (cf1Part) coffeeFlavor1 = cf1Part.replace("Coffee Flavor 1: ", "");
+      if (cf2Part) coffeeFlavor2 = cf2Part.replace("Coffee Flavor 2: ", "");
+      if (ncf1Part) nonCoffeeFlavor1 = ncf1Part.replace("Non-Coffee Flavor 1: ", "");
+      if (ncf2Part) nonCoffeeFlavor2 = ncf2Part.replace("Non-Coffee Flavor 2: ", "");
+    }
+
+    return { notes, coffeeFlavor1, coffeeFlavor2, nonCoffeeFlavor1, nonCoffeeFlavor2 };
+  };
+
+  const { notes, coffeeFlavor1, coffeeFlavor2, nonCoffeeFlavor1, nonCoffeeFlavor2 } = parseNotesAndFlavors(reservation.notes || "");
+
   const key = `${reservation.fullName}-${reservation.date}-${reservation.time}`;
   const currentStatus = reservationStatuses[key] || "Pending";
 
@@ -210,12 +239,35 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                 )}
 
                 {/* Notes / Special Instructions */}
-                {reservation.notes && (
+                {notes && (
                   <div className="space-y-2.5">
                     <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Customer Notes</h4>
                     <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3.5 flex items-start gap-2.5 text-xs text-neutral-500 dark:text-zinc-400 italic">
                       <MessageSquare size={13} className="text-brand-green shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">"{reservation.notes}"</p>
+                      <p className="leading-relaxed">"{notes}"</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Package Flavors */}
+                {(coffeeFlavor1 || nonCoffeeFlavor1) && (
+                  <div className="space-y-2.5">
+                    <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Selected Package Flavors</h4>
+                    <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3.5 grid grid-cols-2 gap-4 text-xs text-foreground">
+                      <div>
+                        <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Coffee Flavors</span>
+                        <span className="mt-1 block font-semibold">
+                          1. {coffeeFlavor1 || "—"}<br />
+                          2. {coffeeFlavor2 || "—"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Non-Coffee Flavors</span>
+                        <span className="mt-1 block font-semibold">
+                          1. {nonCoffeeFlavor1 || "—"}<br />
+                          2. {nonCoffeeFlavor2 || "—"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}

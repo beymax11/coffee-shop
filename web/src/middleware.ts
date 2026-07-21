@@ -44,11 +44,28 @@ export async function middleware(request: NextRequest) {
 
         // For staff-only routes, validate user role by checking the profiles table
         if (requiresStaffRole) {
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single();
+          let profile = null;
+          let profileError = null;
+
+          const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          if (serviceRoleKey) {
+            const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+            const { data, error } = await supabaseAdmin
+              .from("profiles")
+              .select("role")
+              .eq("id", user.id)
+              .single();
+            profile = data;
+            profileError = error;
+          } else {
+            const { data, error } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", user.id)
+              .single();
+            profile = data;
+            profileError = error;
+          }
 
           if (
             profileError ||

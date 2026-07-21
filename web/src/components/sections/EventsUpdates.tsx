@@ -7,6 +7,7 @@ import { StaggerContainer, StaggerItem } from "@/components/animations";
 import { EventItem } from "@/types";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
+import { getCachedData } from "@/utils/cache";
 
 
 export const EventsUpdates: React.FC = () => {
@@ -15,52 +16,55 @@ export const EventsUpdates: React.FC = () => {
 
   const fetchEvents = async () => {
     try {
-      if (supabase) {
-        const { data, error } = await supabase
-          .from("events_updates")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (!error && data) {
-          const mapped = data.map((event: {
-            id: string;
-            category: string;
-            title: string;
-            description: string;
-            highlight: string;
-            image: string;
-            link: string;
-            link_label?: string;
-            linkLabel?: string;
-          }) => ({
-            id: event.id,
-            category: event.category,
-            title: event.title,
-            description: event.description,
-            highlight: event.highlight,
-            image: event.image,
-            link: event.link,
-            linkLabel: event.link_label || event.linkLabel || "Explore More"
-          }));
-          setEvents(mapped);
-          setLoading(false);
-          return;
-        } else if (error) {
-          console.error("Supabase select error for events updates section:", error);
+      const mapped = await getCachedData("events_updates", async () => {
+        if (supabase) {
+          const { data, error } = await supabase
+            .from("events_updates")
+            .select("*")
+            .order("created_at", { ascending: false });
+          if (!error && data) {
+            return data.map((event: {
+              id: string;
+              category: string;
+              title: string;
+              description: string;
+              highlight: string;
+              image: string;
+              link: string;
+              link_label?: string;
+              linkLabel?: string;
+            }) => ({
+              id: event.id,
+              category: event.category,
+              title: event.title,
+              description: event.description,
+              highlight: event.highlight,
+              image: event.image,
+              link: event.link,
+              linkLabel: event.link_label || event.linkLabel || "Explore More"
+            }));
+          } else if (error) {
+            console.error("Supabase select error for events updates section:", error);
+          }
         }
-      }
+        return db.getEvents();
+      }, { ttl: 15000 });
+      setEvents(mapped);
     } catch (err) {
-      console.error("Exception loading events updates section from Supabase:", err);
+      console.error("Exception loading events updates section:", err);
+      setEvents(db.getEvents());
+    } finally {
+      setLoading(false);
     }
-    
-    // Fallback to local storage db
-    setEvents(db.getEvents());
-    setLoading(false);
   };
 
   useEffect(() => {
-    Promise.resolve().then(() => fetchEvents());
-    const handleStorageChange = () => {
-      fetchEvents();
+    fetchEvents();
+    const handleStorageChange = (e: Event) => {
+      const storageEvent = e as StorageEvent;
+      if (storageEvent.key === undefined || storageEvent.key === "events_updates" || storageEvent.key === null) {
+        fetchEvents();
+      }
     };
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);

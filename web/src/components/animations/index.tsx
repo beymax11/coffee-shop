@@ -97,15 +97,21 @@ export const CountUp: React.FC<{ end: number; duration?: number; suffix?: string
 
   useEffect(() => {
     let startTimestamp: number | null = null;
+    let frameId: number;
+
     const step = (timestamp: number) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
       setCount(Math.floor(progress * end));
       if (progress < 1) {
-        window.requestAnimationFrame(step);
+        frameId = window.requestAnimationFrame(step);
       }
     };
-    window.requestAnimationFrame(step);
+    frameId = window.requestAnimationFrame(step);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
   }, [end, duration]);
 
   return <span>{count}{suffix}</span>;

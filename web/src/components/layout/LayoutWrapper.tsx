@@ -21,6 +21,8 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   useEffect(() => {
     const checkStatus = async () => {
+      if (pathname?.startsWith("/admin")) return;
+
       const hasCustomer = !!localStorage.getItem("customer_session");
       const hasAdmin = !!localStorage.getItem("admin_session");
       const active = await getMaintenanceMode();
@@ -42,15 +44,15 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     // Evaluate session status on client-side mount
     checkStatus();
 
-    // Poll every 5 seconds to sync state changes across different profiles/browsers
-    const interval = setInterval(checkStatus, 5000);
+    // Poll every 30 seconds to sync state changes across different profiles/browsers
+    const interval = setInterval(checkStatus, 30000);
 
     window.addEventListener("storage", checkStatus);
     return () => {
       clearInterval(interval);
       window.removeEventListener("storage", checkStatus);
     };
-  }, []);
+  }, [pathname]);
 
   console.log("[LayoutWrapper debug] Render states:", {
     isCustomer,

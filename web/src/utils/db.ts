@@ -350,7 +350,7 @@ export const db = {
     const seed: UserProfile[] = [
       {
         id: "admin-mock-1",
-        name: "Maître D' Admin",
+        name: "Antonioni Grounds Admin",
         username: "admin",
         email: adminEmail,
         role: "admin",

@@ -42,9 +42,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [adminInfo, setAdminInfo] = useState({
-    name: "Maître D' Admin",
+    name: "Antonioni Grounds Admin",
     email: "admin@coffee.com",
-    initials: "AD",
+    initials: "AG",
   });
 
   // Sync state with localStorage on client mount

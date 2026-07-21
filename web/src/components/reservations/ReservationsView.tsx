@@ -433,14 +433,7 @@ export function ReservationsView() {
       console.warn("Could not save reservation to backend (offline fallback):", err);
     }
 
-    // Send booking confirmation email to the customer (fire-and-forget)
-    fetch("/api/send-email/booked", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reservation: newReservation }),
-    }).catch((err) =>
-      console.warn("Booking confirmation email failed (non-blocking):", err)
-    );
+
 
     setStep(3);
   };

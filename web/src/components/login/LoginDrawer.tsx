@@ -111,7 +111,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
 
           if (isAdmin || isBarista || isCustomStaff) {
             const userRole = isAdmin ? "admin" : isBarista ? "barista" : (matchedMockUser?.role || "customer");
-            const userName = isAdmin ? "Maître D' Admin" : isBarista ? "Barista Staff" : (matchedMockUser?.name || "Staff");
+            const userName = isAdmin ? "Antonioni Grounds Admin" : isBarista ? "Barista Staff" : (matchedMockUser?.name || "Staff");
             const userEmail = isAdmin ? adminEmail : isBarista ? "barista@coffee.com" : (matchedMockUser?.email || "");
 
             setSuccessMessage("Access granted. Redirecting to admin panel (Mock)...");
@@ -179,7 +179,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
 
       if (isStaff) {
         const actualRole = (role === "admin" || (user.email && user.email.toLowerCase() === adminEmail.toLowerCase())) ? "admin" : "barista";
-        setSuccessMessage("Access granted. Redirecting to console...");
+        setSuccessMessage("Access granted. Redirecting to Antonioni Grounds Admin Panel...");
         setIsSuccess(true);
         localStorage.setItem("admin_session", "true");
         const adminName = profile?.name || user.user_metadata?.name || (actualRole === "admin" ? "Admin User" : "Barista Staff");
@@ -200,7 +200,9 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
         setIsSuccess(true);
         eraseCookie("admin_session");
         eraseCookie("admin_role");
-        eraseCookie("sb-access-token");
+        if (data.session?.access_token) {
+          setCookie("sb-access-token", data.session.access_token, 7);
+        }
 
         const members = db.getLoyaltyMembers();
         const userPhone = user.phone || formattedPhone;

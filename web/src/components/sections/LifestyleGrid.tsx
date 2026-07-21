@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { FadeUp } from "@/components/animations";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
+import { getCachedData } from "@/utils/cache";
 import { 
   Heart, 
   MessageCircle, 
@@ -81,56 +82,71 @@ export const LifestyleGrid: React.FC = () => {
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   const loadPosts = async () => {
-    let email: string | null = null;
-    if (supabase) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          email = session.user.email || null;
-          setCurrentUserEmail(email);
-        }
-      } catch (e) {
-        console.error("Auth session error:", e);
-      }
-
-      const { data, error } = await supabase
-        .from("lifestyle_posts")
-        .select(`
-          *,
-          comments:lifestyle_comments(*),
-          likes_list:lifestyle_likes(*)
-        `)
-        .eq("status", "posted")
-        .order("created_at", { ascending: false });
-
-      if (!error && data) {
-        const liked: Record<number, boolean> = {};
-        const postsData = data.map((post: any) => {
-          const list = post.likes_list || [];
-          if (email && list.some((l: any) => l.user_email === email)) {
-            liked[post.id] = true;
+    try {
+      let email: string | null = null;
+      if (supabase) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            email = session.user.email || null;
+            setCurrentUserEmail(email);
           }
-          return {
-            ...post,
-            likes: list.length,
-            comments: post.comments || []
-          };
-        });
-        setLikedPosts(liked);
-        setPosts(postsData as unknown as Post[]);
-        return;
-      } else if (error) {
-        console.error("Error fetching lifestyle posts from Supabase:", error);
+        } catch (e) {
+          console.error("Auth session error:", e);
+        }
       }
+
+      const postsData = await getCachedData("lifestyle_posts", async () => {
+        if (supabase) {
+          const { data, error } = await supabase
+            .from("lifestyle_posts")
+            .select(`
+              *,
+              comments:lifestyle_comments(*),
+              likes_list:lifestyle_likes(*)
+            `)
+            .eq("status", "posted")
+            .order("created_at", { ascending: false });
+
+          if (!error && data) {
+            return data;
+          } else if (error) {
+            console.error("Error fetching lifestyle posts from Supabase:", error);
+          }
+        }
+        return (db.getLifestylePosts() as unknown as Post[]).filter(p => !p.status || p.status === "posted");
+      }, { ttl: 15000 });
+
+      // Process likes based on current email
+      const liked: Record<number, boolean> = {};
+      const processed = postsData.map((post: any) => {
+        const list = post.likes_list || [];
+        if (email && list.some((l: any) => l.user_email === email)) {
+          liked[post.id] = true;
+        }
+        return {
+          ...post,
+          likes: list.length,
+          comments: post.comments || []
+        };
+      });
+
+      setLikedPosts(liked);
+      setPosts(processed as unknown as Post[]);
+    } catch (err) {
+      console.error("Failed to load lifestyle posts:", err);
+      const localPosts = (db.getLifestylePosts() as unknown as Post[]).filter(p => !p.status || p.status === "posted");
+      setPosts(localPosts);
     }
-    const localPosts = (db.getLifestylePosts() as unknown as Post[]).filter(p => !p.status || p.status === "posted");
-    setPosts(localPosts);
   };
 
   useEffect(() => {
     loadPosts();
-    const handleStorageChange = () => {
-      loadPosts();
+    const handleStorageChange = (e: Event) => {
+      const storageEvent = e as StorageEvent;
+      if (storageEvent.key === undefined || storageEvent.key === "lifestyle_posts" || storageEvent.key === null) {
+        loadPosts();
+      }
     };
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);

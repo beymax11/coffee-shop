@@ -9,9 +9,9 @@ import { getMaintenanceMode, setMaintenanceMode } from "@/utils/settings";
 
 export const SettingsTab: React.FC = () => {
   const [adminInfo, setAdminInfo] = useState({
-    name: "Maître D' Admin",
+    name: "Antonioni Grounds Admin",
     email: "admin@coffee.com",
-    initials: "AD",
+    initials: "AG",
     role: "admin",
   });
 
@@ -29,7 +29,7 @@ export const SettingsTab: React.FC = () => {
     if (savedProfile) {
       try {
         const parsed = JSON.parse(savedProfile);
-        const name = parsed.name || "Maître D' Admin";
+        const name = parsed.name || "Antonioni Grounds Admin";
         const email = parsed.email || "admin@coffee.com";
         const role = parsed.role || "admin";
 

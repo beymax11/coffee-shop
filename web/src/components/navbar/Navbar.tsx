@@ -168,13 +168,13 @@ export const Navbar: React.FC = () => {
     // Listen for storage events (offline/localStorage changes)
     window.addEventListener("storage", loadNotifications);
 
-    // Subscribe to realtime database changes on Supabase if available
-    let subscription: any = null;
+    let isMounted = true;
     let channel: any = null;
     import("@/utils/supabase").then(({ supabase }) => {
+      if (!isMounted) return;
       if (supabase && customer?.email) {
         channel = supabase.channel(`customer-notifications-${customer.email.toLowerCase()}`);
-        subscription = channel
+        channel
           .on(
             "postgres_changes",
             {
@@ -184,7 +184,7 @@ export const Navbar: React.FC = () => {
               filter: `email=eq.${customer.email.toLowerCase()}`,
             },
             () => {
-              loadNotifications();
+              if (isMounted) loadNotifications();
             }
           )
           .subscribe();
@@ -192,8 +192,9 @@ export const Navbar: React.FC = () => {
     });
 
     return () => {
+      isMounted = false;
       window.removeEventListener("storage", loadNotifications);
-      if (channel && subscription) {
+      if (channel) {
         channel.unsubscribe();
       }
     };

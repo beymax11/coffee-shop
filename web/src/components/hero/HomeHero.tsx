@@ -31,7 +31,7 @@ const ctaTap = { scale: 0.97 };
 
 export const HomeHero: React.FC = () => {
   return (
-    <section className="relative min-h-[60vh] md:min-h-[70vh] w-full flex items-center overflow-hidden bg-[#0B0B0B] py-16 sm:py-0">
+    <section className="relative min-h-[calc(100vh-72px)] md:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] py-16 sm:py-0">
       {/* Background with slow Ken Burns */}
       <div className="absolute inset-0 opacity-100 dark:opacity-80 transition-opacity duration-500">
         <motion.div

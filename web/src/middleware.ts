@@ -8,12 +8,21 @@ export async function middleware(request: NextRequest) {
 
   // Paths requiring protection
   const isAdminPage = pathname.startsWith("/admin");
-  const isApiReservation = pathname.startsWith("/api/reservations");
+  const isApiReservationList = pathname === "/api/reservations";
+  const isApiReservationDetail = pathname.startsWith("/api/reservations/") && pathname !== "/api/reservations";
+  
+  const isEmailAdminRoute = 
+    pathname.startsWith("/api/send-email/approved") ||
+    pathname.startsWith("/api/send-email/completed") ||
+    pathname.startsWith("/api/send-email/secured");
 
-  // We protect reservations GET and PATCH. Customers POST without authentication.
-  const isSecuredApiRoute = isApiReservation && method !== "POST";
+  // Require admin/barista role for admin pages, reservation list, and admin email triggers
+  const requiresStaffRole = isAdminPage || (isApiReservationList && method === "GET") || isEmailAdminRoute;
 
-  if (isAdminPage || isSecuredApiRoute) {
+  // Require at least a valid authenticated user session (staff or customer) for reservation details
+  const requiresAuthenticatedSession = isApiReservationDetail && (method === "GET" || method === "PATCH");
+
+  if (requiresStaffRole || requiresAuthenticatedSession) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -33,19 +42,21 @@ export async function middleware(request: NextRequest) {
           return handleUnauthorized(request, isAdminPage);
         }
 
-        // Validate user role by checking the profiles table
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
+        // For staff-only routes, validate user role by checking the profiles table
+        if (requiresStaffRole) {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
 
-        if (
-          profileError ||
-          !profile ||
-          (profile.role !== "admin" && profile.role !== "barista")
-        ) {
-          return handleUnauthorized(request, isAdminPage);
+          if (
+            profileError ||
+            !profile ||
+            (profile.role !== "admin" && profile.role !== "barista")
+          ) {
+            return handleUnauthorized(request, isAdminPage);
+          }
         }
       } catch (err) {
         console.error("Middleware verification error:", err);
@@ -53,9 +64,11 @@ export async function middleware(request: NextRequest) {
       }
     } else {
       // 2. FALLBACK MOCK AUTHENTICATION (if env vars are missing/local mock testing)
-      const adminSession = request.cookies.get("admin_session")?.value;
-      if (adminSession !== "true") {
-        return handleUnauthorized(request, isAdminPage);
+      if (requiresStaffRole) {
+        const adminSession = request.cookies.get("admin_session")?.value;
+        if (adminSession !== "true") {
+          return handleUnauthorized(request, isAdminPage);
+        }
       }
     }
   }
@@ -84,5 +97,11 @@ function handleUnauthorized(request: NextRequest, isAdminPage: boolean) {
 
 // Config to specify matching paths
 export const config = {
-  matcher: ["/admin/:path*", "/api/reservations/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/api/reservations/:path*",
+    "/api/send-email/approved",
+    "/api/send-email/completed",
+    "/api/send-email/secured",
+  ],
 };

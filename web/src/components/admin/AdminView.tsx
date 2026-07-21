@@ -1114,7 +1114,7 @@ export const AdminView: React.FC = () => {
         <div className="film-grain pointer-events-none absolute inset-0 opacity-[0.04] mix-blend-overlay" />
         <div className="flex flex-col items-center gap-4 text-center z-10">
           <RefreshCw className="animate-spin text-brand-green h-10 w-10" />
-          <span className="type-eyebrow text-zinc-500 text-xs tracking-[0.2em]">Accessing Maître D&apos; Console...</span>
+          <span className="type-eyebrow text-zinc-500 text-xs tracking-[0.2em]">Accessing Antonioni Grounds Admin Panel...</span>
         </div>
       </div>
     );

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
+import { getCachedData } from "@/utils/cache";
 import {
   Star,
   Eye,
@@ -57,25 +58,35 @@ export function MenuView() {
 
   // Sync menu items from local database on mount & on storage update
   const fetchMenuItems = async () => {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from("menu_items")
-        .select("*")
-        .order("name");
-      if (!error && data) {
-        setItems(data as MenuItem[]);
-        return;
-      } else if (error) {
-        console.error("Supabase select error:", error);
-      }
+    try {
+      const data = await getCachedData("menu_items", async () => {
+        if (supabase) {
+          const { data: dbData, error } = await supabase
+            .from("menu_items")
+            .select("*")
+            .order("name");
+          if (!error && dbData) {
+            return dbData as MenuItem[];
+          } else if (error) {
+            console.error("Supabase select error:", error);
+          }
+        }
+        return db.getMenuItems();
+      });
+      setItems(data);
+    } catch (err) {
+      console.error("Failed to fetch menu items:", err);
+      setItems(db.getMenuItems());
     }
-    setItems(db.getMenuItems());
   };
 
   useEffect(() => {
     fetchMenuItems();
-    const handleStorage = () => {
-      fetchMenuItems();
+    const handleStorage = (e: Event) => {
+      const storageEvent = e as StorageEvent;
+      if (storageEvent.key === undefined || storageEvent.key === "menu_items" || storageEvent.key === null) {
+        fetchMenuItems();
+      }
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);

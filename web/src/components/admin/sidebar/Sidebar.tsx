@@ -130,11 +130,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
 
     fetchAdminInfo();
-    // 1. Sidebar collapse state
+    // 1. Sidebar collapse state: collapse by default on screens < 1024px (tablets),
+    // but respect user preference if explicitly saved in localStorage.
     const savedCollapse = localStorage.getItem("admin_sidebar_collapsed");
     if (savedCollapse === "true") {
       setIsCollapsed(true);
+    } else if (savedCollapse === "false") {
+      setIsCollapsed(false);
+    } else {
+      setIsCollapsed(window.innerWidth < 1024);
     }
+
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setIsCollapsed(true);
+      }
+    };
+    window.addEventListener("resize", handleResize);
 
     const handleStorageChange = () => {
       const savedProfile = localStorage.getItem("admin_profile");
@@ -164,6 +176,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
     window.addEventListener("storage", handleStorageChange);
     return () => {
+      window.removeEventListener("resize", handleResize);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, []);

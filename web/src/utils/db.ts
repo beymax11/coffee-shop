@@ -3,6 +3,7 @@ import { menuItems as defaultMenuItems } from "@/data/menu";
 
 export interface LoyaltyMember {
   id: string;
+  userId?: string; // Supabase profile UUID (used as fallback key for loyalty_cards lookup)
   name: string;
   email: string;
   phone?: string;
@@ -11,6 +12,7 @@ export interface LoyaltyMember {
   points: number;
   joinedAt: string;
 }
+
 
 export interface UserProfile {
   id: string;
@@ -291,18 +293,40 @@ export const db = {
         if (supabase) {
           supabase
             .from("profiles")
-            .update({
-              name: member.name,
-              points: member.points,
-              member_id: member.id,
-              username: member.username,
-              phone: member.phone
-            })
+            .select("id")
             .eq("email", member.email.toLowerCase())
-            .then(({ error }) => {
-              if (error) {
-                console.error("Error syncing loyalty member update to Supabase:", error);
+            .single()
+            .then(({ data: profile, error: profileErr }) => {
+              if (profileErr || !profile) {
+                console.error("Error fetching user profile for loyalty sync:", profileErr);
+                return;
               }
+
+              // 1. Update profiles table
+              supabase
+                .from("profiles")
+                .update({
+                  name: member.name,
+                  username: member.username,
+                  phone: member.phone
+                })
+                .eq("id", profile.id)
+                .then(({ error: uError }) => {
+                  if (uError) console.error("Error updating profile fields:", uError);
+                });
+
+              // 2. Upsert loyalty card details
+              supabase
+                .from("loyalty_cards")
+                .upsert({
+                  id: member.id,
+                  user_id: profile.id,
+                  stamps: member.stamps,
+                  points: member.points
+                }, { onConflict: "user_id" })
+                .then(({ error: lError }) => {
+                  if (lError) console.error("Error updating loyalty_card fields:", lError);
+                });
             });
         }
       });
@@ -320,12 +344,12 @@ export const db = {
       import("./supabase").then(({ supabase }) => {
         if (supabase) {
           supabase
-            .from("profiles")
+            .from("loyalty_cards")
             .delete()
             .eq("id", id)
             .then(({ error }) => {
               if (error) {
-                console.error("Error syncing loyalty member deletion to Supabase:", error);
+                console.error("Error syncing loyalty card deletion to Supabase:", error);
               }
             });
         }

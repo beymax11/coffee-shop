@@ -116,7 +116,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
         {/* Glow decoration */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-brand-green/5 blur-[90px] rounded-full pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-1.5 max-w-lg">
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-brand-green green-glow animate-pulse shrink-0" />

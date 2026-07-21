@@ -51,7 +51,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       className="space-y-8"
     >
       {/* Stats Deck */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${currentUserRole === "admin" ? "lg:grid-cols-3" : "sm:grid-cols-2"} gap-4 md:gap-6`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${currentUserRole === "admin" ? "md:grid-cols-3" : "sm:grid-cols-2"} gap-4 md:gap-6`}>
         {/* Menu Offerings Card */}
         {currentUserRole === "admin" && (
           <motion.div

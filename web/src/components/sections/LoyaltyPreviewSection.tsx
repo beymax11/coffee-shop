@@ -43,9 +43,17 @@ export function LoyaltyPreviewSection() {
       }
     };
 
+    const handleStorage = (e: Event) => {
+      if (e instanceof StorageEvent) {
+        if (e.key === "customer_session" || e.key === "loyalty_members") {
+          syncFromDb();
+        }
+      }
+    };
+
     syncFromDb();
-    window.addEventListener("storage", syncFromDb);
-    return () => window.removeEventListener("storage", syncFromDb);
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   return (

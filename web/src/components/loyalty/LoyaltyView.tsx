@@ -39,9 +39,24 @@ export function LoyaltyView() {
   const [isQrExpanded, setIsQrExpanded] = useState<boolean>(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const prevStampsRef = React.useRef<number | null>(null);
+  const confettiFiringRef = React.useRef<boolean>(false);
+
+  const isLoadedRef = React.useRef(isLoaded);
+  const isGuestRef = React.useRef(isGuest);
+
+  useEffect(() => {
+    isLoadedRef.current = isLoaded;
+  }, [isLoaded]);
+
+  useEffect(() => {
+    isGuestRef.current = isGuest;
+  }, [isGuest]);
 
   const triggerConfetti = async (fromTop: boolean = false) => {
+    // Guard against multiple simultaneous confetti runs
+    if (confettiFiringRef.current) return;
+    confettiFiringRef.current = true;
+
     try {
       const confetti = (await import("canvas-confetti")).default;
 
@@ -82,7 +97,7 @@ export function LoyaltyView() {
           });
         }, 150);
 
-        // High capacity right cannon
+        // High capacity right cannon — release guard after all bursts are done
         setTimeout(() => {
           confetti({
             particleCount: 75,
@@ -91,7 +106,8 @@ export function LoyaltyView() {
             origin: { x: 1, y: 0.8 },
             colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
           });
-        }, 300);
+          confettiFiringRef.current = false;
+        }, 400);
       } else {
         // 1. Initial main center burst (high particle count)
         confetti({
@@ -122,7 +138,7 @@ export function LoyaltyView() {
           });
         }, 150);
 
-        // 4. High capacity right cannon
+        // 4. High capacity right cannon — release guard after all bursts are done
         setTimeout(() => {
           confetti({
             particleCount: 75,
@@ -131,22 +147,16 @@ export function LoyaltyView() {
             origin: { x: 1, y: 0.8 },
             colors: ["#2E5A44", "#10B981", "#F59E0B", "#D97706"]
           });
-        }, 300);
+          confettiFiringRef.current = false;
+        }, 400);
       }
     } catch (err) {
+      confettiFiringRef.current = false;
       console.error("Failed to load or trigger confetti:", err);
     }
   };
 
-  useEffect(() => {
-    if (isLoaded && prevStampsRef.current !== null && stamps > prevStampsRef.current) {
-      triggerConfetti(true);
-    }
-
-    if (isLoaded) {
-      prevStampsRef.current = stamps;
-    }
-  }, [stamps, isLoaded]);
+  // Stamps tracking and trigger confetti logic is directly handled in setStamps functional state updates.
 
   useEffect(() => {
     if (isFullscreen) {
@@ -189,6 +199,7 @@ export function LoyaltyView() {
 
   // Sync with DB
   useEffect(() => {
+    let active = true;
     const syncFromDb = async () => {
       const sessionEmail = localStorage.getItem("customer_session");
       const members = db.getLoyaltyMembers();
@@ -200,28 +211,29 @@ export function LoyaltyView() {
         // Try to fetch latest profile from Supabase to ensure real-time sync of stamps/member_id
         try {
           const { supabase } = await import("@/utils/supabase");
+          if (!active) return;
           if (supabase) {
             const isEmail = sessionEmail.includes("@");
-            const query = supabase.from("profiles").select("*");
+            const query = supabase.from("profiles").select("*, loyalty_cards(*)");
             const { data: profile } = isEmail
               ? await query.eq("email", sessionEmail.toLowerCase()).single()
               : await query.eq("phone", sessionEmail).single();
 
+            if (!active) return;
+
             if (profile) {
+              const rawCard = profile.loyalty_cards;
+              const loyaltyCard = Array.isArray(rawCard) ? rawCard[0] : rawCard;
+
               // Find or create local loyalty member representation
               let existing = members.find(
                 (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
                   (m.phone && m.phone.trim() === sessionEmail.trim())
               );
-              let memberIdToUse = profile.member_id || existing?.id || `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+              let memberIdToUse = loyaltyCard?.id || existing?.id || `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
 
-              if (!profile.member_id || profile.member_id.length > 20) {
-                // Update Supabase profiles table
-                await supabase
-                  .from("profiles")
-                  .update({ member_id: memberIdToUse })
-                  .eq("id", profile.id);
-              }
+              // NOTE: Do NOT upsert loyalty_cards here — that's the admin/signup's responsibility.
+              // Writing stamps from here risks overwriting fresher data from the admin.
 
               const updatedMember = {
                 id: memberIdToUse,
@@ -229,8 +241,8 @@ export function LoyaltyView() {
                 username: profile.username || existing?.username || "",
                 email: isEmail ? sessionEmail : (profile.email || ""),
                 phone: isEmail ? (profile.phone || "") : sessionEmail,
-                stamps: profile.stamps ?? existing?.stamps ?? 0,
-                points: profile.points ?? existing?.points ?? 0,
+                stamps: loyaltyCard?.stamps ?? existing?.stamps ?? 0,
+                points: loyaltyCard?.points ?? existing?.points ?? 0,
                 joinedAt: profile.created_at
                   ? new Date(profile.created_at).toISOString().split("T")[0]
                   : existing?.joinedAt || new Date().toISOString().split("T")[0]
@@ -245,7 +257,7 @@ export function LoyaltyView() {
           console.error("Error syncing profile with Supabase on mount:", err);
         }
 
-        if (guestState) {
+        if (guestState && active) {
           const found = members.find(
             (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
               (m.phone && m.phone.trim() === sessionEmail.trim())
@@ -256,6 +268,8 @@ export function LoyaltyView() {
           }
         }
       }
+
+      if (!active) return;
 
       if (current) {
         let currentStamps = current.stamps;
@@ -271,43 +285,85 @@ export function LoyaltyView() {
         setMemberId(current.id);
         setMemberName(current.name);
         setMemberUsername(current.username || "");
-        setStamps(currentStamps);
         setPoints(current.points);
         setIsGuest(guestState);
+
+        setStamps((prevStamps) => {
+          if (isLoadedRef.current && !isGuestRef.current && currentStamps > prevStamps) {
+            triggerConfetti(true);
+          }
+          return currentStamps;
+        });
       }
       setIsLoaded(true);
     };
     syncFromDb();
 
-    // Listen for real-time profile updates on Supabase
+    // Listen for real-time updates on loyalty_cards table
     let channel: any = null;
     const sessionEmail = typeof window !== "undefined" ? localStorage.getItem("customer_session") : null;
     if (sessionEmail && supabase) {
-      const isEmail = sessionEmail.includes("@");
-      const filterStr = isEmail
-        ? `email=eq.${sessionEmail.toLowerCase()}`
-        : `phone=eq.${sessionEmail}`;
+      // Capture supabase in a local variable to preserve type narrowing inside async closure
+      const supabaseClient = supabase;
+      // We fetch the profile UUID to use as a reliable filter for the loyalty_cards real-time subscription
+      const setupRealtimeChannel = async () => {
+        const isEmail = sessionEmail.includes("@");
+        const query = supabaseClient.from("profiles").select("id, loyalty_cards(id)");
+        const { data: profileData } = isEmail
+          ? await query.eq("email", sessionEmail.toLowerCase()).single()
+          : await query.eq("phone", sessionEmail).single();
 
-      channel = supabase.channel(`customer-profile-${sessionEmail}`);
-      channel
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "profiles",
-            filter: filterStr,
-          },
-          () => {
-            syncFromDb();
-          }
-        )
-        .subscribe();
+        if (!active) return;
+
+        const rawCard = profileData?.loyalty_cards;
+        const loyaltyCardId = (Array.isArray(rawCard) ? rawCard[0] : rawCard)?.id;
+
+        if (!loyaltyCardId) return; // No loyalty card found yet — can't subscribe
+
+        channel = supabaseClient.channel(`loyalty-card-${loyaltyCardId}`);
+        channel
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "loyalty_cards",
+              filter: `id=eq.${loyaltyCardId}`,
+            },
+            (payload: any) => {
+              if (!active) return;
+              const newStamps = payload.new?.stamps;
+              const newPoints = payload.new?.points;
+              
+              if (newStamps !== undefined) {
+                setStamps((prevStamps) => {
+                  if (newStamps > prevStamps) {
+                    triggerConfetti(true);
+                  }
+                  return newStamps;
+                });
+              }
+              if (newPoints !== undefined) setPoints(newPoints);
+            }
+          )
+          .subscribe();
+      };
+
+      setupRealtimeChannel();
     }
 
-    window.addEventListener("storage", syncFromDb);
+    const handleStorage = (e: Event) => {
+      if (e instanceof StorageEvent) {
+        if (e.key === "customer_session" || e.key === "loyalty_members") {
+          syncFromDb();
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
     return () => {
-      window.removeEventListener("storage", syncFromDb);
+      active = false;
+      window.removeEventListener("storage", handleStorage);
       if (channel) {
         channel.unsubscribe();
       }
@@ -593,8 +649,10 @@ export function LoyaltyView() {
                                 >
                                   {isStamped ? (
                                     <motion.div
+                                      key={`stamped-${idx}`}
                                       initial={{ scale: 0.5, rotate: -45 }}
                                       animate={{ scale: 1, rotate: 0 }}
+                                      transition={{ type: "spring", stiffness: 260, damping: 20 }}
                                       className="flex flex-col items-center justify-center"
                                     >
                                       <Image

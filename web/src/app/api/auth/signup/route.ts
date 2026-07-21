@@ -73,19 +73,23 @@ export async function POST(req: NextRequest) {
           name: name.trim(),
           username: username.trim().toLowerCase(),
           email: email.trim(),
-          role: "customer",
-          member_id: randomId,
-          stamps: 0,
-          points: 0
+          role: "customer"
         });
         if (insertError) {
           console.error("Error creating profile in signup route:", insertError);
         }
-      } else {
-        await supabaseAdmin
-          .from("profiles")
-          .update({ member_id: randomId })
-          .eq("id", user.id);
+      }
+
+      // Create or update loyalty card row in loyalty_cards table
+      const { error: loyaltyError } = await supabaseAdmin.from("loyalty_cards").upsert({
+        id: randomId,
+        user_id: user.id,
+        stamps: 0,
+        points: 0
+      }, { onConflict: "user_id" });
+
+      if (loyaltyError) {
+        console.error("Error creating loyalty card in signup route:", loyaltyError);
       }
 
       // 4. Generate confirmation link

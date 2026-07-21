@@ -180,6 +180,28 @@ export const AdminView: React.FC = () => {
     }
   }, [activeTab, currentUserRole]);
 
+  // Load saved tab on mount / authentication
+  useEffect(() => {
+    if (isAuthenticated) {
+      const savedTab = localStorage.getItem("admin_active_tab");
+      const validTabs = ["dashboard", "menu", "reservations", "loyalty", "users", "lifestyle", "events", "settings"];
+      if (savedTab && validTabs.includes(savedTab)) {
+        const isBarista = currentUserRole === "barista";
+        const isRestricted = ["menu", "users", "lifestyle", "events"].includes(savedTab);
+        if (!(isBarista && isRestricted)) {
+          setActiveTab(savedTab as any);
+        }
+      }
+    }
+  }, [isAuthenticated, currentUserRole]);
+
+  // Save active tab on change
+  useEffect(() => {
+    if (isAuthenticated) {
+      localStorage.setItem("admin_active_tab", activeTab);
+    }
+  }, [activeTab, isAuthenticated]);
+
   // 2. Load DB
   useEffect(() => {
     if (isAuthenticated) {
@@ -305,7 +327,7 @@ export const AdminView: React.FC = () => {
       if (supabase) {
         const { data, error } = await supabase
           .from("profiles")
-          .select("*")
+          .select("*, loyalty_cards(*)")
           .eq("role", "customer");
 
         if (error) {
@@ -314,17 +336,22 @@ export const AdminView: React.FC = () => {
           return;
         }
         if (data) {
-          const supabaseMembers: LoyaltyMember[] = data.map((profile: any) => ({
-            id: profile.member_id || profile.id,
-            name: profile.name || profile.username || "Unknown",
-            email: profile.email || "",
-            phone: profile.phone || undefined,
-            stamps: profile.stamps || 0,
-            points: profile.points || 0,
-            joinedAt: profile.created_at
-              ? new Date(profile.created_at).toISOString().split("T")[0]
-              : new Date().toISOString().split("T")[0]
-          }));
+          const supabaseMembers: LoyaltyMember[] = data.map((profile: any) => {
+            const rawCard = profile.loyalty_cards;
+            const loyaltyCard = Array.isArray(rawCard) ? rawCard[0] : rawCard;
+            return {
+              id: loyaltyCard?.id || profile.id,
+              userId: profile.id, // Always store the Supabase profile UUID
+              name: profile.name || profile.username || "Unknown",
+              email: profile.email || "",
+              phone: profile.phone || undefined,
+              stamps: loyaltyCard?.stamps || 0,
+              points: loyaltyCard?.points || 0,
+              joinedAt: profile.created_at
+                ? new Date(profile.created_at).toISOString().split("T")[0]
+                : new Date().toISOString().split("T")[0]
+            };
+          });
 
           // Merge local members that do NOT exist in Supabase (e.g. offline walk-in members that aren't synced yet)
           const mergedMembers = [...supabaseMembers];
@@ -571,18 +598,17 @@ export const AdminView: React.FC = () => {
     const newStamps = member.stamps + 1;
 
     try {
-      const { supabase } = await import("@/utils/supabase");
-      if (supabase) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ stamps: newStamps })
-          .eq("email", member.email.toLowerCase());
+      const res = await fetch("/api/loyalty", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId: member.id, userId: member.userId, stamps: newStamps }),
+      });
 
-        if (error) {
-          console.error("Supabase stamp update error:", error);
-          toast.error("Failed to update stamp in database.");
-          return;
-        }
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Stamp update API error:", err);
+        toast.error("Failed to update stamp in database.");
+        return;
       }
     } catch (err) {
       console.error("Error awarding stamp:", err);
@@ -590,9 +616,10 @@ export const AdminView: React.FC = () => {
       return;
     }
 
-    // Update UI after successful DB write
+    // Update UI state after successful DB write (real-time will sync the customer page)
     const updated = { ...member, stamps: newStamps };
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+    db.saveLoyaltyMember(updated);
     playBeep();
     toast.success(`Awarded 1 stamp to ${member.name}. (${newStamps}/10)`);
 
@@ -609,18 +636,17 @@ export const AdminView: React.FC = () => {
     const newStamps = member.stamps - 1;
 
     try {
-      const { supabase } = await import("@/utils/supabase");
-      if (supabase) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ stamps: newStamps })
-          .eq("email", member.email.toLowerCase());
+      const res = await fetch("/api/loyalty", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId: member.id, userId: member.userId, stamps: newStamps }),
+      });
 
-        if (error) {
-          console.error("Supabase stamp revoke error:", error);
-          toast.error("Failed to revoke stamp in database.");
-          return;
-        }
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Stamp revoke API error:", err);
+        toast.error("Failed to revoke stamp in database.");
+        return;
       }
     } catch (err) {
       console.error("Error revoking stamp:", err);
@@ -630,6 +656,7 @@ export const AdminView: React.FC = () => {
 
     const updated = { ...member, stamps: newStamps };
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+    db.saveLoyaltyMember(updated);
     toast.info(`Revoked 1 stamp from ${member.name}. (${newStamps}/10)`);
 
     notificationsService.addNotification(
@@ -648,19 +675,18 @@ export const AdminView: React.FC = () => {
       variant: "warning",
       onConfirm: async () => {
         try {
-          const { supabase } = await import("@/utils/supabase");
-          if (supabase) {
-            const { error } = await supabase
-              .from("profiles")
-              .update({ stamps: 0 })
-              .eq("email", member.email.toLowerCase());
+          const res = await fetch("/api/loyalty", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cardId: member.id, userId: member.userId, stamps: 0 }),
+          });
 
-            if (error) {
-              console.error("Supabase redeem error:", error);
-              toast.error("Failed to redeem in database.");
-              setConfirmModal((prev) => ({ ...prev, isOpen: false }));
-              return;
-            }
+          if (!res.ok) {
+            const err = await res.json();
+            console.error("Redeem API error:", err);
+            toast.error("Failed to redeem in database.");
+            setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+            return;
           }
         } catch (err) {
           console.error("Error redeeming drink:", err);
@@ -967,17 +993,30 @@ export const AdminView: React.FC = () => {
           if (signUpError) {
             console.warn("Supabase signUp by phone error (user might already exist):", signUpError.message);
 
-            const { error: updateError } = await supabase
+            const { data: profile } = await supabase
               .from("profiles")
-              .update({
-                member_id: memberId,
-                stamps: stamps,
-                name: name
-              })
-              .eq("phone", formattedPhone);
+              .select("id")
+              .eq("phone", formattedPhone)
+              .single();
 
-            if (updateError) {
-              console.error("Failed to update existing profile in Supabase by phone:", updateError.message);
+            if (profile) {
+              await supabase
+                .from("profiles")
+                .update({ name: name })
+                .eq("id", profile.id);
+
+              const { error: updateError } = await supabase
+                .from("loyalty_cards")
+                .upsert({
+                  id: memberId,
+                  user_id: profile.id,
+                  stamps: stamps,
+                  points: 0
+                }, { onConflict: "user_id" });
+
+              if (updateError) {
+                console.error("Failed to update existing loyalty card in Supabase by phone:", updateError.message);
+              }
             }
           } else {
             const userId = signUpData.user?.id;
@@ -992,15 +1031,16 @@ export const AdminView: React.FC = () => {
 
               if (existingProfile) {
                 const { error: updateError } = await supabase
-                  .from("profiles")
-                  .update({
-                    member_id: memberId,
-                    stamps: stamps
-                  })
-                  .eq("id", userId);
+                  .from("loyalty_cards")
+                  .upsert({
+                    id: memberId,
+                    user_id: userId,
+                    stamps: stamps,
+                    points: 0
+                  }, { onConflict: "user_id" });
 
                 if (updateError) {
-                  console.error("Failed to update profile member_id after phone signUp:", updateError.message);
+                  console.error("Failed to update loyalty card after phone signUp:", updateError.message);
                 }
               } else {
                 const { error: insertError } = await supabase
@@ -1010,14 +1050,24 @@ export const AdminView: React.FC = () => {
                     name: name,
                     email: "",
                     phone: formattedPhone || null,
-                    role: "customer",
-                    member_id: memberId,
-                    stamps: stamps,
-                    points: 0
+                    role: "customer"
                   });
 
                 if (insertError) {
                   console.error("Failed to insert missing profile after phone signUp:", insertError.message);
+                }
+
+                const { error: loyaltyInsertError } = await supabase
+                  .from("loyalty_cards")
+                  .insert({
+                    id: memberId,
+                    user_id: userId,
+                    stamps: stamps,
+                    points: 0
+                  });
+
+                if (loyaltyInsertError) {
+                  console.error("Failed to insert loyalty card after phone signUp:", loyaltyInsertError.message);
                 }
               }
             }
@@ -1038,17 +1088,30 @@ export const AdminView: React.FC = () => {
           if (signUpError) {
             console.warn("Supabase signUp by email error (user might already exist):", signUpError.message);
 
-            const { error: updateError } = await supabase
+            const { data: profile } = await supabase
               .from("profiles")
-              .update({
-                member_id: memberId,
-                stamps: stamps,
-                name: name
-              })
-              .eq("email", email.toLowerCase());
+              .select("id")
+              .eq("email", email.toLowerCase())
+              .single();
 
-            if (updateError) {
-              console.error("Failed to update existing profile in Supabase by email:", updateError.message);
+            if (profile) {
+              await supabase
+                .from("profiles")
+                .update({ name: name })
+                .eq("id", profile.id);
+
+              const { error: updateError } = await supabase
+                .from("loyalty_cards")
+                .upsert({
+                  id: memberId,
+                  user_id: profile.id,
+                  stamps: stamps,
+                  points: 0
+                }, { onConflict: "user_id" });
+
+              if (updateError) {
+                console.error("Failed to update existing loyalty card in Supabase by email:", updateError.message);
+              }
             }
           } else {
             const userId = signUpData.user?.id;
@@ -1063,15 +1126,16 @@ export const AdminView: React.FC = () => {
 
               if (existingProfile) {
                 const { error: updateError } = await supabase
-                  .from("profiles")
-                  .update({
-                    member_id: memberId,
-                    stamps: stamps
-                  })
-                  .eq("id", userId);
+                  .from("loyalty_cards")
+                  .upsert({
+                    id: memberId,
+                    user_id: userId,
+                    stamps: stamps,
+                    points: 0
+                  }, { onConflict: "user_id" });
 
                 if (updateError) {
-                  console.error("Failed to update profile member_id after email signUp:", updateError.message);
+                  console.error("Failed to update loyalty card after email signUp:", updateError.message);
                 }
               } else {
                 const { error: insertError } = await supabase
@@ -1081,14 +1145,24 @@ export const AdminView: React.FC = () => {
                     name: name,
                     email: email.toLowerCase(),
                     phone: null,
-                    role: "customer",
-                    member_id: memberId,
-                    stamps: stamps,
-                    points: 0
+                    role: "customer"
                   });
 
                 if (insertError) {
                   console.error("Failed to insert missing profile after email signUp:", insertError.message);
+                }
+
+                const { error: loyaltyInsertError } = await supabase
+                  .from("loyalty_cards")
+                  .insert({
+                    id: memberId,
+                    user_id: userId,
+                    stamps: stamps,
+                    points: 0
+                  });
+
+                if (loyaltyInsertError) {
+                  console.error("Failed to insert loyalty card after email signUp:", loyaltyInsertError.message);
                 }
               }
             }
@@ -1140,7 +1214,7 @@ export const AdminView: React.FC = () => {
       />
 
       {/* Main Workspace */}
-      <main className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-6 md:p-8 relative z-10 pb-24 md:pb-8">
+      <main className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-6 md:p-8 relative pb-24 md:pb-8">
 
         {/* TOP BAR / Header */}
         <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-8 pb-3 md:pb-4 border-b border-card-border relative">

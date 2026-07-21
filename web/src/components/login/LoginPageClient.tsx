@@ -193,7 +193,7 @@ export function LoginPageClient() {
       // Fetch profile containing their role & loyalty data
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("*")
+        .select("*, loyalty_cards(*)")
         .eq("id", user.id)
         .single();
 
@@ -239,24 +239,31 @@ export function LoginPageClient() {
                  (m.phone && userPhone && m.phone.trim() === userPhone.trim())
         );
 
+        const rawCard = profile?.loyalty_cards;
+        const loyaltyCard = Array.isArray(rawCard) ? rawCard[0] : rawCard;
+
         if (existingMember) {
           if (profile) {
-            let memberIdToUse = profile.member_id || existingMember.id;
+            let memberIdToUse = loyaltyCard?.id || existingMember.id;
             if (!memberIdToUse || memberIdToUse.length > 20) {
               memberIdToUse = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
               if (supabase) {
                 supabase
-                  .from("profiles")
-                  .update({ member_id: memberIdToUse })
-                  .eq("id", user.id)
+                  .from("loyalty_cards")
+                  .upsert({
+                    id: memberIdToUse,
+                    user_id: user.id,
+                    stamps: loyaltyCard?.stamps || 0,
+                    points: loyaltyCard?.points || 0
+                  }, { onConflict: "user_id" })
                   .then(({ error }) => {
                     if (error) console.error("Error updating member_id on login:", error);
                   });
               }
             }
             existingMember.id = memberIdToUse;
-            existingMember.stamps = profile.stamps ?? existingMember.stamps;
-            existingMember.points = profile.points ?? existingMember.points;
+            existingMember.stamps = loyaltyCard?.stamps ?? existingMember.stamps;
+            existingMember.points = loyaltyCard?.points ?? existingMember.points;
             existingMember.name = profile.name ?? existingMember.name;
             existingMember.username = profile.username ?? existingMember.username;
             existingMember.phone = profile.phone ?? existingMember.phone;
@@ -266,14 +273,18 @@ export function LoginPageClient() {
         } else {
           const displayName = profile?.name || user.email?.split("@")[0] || profile?.phone || formattedPhone;
           const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
-          let memberIdToUse = profile?.member_id;
+          let memberIdToUse = loyaltyCard?.id;
           if (!memberIdToUse || memberIdToUse.length > 20) {
             memberIdToUse = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
             if (supabase) {
               supabase
-                .from("profiles")
-                .update({ member_id: memberIdToUse })
-                .eq("id", user.id)
+                .from("loyalty_cards")
+                .upsert({
+                  id: memberIdToUse,
+                  user_id: user.id,
+                  stamps: loyaltyCard?.stamps || 0,
+                  points: loyaltyCard?.points || 0
+                }, { onConflict: "user_id" })
                 .then(({ error }) => {
                   if (error) console.error("Error updating member_id on login:", error);
                 });
@@ -285,8 +296,8 @@ export function LoginPageClient() {
             username: profile?.username || "",
             email: user.email || "",
             phone: profile?.phone || formattedPhone || "",
-            stamps: profile?.stamps || 0,
-            points: profile?.points || 0,
+            stamps: loyaltyCard?.stamps || 0,
+            points: loyaltyCard?.points || 0,
             joinedAt: profile?.created_at
               ? new Date(profile.created_at).toISOString().split("T")[0]
               : new Date().toISOString().split("T")[0],

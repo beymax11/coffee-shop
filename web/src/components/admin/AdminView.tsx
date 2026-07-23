@@ -304,6 +304,9 @@ export const AdminView: React.FC = () => {
       if (res.status) {
         const key = `${res.fullName}-${res.date}-${res.time}`;
         merged[key] = res.status as "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested";
+        if (res.id) {
+          merged[res.id] = res.status as "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested";
+        }
       }
     });
 
@@ -434,31 +437,51 @@ export const AdminView: React.FC = () => {
   const updateReservationStatus = async (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested") => {
     const key = `${res.fullName}-${res.date}-${res.time}`;
     const updated = { ...reservationStatuses, [key]: newStatus };
+    if (res.id) {
+      updated[res.id] = newStatus;
+    }
     setReservationStatuses(updated);
     localStorage.setItem("admin_reservation_statuses", JSON.stringify(updated));
+
+    // Update in-memory reservations array state immediately so React UI updates instantly
+    setReservations((prevReservations) =>
+      prevReservations.map((r) => {
+        if ((res.id && r.id === res.id) || (r.fullName === res.fullName && r.date === res.date && r.time === res.time)) {
+          return { ...r, status: newStatus };
+        }
+        return r;
+      })
+    );
     
     // Propagate status update back to the reservation object in localStorage
     const localReservations = db.getReservations();
-    const idx = localReservations.findIndex((r) => r.fullName === res.fullName && r.date === res.date && r.time === res.time);
+    const idx = localReservations.findIndex(
+      (r) => (res.id && r.id === res.id) || (r.fullName === res.fullName && r.date === res.date && r.time === res.time)
+    );
     if (idx >= 0) {
       localReservations[idx].status = newStatus;
       localStorage.setItem("reservations", JSON.stringify(localReservations));
     }
-    
-    window.dispatchEvent(new Event("storage"));
 
-    // Also update status in Supabase via API (if reservation has an id)
+    // Also update status in Supabase via API (if reservation has an id) FIRST
     if (res.id) {
       try {
-        await fetch(`/api/reservations/${res.id}`, {
+        const patchRes = await fetch(`/api/reservations/${res.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: newStatus }),
         });
+        if (!patchRes.ok) {
+          const errData = await patchRes.json().catch(() => ({}));
+          console.error("PATCH reservation status failed:", patchRes.status, errData);
+        }
       } catch (err) {
         console.warn("Could not update reservation status in backend:", err);
       }
     }
+
+    // Dispatch storage event AFTER backend call completes to avoid race conditions
+    window.dispatchEvent(new Event("storage"));
 
     // Send automated email notifications
     if (newStatus === "Approved") {

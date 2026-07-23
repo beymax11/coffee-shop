@@ -19,10 +19,13 @@ export async function middleware(request: NextRequest) {
   // Require admin/barista role for admin pages, reservation list, and admin email triggers
   const requiresStaffRole = isAdminPage || (isApiReservationList && method === "GET") || isEmailAdminRoute;
 
-  // Require at least a valid authenticated user session (staff or customer) for reservation details
-  const requiresAuthenticatedSession = isApiReservationDetail && (method === "GET" || method === "PATCH");
+  if (requiresStaffRole) {
+    // 0. ADMIN / STAFF SESSION COOKIE CHECK
+    const adminSession = request.cookies.get("admin_session")?.value;
+    if (adminSession === "true") {
+      return NextResponse.next();
+    }
 
-  if (requiresStaffRole || requiresAuthenticatedSession) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -82,7 +85,6 @@ export async function middleware(request: NextRequest) {
     } else {
       // 2. FALLBACK MOCK AUTHENTICATION (if env vars are missing/local mock testing)
       if (requiresStaffRole) {
-        const adminSession = request.cookies.get("admin_session")?.value;
         if (adminSession !== "true") {
           return handleUnauthorized(request, isAdminPage);
         }

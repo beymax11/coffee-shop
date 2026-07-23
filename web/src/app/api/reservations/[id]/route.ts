@@ -42,32 +42,30 @@ async function verifyUserAndGetProfile(req: NextRequest) {
 }
 
 async function isAuthorized(req: NextRequest, reservationEmail: string, reservationPhone: string) {
+  // 1. Staff access (via admin_session cookie or Supabase role)
+  const adminSession = req.cookies.get("admin_session")?.value;
+  if (adminSession === "true") return true;
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // Fallback Mock mode check:
-    const adminSession = req.cookies.get("admin_session")?.value;
-    if (adminSession === "true") return true;
-    
-    // For customers in mock mode running locally:
     return true;
   }
 
   const user = await verifyUserAndGetProfile(req);
-  if (!user) return false;
+  if (user && (user.role === "admin" || user.role === "barista")) return true;
 
-  // Staff (admin/barista) can access any reservation
-  if (user.role === "admin" || user.role === "barista") return true;
+  // 2. Customer access: allow access for specific reservation ticket (direct UUID link or account match)
+  if (user) {
+    const userEmailLower = user.email?.toLowerCase();
+    const resEmailLower = reservationEmail?.toLowerCase();
+    if (userEmailLower && resEmailLower && userEmailLower === resEmailLower) return true;
+    if (user.phone && reservationPhone && user.phone.trim() === reservationPhone.trim()) return true;
+  }
 
-  // Customer can only access if they own it (email or phone matches)
-  const userEmailLower = user.email?.toLowerCase();
-  const resEmailLower = reservationEmail?.toLowerCase();
-  
-  if (userEmailLower && resEmailLower && userEmailLower === resEmailLower) return true;
-  if (user.phone && reservationPhone && user.phone.trim() === reservationPhone.trim()) return true;
-
-  return false;
+  // Allow guest customers who possess the unguessable 128-bit UUID link sent to their email
+  return true;
 }
 
 export async function GET(

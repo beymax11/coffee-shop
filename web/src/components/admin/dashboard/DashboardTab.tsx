@@ -121,8 +121,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
           <div className="space-y-3.5">
             {recentReservations.slice(0, 4).map((res, idx) => {
-              const key = `${res.fullName}-${res.date}-${res.time}`;
-              const status = reservationStatuses[key] || "Pending";
+              const compositeKey = `${res.fullName}-${res.date}-${res.time}`;
+              const status = (res.id && reservationStatuses[res.id]) || reservationStatuses[compositeKey] || res.status || "Pending";
               return (
                 <div
                   key={idx}

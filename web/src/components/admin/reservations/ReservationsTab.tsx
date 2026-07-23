@@ -69,8 +69,8 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
 
   // Filtered reservations
   const filteredReservations = reservations.filter((res) => {
-    const key = `${res.fullName}-${res.date}-${res.time}`;
-    const status = reservationStatuses[key] || "Pending";
+    const compositeKey = `${res.fullName}-${res.date}-${res.time}`;
+    const status = (res.id && reservationStatuses[res.id]) || reservationStatuses[compositeKey] || res.status || "Pending";
     
     // Status filter match
     const matchesFilter = reservationFilter === "All" || status === reservationFilter;
@@ -146,9 +146,9 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
         className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6"
       >
         {filteredReservations.map((res, index) => {
-          const key = `${res.fullName}-${res.date}-${res.time}`;
-          const status = reservationStatuses[key] || "Pending";
-          const isCardUpdating = updatingKey === key;
+          const compositeKey = `${res.fullName}-${res.date}-${res.time}`;
+          const status = (res.id && reservationStatuses[res.id]) || reservationStatuses[compositeKey] || res.status || "Pending";
+          const isCardUpdating = updatingKey === compositeKey || (res.id !== undefined && updatingKey === res.id);
           return (
             <motion.div
               key={index}

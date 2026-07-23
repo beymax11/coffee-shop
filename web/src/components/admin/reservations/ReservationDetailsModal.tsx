@@ -112,8 +112,8 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
 
   const { notes, coffeeFlavor1, coffeeFlavor2, nonCoffeeFlavor1, nonCoffeeFlavor2 } = parseNotesAndFlavors(reservation.notes || "");
 
-  const key = `${reservation.fullName}-${reservation.date}-${reservation.time}`;
-  const currentStatus = reservationStatuses[key] || "Pending";
+  const compositeKey = `${reservation.fullName}-${reservation.date}-${reservation.time}`;
+  const currentStatus = (reservation.id && reservationStatuses[reservation.id]) || reservationStatuses[compositeKey] || reservation.status || "Pending";
 
   const calculateAmount = () => {
     if (reservation.eventType === "Coffee Cart Booking") {

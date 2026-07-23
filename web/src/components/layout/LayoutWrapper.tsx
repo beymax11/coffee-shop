@@ -16,50 +16,53 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin");
 
-  const [isCustomer, setIsCustomer] = useState(false);
+  const [isLoggedInCustomer, setIsLoggedInCustomer] = useState(false);
   const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
 
   useEffect(() => {
     const checkStatus = async () => {
       if (pathname?.startsWith("/admin")) return;
 
-      const hasCustomer = !!localStorage.getItem("customer_session");
+      const getCookie = (name: string): string | null => {
+        if (typeof document === "undefined") return null;
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+          const val = parts.pop()?.split(";").shift();
+          return val && val !== "false" && val !== "" ? val : null;
+        }
+        return null;
+      };
+
+      const localCustomer = typeof window !== "undefined" ? localStorage.getItem("customer_session") : null;
+      const cookieCustomer = getCookie("customer_session");
+      const hasCustomer = !!localCustomer || !!cookieCustomer;
       const hasAdmin = !!localStorage.getItem("admin_session");
-      const active = await getMaintenanceMode();
+      const active = await getMaintenanceMode(true);
 
-      console.log("[LayoutWrapper debug] checkStatus called:", {
-        customerSession: localStorage.getItem("customer_session"),
-        adminSession: localStorage.getItem("admin_session"),
-        maintenanceMode: active,
-        hasCustomer,
-        hasAdmin,
-        active,
-        finalIsCustomer: hasCustomer && !hasAdmin
-      });
-
-      setIsCustomer(hasCustomer && !hasAdmin);
+      // Maintenance view will ONLY trigger for logged-in customer accounts
+      setIsLoggedInCustomer(hasCustomer && !hasAdmin);
       setIsMaintenanceActive(active);
     };
 
     // Evaluate session status on client-side mount
     checkStatus();
 
-    // Poll every 30 seconds to sync state changes across different profiles/browsers
-    const interval = setInterval(checkStatus, 30000);
+    // Poll every 2 seconds to ensure rapid synchronization upon login/logout
+    const interval = setInterval(checkStatus, 2000);
 
-    window.addEventListener("storage", checkStatus);
+    const handleMaintenanceChange = () => {
+      checkStatus();
+    };
+
+    window.addEventListener("storage", handleMaintenanceChange);
+    window.addEventListener("maintenance_mode_changed", handleMaintenanceChange);
     return () => {
       clearInterval(interval);
-      window.removeEventListener("storage", checkStatus);
+      window.removeEventListener("storage", handleMaintenanceChange);
+      window.removeEventListener("maintenance_mode_changed", handleMaintenanceChange);
     };
   }, [pathname]);
-
-  console.log("[LayoutWrapper debug] Render states:", {
-    isCustomer,
-    isMaintenanceActive,
-    isAdmin,
-    pathname
-  });
 
   if (isAdmin) {
     return (
@@ -70,7 +73,8 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     );
   }
 
-  if (isCustomer && isMaintenanceActive) {
+  // Display Maintenance Screen ONLY if Maintenance Mode is ON AND customer is logged in
+  if (isLoggedInCustomer && isMaintenanceActive) {
     return (
       <main className="flex-1 flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300 justify-center">
         <MaintenanceView />

@@ -21,4 +21,6 @@ export interface Reservation {
   nonCoffeeFlavor1?: string;
   nonCoffeeFlavor2?: string;
   cancellationReason?: string;
+  transpoFee?: number;
+  distanceKm?: number;
 }

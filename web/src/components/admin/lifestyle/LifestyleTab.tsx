@@ -162,7 +162,7 @@ export const LifestyleTab: React.FC = () => {
           .from("lifestyle_comments")
           .delete()
           .eq("id", commentId);
-          
+
         if (error) {
           toast.error("Failed to delete comment: " + error.message);
           return;
@@ -178,7 +178,7 @@ export const LifestyleTab: React.FC = () => {
       }
 
       toast.success("Comment deleted successfully.");
-      
+
       // Update local modal state instantly
       if (selectedCommentsPost) {
         setSelectedCommentsPost(prev => {
@@ -189,7 +189,7 @@ export const LifestyleTab: React.FC = () => {
           };
         });
       }
-      
+
       loadPosts();
       setDeleteCommentData(null);
     } catch (err: any) {
@@ -252,12 +252,12 @@ export const LifestyleTab: React.FC = () => {
       post.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.caption.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.location.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "posted" && post.status === "posted") ||
       (statusFilter === "unposted" && post.status === "unposted");
-      
+
     return matchesSearch && matchesStatus;
   });
 
@@ -282,31 +282,28 @@ export const LifestyleTab: React.FC = () => {
             <div className="flex items-center gap-1 bg-background-alt/30 border border-card-border/55 p-1 rounded-full w-fit">
               <button
                 onClick={() => setStatusFilter("all")}
-                className={`px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer ${
-                  statusFilter === "all"
+                className={`px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer ${statusFilter === "all"
                     ? "bg-foreground/5 dark:bg-white/5 text-foreground"
                     : "text-neutral-500 dark:text-zinc-400 hover:text-foreground"
-                }`}
+                  }`}
               >
                 All
               </button>
               <button
                 onClick={() => setStatusFilter("posted")}
-                className={`px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer ${
-                  statusFilter === "posted"
+                className={`px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer ${statusFilter === "posted"
                     ? "bg-[#2E5A44]/15 text-[#4d9b73] border border-[#2E5A44]/20"
                     : "text-neutral-500 dark:text-zinc-400 hover:text-[#4d9b73]"
-                }`}
+                  }`}
               >
                 Posted
               </button>
               <button
                 onClick={() => setStatusFilter("unposted")}
-                className={`px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer ${
-                  statusFilter === "unposted"
+                className={`px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer ${statusFilter === "unposted"
                     ? "bg-red-500/10 text-red-400 border border-red-500/20"
                     : "text-neutral-500 dark:text-zinc-400 hover:text-red-400"
-                }`}
+                  }`}
               >
                 Unposted
               </button>
@@ -348,11 +345,10 @@ export const LifestyleTab: React.FC = () => {
               <div className="absolute top-3 left-3 bg-black/45 backdrop-blur-md px-2.5 py-1 rounded border border-white/10 text-white text-[9px] font-bold font-sans tracking-wide uppercase">
                 @{post.username}
               </div>
-              <div className={`absolute top-3 right-3 backdrop-blur-md px-2.5 py-1 rounded border text-[9px] font-bold font-sans tracking-wide uppercase shadow-sm ${
-                post.status === "posted"
+              <div className={`absolute top-3 right-3 backdrop-blur-md px-2.5 py-1 rounded border text-[9px] font-bold font-sans tracking-wide uppercase shadow-sm ${post.status === "posted"
                   ? "bg-[#2E5A44]/75 border-[#2E5A44]/30 text-white"
                   : "bg-red-950/75 border-red-500/30 text-red-300"
-              }`}>
+                }`}>
                 {post.status === "posted" ? "Posted" : "Draft"}
               </div>
             </div>
@@ -549,11 +545,10 @@ export const LifestyleTab: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setFormState({ ...formState, status: "posted" })}
-                      className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                        formState.status === "posted"
+                      className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${formState.status === "posted"
                           ? "bg-[#2E5A44]/15 border-[#2E5A44] text-[#4d9b73] shadow-sm shadow-[#2E5A44]/10"
                           : "border-card-border bg-background-alt/10 hover:bg-foreground/[0.02] text-neutral-500 hover:text-foreground"
-                      }`}
+                        }`}
                     >
                       <Check size={13} />
                       Post
@@ -561,11 +556,10 @@ export const LifestyleTab: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setFormState({ ...formState, status: "unposted" })}
-                      className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
-                        formState.status === "unposted"
+                      className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${formState.status === "unposted"
                           ? "bg-red-500/10 border-red-500/30 text-red-400"
                           : "border-card-border bg-background-alt/10 hover:bg-foreground/[0.02] text-neutral-500 hover:text-foreground"
-                      }`}
+                        }`}
                     >
                       <X size={13} />
                       Unpost

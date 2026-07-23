@@ -361,14 +361,28 @@ export const db = {
   getMockUsers(): UserProfile[] {
     if (!isBrowser) return [];
     const localUsers = localStorage.getItem("mock_users");
+    const members = this.getLoyaltyMembers();
+
     if (localUsers) {
       try {
-        return JSON.parse(localUsers);
+        const parsed: UserProfile[] = JSON.parse(localUsers);
+        let updated = false;
+        parsed.forEach((user) => {
+          if (user.role === "customer" && !user.member_id) {
+            const foundMember = members.find((m) => m.email.toLowerCase() === user.email.toLowerCase());
+            user.member_id = foundMember?.id || user.id;
+            updated = true;
+          }
+        });
+        if (updated) {
+          setLocalStorageItem("mock_users", parsed);
+        }
+        return parsed;
       } catch (e) {
         console.error("Error parsing mock_users, resetting...", e);
       }
     }
-    
+
     // Default seed
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
     const seed: UserProfile[] = [
@@ -383,7 +397,6 @@ export const db = {
     ];
 
     // Merge in current loyalty members as customers
-    const members = this.getLoyaltyMembers();
     members.forEach((m) => {
       seed.push({
         id: m.id,
@@ -589,3 +602,5 @@ export const db = {
     window.dispatchEvent(new Event("storage"));
   }
 };
+
+

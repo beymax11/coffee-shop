@@ -200,6 +200,11 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
         setIsSuccess(true);
         eraseCookie("admin_session");
         eraseCookie("admin_role");
+        localStorage.removeItem("admin_session");
+        localStorage.removeItem("admin_profile");
+        const customerIdent = user.email || profile?.phone || formattedPhone || user.id || "customer_active";
+        localStorage.setItem("customer_session", customerIdent);
+        setCookie("customer_session", "true", 7);
         if (data.session?.access_token) {
           setCookie("sb-access-token", data.session.access_token, 7);
         }

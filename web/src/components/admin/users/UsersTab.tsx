@@ -75,10 +75,12 @@ export const UsersTab: React.FC<UsersTabProps> = ({
   // Filter & Sort Logic
   const filteredUsers = users
     .filter((user) => {
+      const customerMemberId = user.role === "customer" ? (user.member_id || user.id || "") : "";
       const matchesSearch =
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.username || "").toLowerCase().includes(searchTerm.toLowerCase());
+        (user.username || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customerMemberId.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
 
@@ -291,7 +293,13 @@ export const UsersTab: React.FC<UsersTabProps> = ({
                 </div>
 
                 {/* Meta info */}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-neutral-500 dark:text-zinc-400">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-neutral-500 dark:text-zinc-400 items-center">
+                  {user.role === "customer" && (
+                    <span className="inline-flex items-center gap-1 font-mono text-[10px] text-brand-green bg-brand-green/10 border border-brand-green/20 px-2 py-0.5 rounded-md font-semibold">
+                      <span className="text-[8px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-sans font-normal">ID:</span>
+                      {user.member_id || user.id}
+                    </span>
+                  )}
                   {user.username && (
                     <span className="flex items-center gap-1 font-mono">
                       <AtSign size={9} />{user.username}
@@ -430,7 +438,13 @@ export const UsersTab: React.FC<UsersTabProps> = ({
 
                       {/* Member ID */}
                       <td className="px-6 py-4 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                        {user.member_id || <span className="text-zinc-600 italic">-</span>}
+                        {user.role === "customer" ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg border border-brand-green/30 bg-brand-green/10 text-brand-green font-semibold text-[10px] tracking-wide">
+                            {user.member_id || user.id}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400 dark:text-zinc-600 font-sans italic text-[11px]">—</span>
+                        )}
                       </td>
 
                       {/* Joined Date */}

@@ -23,7 +23,8 @@ const transporter = nodemailer.createTransport({
 
 function getDownpaymentAmount(
   eventType: string,
-  guestCount: number
+  guestCount: number,
+  transpoFee: number = 0
 ): { amount: string; totalLabel: string } {
   if (eventType === "Table Reservation") {
     return {
@@ -39,10 +40,12 @@ function getDownpaymentAmount(
     200: { total: 22000 },
   };
   const pkg = paxPackages[guestCount] || { total: 5500 };
-  const dp = Math.round(pkg.total * 0.1);
+  const baseDp = Math.round(pkg.total * 0.1);
+  const total = pkg.total + (transpoFee || 0);
+  const dp = baseDp + (transpoFee || 0);
   return {
     amount: `₱${dp.toLocaleString()}`,
-    totalLabel: `₱${pkg.total.toLocaleString()} total`,
+    totalLabel: `₱${total.toLocaleString()} total${transpoFee > 0 ? ` (includes ₱${transpoFee.toLocaleString()} Transpo Fee)` : ''}`,
   };
 }
 
@@ -96,6 +99,8 @@ export async function POST(req: NextRequest) {
       coffeeFlavor2,
       nonCoffeeFlavor1,
       nonCoffeeFlavor2,
+      transpoFee,
+      distanceKm,
     } = body;
 
     const { data, error } = await supabaseAdmin
@@ -120,6 +125,8 @@ export async function POST(req: NextRequest) {
           coffee_flavor_2: coffeeFlavor2 || null,
           non_coffee_flavor_1: nonCoffeeFlavor1 || null,
           non_coffee_flavor_2: nonCoffeeFlavor2 || null,
+          transpo_fee: transpoFee || 0,
+          distance_km: distanceKm || 0,
           created_at: new Date().toISOString(),
         },
       ])
@@ -135,7 +142,7 @@ export async function POST(req: NextRequest) {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://antonionigrounds.vercel.app";
       const reservationLink = `${baseUrl}/reservations/${data.id}`;
-      const { amount, totalLabel } = getDownpaymentAmount(data.event_type, data.guest_count);
+      const { amount, totalLabel } = getDownpaymentAmount(data.event_type, data.guest_count, Number(data.transpo_fee || 0));
 
       const htmlEmail = `
 <!DOCTYPE html>
@@ -203,15 +210,29 @@ export async function POST(req: NextRequest) {
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:14px 16px;">
+                  <td style="padding:14px 16px;border-bottom:1px solid rgba(45,31,24,0.06);">
                     <span style="font-size:9px;color:#7C6E65;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;">Guests</span><br/>
                     <span style="font-size:13px;font-weight:700;color:#2D1F18;margin-top:2px;display:inline-block;">${data.guest_count} guest${data.guest_count > 1 ? "s" : ""}</span>
                   </td>
-                  <td style="padding:14px 16px;text-align:right;">
+                  <td style="padding:14px 16px;border-bottom:1px solid rgba(45,31,24,0.06);text-align:right;">
                     <span style="font-size:9px;color:#7C6E65;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;">Location</span><br/>
                     <span style="font-size:13px;font-weight:700;color:#2D1F18;margin-top:2px;display:inline-block;">${data.location}</span>
                   </td>
                 </tr>
+                ${data.event_type !== "Table Reservation" ? `
+                <tr>
+                  <td style="padding:14px 16px;">
+                    <span style="font-size:9px;color:#7C6E65;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;">Transpo Fee</span><br/>
+                    <span style="font-size:13px;font-weight:700;color:#2E5A44;margin-top:2px;display:inline-block;">
+                      ${Number(data.transpo_fee || 0) === 0 ? "FREE (within 6km)" : `₱${Number(data.transpo_fee || 0).toLocaleString()} (${data.distance_km || 0} km)`}
+                    </span>
+                  </td>
+                  <td style="padding:14px 16px;text-align:right;">
+                    <span style="font-size:9px;color:#7C6E65;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;">Req. Downpayment</span><br/>
+                    <span style="font-size:13px;font-weight:700;color:#2E5A44;margin-top:2px;display:inline-block;">${amount}</span>
+                  </td>
+                </tr>
+                ` : ''}
               </table>
             </td>
           </tr>

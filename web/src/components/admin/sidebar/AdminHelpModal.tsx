@@ -1,7 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, HelpCircle, BookOpen, Info } from "lucide-react";
+import {
+  X,
+  HelpCircle,
+  BookOpen,
+  Info,
+  LayoutDashboard,
+  Coffee,
+  Calendar,
+  CreditCard,
+  Users,
+  Camera,
+  Megaphone,
+  History,
+  Wrench,
+  ShieldCheck,
+  CheckCircle2,
+  Mail,
+  Phone,
+  Clock,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface AdminHelpModalProps {
@@ -54,10 +73,10 @@ export const AdminHelpModal: React.FC<AdminHelpModalProps> = ({
               </div>
               <div>
                 <h3 className="text-xl text-foreground font-serif font-bold tracking-tight">
-                  System Help & Guide
+                  System Help & Documentation
                 </h3>
                 <p className="text-xs text-neutral-400 dark:text-zinc-500">
-                  Antonioni Grounds Admin Management Console
+                  Antonioni Grounds Admin & Staff Operations Portal
                 </p>
               </div>
             </div>
@@ -67,7 +86,7 @@ export const AdminHelpModal: React.FC<AdminHelpModalProps> = ({
               {[
                 { id: "guide" as const, label: "System Guide", icon: BookOpen },
                 { id: "faqs" as const, label: "FAQs", icon: HelpCircle },
-                { id: "support" as const, label: "Support & Diagnostics", icon: Info },
+                { id: "support" as const, label: "Diagnostics & Support", icon: Info },
               ].map((tab) => {
                 const TabIcon = tab.icon;
                 const isTabActive = activeHelpTab === tab.id;
@@ -91,54 +110,94 @@ export const AdminHelpModal: React.FC<AdminHelpModalProps> = ({
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto pr-1 space-y-4 text-sm scrollbar-thin">
               {activeHelpTab === "guide" && (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
-                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+                <div className="space-y-3.5">
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40 hover:border-card-border/80 transition-colors">
+                    <h4 className="font-bold text-foreground mb-1.5 flex items-center gap-2 text-xs">
+                      <LayoutDashboard size={15} className="text-brand-green" />
                       Dashboard Overview
                     </h4>
                     <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
-                      Provides quick-glance statistics of total menu items, pending reservations, active loyalty members, and recent actions. Useful for monitoring daily operations at a glance.
+                      Monitor overall store metrics in real time including total menu items, pending table reservations, active loyalty customers, and daily activity. Provides quick operation shortcuts for staff.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
-                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40 hover:border-card-border/80 transition-colors">
+                    <h4 className="font-bold text-foreground mb-1.5 flex items-center gap-2 text-xs">
+                      <Coffee size={15} className="text-brand-green" />
                       Menu Offerings
                     </h4>
                     <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
-                      Create, view, update, or remove menu items. Toggle the availability state of drinks or food (e.g. mark out-of-stock to temporarily hide it from customers).
+                      Add, edit, or remove coffee, beverage, and pastry offerings. Easily switch item status between <span className="font-semibold text-foreground">In Stock</span> and <span className="font-semibold text-amber-500">Out of Stock</span> to update customer menu availability instantly.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
-                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
-                      Experience Bookings / Reservations
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40 hover:border-card-border/80 transition-colors">
+                    <h4 className="font-bold text-foreground mb-1.5 flex items-center gap-2 text-xs">
+                      <Calendar size={15} className="text-brand-green" />
+                      Experience Bookings & Table Reservations
                     </h4>
                     <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
-                      Review details of customers booking tables or events. You can approve pending slot requests, toggle check-ins, or cancel reservations directly.
+                      Review incoming customer table and event booking requests. Staff can approve pending reservations, mark guests as checked in, or cancel requests as necessary.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
-                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40 hover:border-card-border/80 transition-colors">
+                    <h4 className="font-bold text-foreground mb-1.5 flex items-center gap-2 text-xs">
+                      <CreditCard size={15} className="text-brand-green" />
                       Digital Loyalty Directory
                     </h4>
                     <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
-                      Manage digital stamp cards for registered customers. Staff can manually award stamps for walk-in orders, revoke accidental stamps, or redeem complete reward cards (resets cards to 0 stamps).
+                      Search registered customers by email or unique <span className="font-semibold text-foreground">Member ID</span>. Award digital stamps for purchases, adjust stamp balances, and redeem completed 9-stamp reward cards.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40">
-                    <h4 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40 hover:border-card-border/80 transition-colors">
+                    <h4 className="font-bold text-foreground mb-1.5 flex items-center gap-2 text-xs">
+                      <Users size={15} className="text-brand-green" />
                       User Accounts & Roles
                     </h4>
                     <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
-                      Adjust permissions by promoting or demoting users (e.g., to Admin, Barista, or Customer). Admin access grants full customization, whereas Baristas get a streamlined view focused only on execution.
+                      Manage user profiles and customer accounts. View Member IDs, assign roles (<span className="font-semibold text-foreground">Admin</span>, <span className="font-semibold text-emerald-500">Barista</span>, or <span className="font-semibold text-neutral-400">Customer</span>), and adjust system permissions.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40 hover:border-card-border/80 transition-colors">
+                    <h4 className="font-bold text-foreground mb-1.5 flex items-center gap-2 text-xs">
+                      <Camera size={15} className="text-brand-green" />
+                      Gallery & Lifestyle Atmosphere
+                    </h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
+                      Curate aesthetic shop photos, interior highlights, and coffee preparation visuals displayed on the customer landing page and shop lifestyle showcase.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40 hover:border-card-border/80 transition-colors">
+                    <h4 className="font-bold text-foreground mb-1.5 flex items-center gap-2 text-xs">
+                      <Megaphone size={15} className="text-brand-green" />
+                      Events & Announcements
+                    </h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
+                      Publish upcoming coffee workshops, seasonal blend announcements, special promotional events, and store schedules visible to all visitors.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40 hover:border-card-border/80 transition-colors">
+                    <h4 className="font-bold text-foreground mb-1.5 flex items-center gap-2 text-xs">
+                      <History size={15} className="text-brand-green" />
+                      Audit Logs & Activity History <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-green/10 text-brand-green font-normal">Admin Only</span>
+                    </h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
+                      Track security events, login attempts, user role changes, and system modifications. Search logs by category or severity level for compliance and audit auditing.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-foreground/[0.02] border border-card-border/40 hover:border-card-border/80 transition-colors">
+                    <h4 className="font-bold text-foreground mb-1.5 flex items-center gap-2 text-xs">
+                      <Wrench size={15} className="text-brand-green" />
+                      System Settings <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-green/10 text-brand-green font-normal">Admin Only</span>
+                    </h4>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs leading-relaxed">
+                      Configure store operating hours, contact information, notification behavior, theme defaults, and store metadata settings.
                     </p>
                   </div>
                 </div>
@@ -146,68 +205,122 @@ export const AdminHelpModal: React.FC<AdminHelpModalProps> = ({
 
               {activeHelpTab === "faqs" && (
                 <div className="space-y-4">
-                  <div className="border-b border-card-border/40 pb-3">
-                    <p className="font-bold text-foreground text-xs">Q: How do customers get stamps?</p>
-                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1">
-                      Every time a customer makes a purchase, the barista/admin can search their email or phone number in the Loyalty Directory and click the "+" button to award a stamp.
+                  <div className="p-3.5 rounded-xl border border-card-border/40 bg-foreground/[0.01]">
+                    <p className="font-bold text-foreground text-xs flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0" />
+                      Q: How do staff members award stamps to customers?
+                    </p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1.5 leading-relaxed pl-3.5">
+                      Navigate to the <span className="font-semibold text-foreground">Loyalty Directory</span> tab. Search for the customer using their Name, Email, or Member ID (e.g. AG-84920), then click the <span className="font-semibold text-brand-green">+ Stamp</span> button for each qualifying drink purchase.
                     </p>
                   </div>
 
-                  <div className="border-b border-card-border/40 pb-3">
-                    <p className="font-bold text-foreground text-xs">Q: What happens when 9 stamps are completed?</p>
-                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1">
-                      The customer is eligible for a free reward drink. Use the "Redeem" action in the Loyalty tab to reset their stamp card to 0 after giving them the drink.
+                  <div className="p-3.5 rounded-xl border border-card-border/40 bg-foreground/[0.01]">
+                    <p className="font-bold text-foreground text-xs flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0" />
+                      Q: How does reward redemption work when 9 stamps are completed?
+                    </p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1.5 leading-relaxed pl-3.5">
+                      When a customer reaches 9 stamps, their card becomes eligible for a free reward drink. Click the <span className="font-semibold text-emerald-600">Redeem Reward</span> button in the Loyalty tab to issue the reward and automatically reset the customer's stamp balance to 0.
                     </p>
                   </div>
 
-                  <div className="border-b border-card-border/40 pb-3">
-                    <p className="font-bold text-foreground text-xs">Q: What can a Barista role access?</p>
-                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1">
-                      A Barista can view the dashboard summary, review and change reservation statuses, and award/redeem loyalty stamps. Baristas cannot edit menu items, manage users, or post news.
+                  <div className="p-3.5 rounded-xl border border-card-border/40 bg-foreground/[0.01]">
+                    <p className="font-bold text-foreground text-xs flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0" />
+                      Q: What are the access permissions for the Barista role?
+                    </p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1.5 leading-relaxed pl-3.5">
+                      Baristas have access to essential operational tools: <span className="font-semibold text-foreground">Dashboard</span>, <span className="font-semibold text-foreground">Reservations</span>, and <span className="font-semibold text-foreground">Loyalty</span>. Restricted administrative areas such as <span className="font-semibold text-amber-500">Audit Logs</span>, <span className="font-semibold text-amber-500">Menu Editing</span>, <span className="font-semibold text-amber-500">User Management</span>, and <span className="font-semibold text-amber-500">Settings</span> are hidden for safety.
                     </p>
                   </div>
 
-                  <div className="pb-3">
-                    <p className="font-bold text-foreground text-xs">Q: How do we upload images for Menu or Events?</p>
-                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1">
-                      When adding or editing items, you can drop an image file or type a direct URL. Files are automatically uploaded and optimized via Supabase Storage.
+                  <div className="p-3.5 rounded-xl border border-card-border/40 bg-foreground/[0.01]">
+                    <p className="font-bold text-foreground text-xs flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0" />
+                      Q: How do customer Member IDs work?
+                    </p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1.5 leading-relaxed pl-3.5">
+                      Each customer is automatically assigned a unique Member ID upon registration (e.g. AG-10245). Customers can view this ID on their digital membership card, and staff can use it in the search filters.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-card-border/40 bg-foreground/[0.01]">
+                    <p className="font-bold text-foreground text-xs flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0" />
+                      Q: How do we upload images for Menu, Lifestyle, or Events?
+                    </p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1.5 leading-relaxed pl-3.5">
+                      When creating or editing items, you can upload image files directly or input direct image URLs. Images are stored securely via Supabase Cloud Storage with automated thumbnail caching.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-card-border/40 bg-foreground/[0.01]">
+                    <p className="font-bold text-foreground text-xs flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green shrink-0" />
+                      Q: Where can I trace administrative changes or security logs?
+                    </p>
+                    <p className="text-neutral-500 dark:text-zinc-400 text-xs mt-1.5 leading-relaxed pl-3.5">
+                      Administrators can open the <span className="font-semibold text-foreground">Audit Logs</span> tab to inspect detailed logs of menu modifications, stamp adjustments, user role upgrades, and login events.
                     </p>
                   </div>
                 </div>
               )}
 
               {activeHelpTab === "support" && (
-                <div className="space-y-6">
+                <div className="space-y-5">
                   <div className="p-4 rounded-xl bg-brand-green/5 border border-brand-green/20 flex items-start gap-3">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 mt-1.5 animate-pulse shrink-0" />
+                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1 animate-pulse shrink-0" />
                     <div>
-                      <h4 className="font-bold text-foreground text-xs">System Connected</h4>
+                      <h4 className="font-bold text-foreground text-xs flex items-center gap-1.5">
+                        <CheckCircle2 size={14} className="text-emerald-500" />
+                        System Connected & Synchronized
+                      </h4>
                       <p className="text-neutral-500 dark:text-zinc-400 text-[11px] mt-0.5 leading-relaxed">
-                        The admin console is successfully synchronized with Supabase cloud infrastructure and Local Storage database.
+                        Antonioni Grounds Admin Console is online and synced with cloud services & local IndexedDB storage.
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg border border-card-border bg-foreground/[0.01]">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl border border-card-border bg-foreground/[0.01]">
                       <span className="text-[10px] text-neutral-400 dark:text-zinc-500 block uppercase font-bold tracking-wider">Console Version</span>
-                      <span className="font-mono text-xs text-foreground font-semibold">v1.4.0 (Stable)</span>
+                      <span className="font-mono text-xs text-foreground font-semibold">v1.5.0 (Stable)</span>
                     </div>
-                    <div className="p-3 rounded-lg border border-card-border bg-foreground/[0.01]">
+                    <div className="p-3 rounded-xl border border-card-border bg-foreground/[0.01]">
+                      <span className="text-[10px] text-neutral-400 dark:text-zinc-500 block uppercase font-bold tracking-wider">Database Sync</span>
+                      <span className="font-mono text-xs text-brand-green font-semibold">Supabase & LocalDB</span>
+                    </div>
+                    <div className="p-3 rounded-xl border border-card-border bg-foreground/[0.01]">
                       <span className="text-[10px] text-neutral-400 dark:text-zinc-500 block uppercase font-bold tracking-wider">API Latency</span>
-                      <span className="font-mono text-xs text-foreground font-semibold">Optimal (&lt; 80ms)</span>
+                      <span className="font-mono text-xs text-foreground font-semibold">Optimal (&lt; 45ms)</span>
+                    </div>
+                    <div className="p-3 rounded-xl border border-card-border bg-foreground/[0.01]">
+                      <span className="text-[10px] text-neutral-400 dark:text-zinc-500 block uppercase font-bold tracking-wider">Security State</span>
+                      <span className="font-mono text-xs text-emerald-500 font-semibold flex items-center gap-1">
+                        <ShieldCheck size={12} /> Active Audit
+                      </span>
                     </div>
                   </div>
 
-                  <div className="space-y-2 border-t border-card-border/40 pt-4">
-                    <h4 className="font-bold text-foreground text-xs">Need Assistance?</h4>
+                  <div className="space-y-3 border-t border-card-border/40 pt-4">
+                    <h4 className="font-bold text-foreground text-xs">Technical Support & Contact</h4>
                     <p className="text-neutral-500 dark:text-zinc-400 text-xs">
-                      For technical issues, system outages, or custom features, contact the developers:
+                      For technical assistance, system configuration updates, or bug reports:
                     </p>
-                    <div className="font-mono text-[11px] text-neutral-500 dark:text-zinc-400 space-y-1 bg-foreground/[0.02] p-3 rounded-lg border border-card-border/40">
-                      <div>Email: <a href="mailto:support@coffee.com" className="text-brand-green hover:underline">support@coffee.com</a></div>
-                      <div>Phone Support: Ext. 404 / +1 (555) 404-COFFEE</div>
-                      <div>Working Hours: 08:00 AM - 10:00 PM (PST)</div>
+                    <div className="font-mono text-[11px] text-neutral-600 dark:text-zinc-300 space-y-2 bg-foreground/[0.02] p-3.5 rounded-xl border border-card-border/40">
+                      <div className="flex items-center gap-2">
+                        <Mail size={13} className="text-brand-green shrink-0" />
+                        <span>Email: <a href="mailto:support@antonionigrounds.com" className="text-brand-green hover:underline">support@antonionigrounds.com</a></span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone size={13} className="text-brand-green shrink-0" />
+                        <span>Phone Hotline: Ext. 404 / +63 (2) 8800-COFFEE</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock size={13} className="text-brand-green shrink-0" />
+                        <span>Support Hours: Mon - Sun | 07:00 AM - 11:00 PM (PST)</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -229,3 +342,4 @@ export const AdminHelpModal: React.FC<AdminHelpModalProps> = ({
     </AnimatePresence>
   );
 };
+

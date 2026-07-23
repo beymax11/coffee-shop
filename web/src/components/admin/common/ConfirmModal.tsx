@@ -44,7 +44,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ duration: 0.4, ease: EASE }}
-            className="w-full max-w-md rounded-2xl border border-card-border bg-card p-8 shadow-2xl relative z-10 overflow-hidden"
+            className="w-full max-w-md rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card p-8 shadow-2xl relative z-10 overflow-hidden"
           >
             {/* Ambient Glow */}
             <div

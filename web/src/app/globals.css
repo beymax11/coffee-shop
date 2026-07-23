@@ -53,8 +53,8 @@
   --color-brand-charcoal: var(--brand-charcoal);
   --color-brand-espresso: var(--brand-espresso);
   --color-brand-beige: var(--brand-beige);
-  --font-serif: var(--font-serif);
-  --font-sans: var(--font-sans);
+  --font-serif: var(--font-harmonique-display);
+  --font-sans: var(--font-harmonique);
 
   /* Override emerald colors with the premium dark forest green brand palette */
   --color-emerald-50: #ECF7F2;
@@ -93,6 +93,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   overflow-x: hidden;
+}
+
+button, input, select, textarea {
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
 /* Selection Highlight */

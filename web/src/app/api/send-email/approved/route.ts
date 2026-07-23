@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-function getDownpaymentAmount(eventType: string, guestCount: number): { amount: string; balance: string; totalLabel: string } {
+function getDownpaymentAmount(eventType: string, guestCount: number, transpoFee: number = 0): { amount: string; balance: string; totalLabel: string } {
   if (eventType === "Table Reservation") {
     return {
       amount: "₱1,000",
@@ -28,11 +28,14 @@ function getDownpaymentAmount(eventType: string, guestCount: number): { amount: 
     200: { total: 22000 },
   };
   const pkg = paxPackages[guestCount] || { total: 5500 };
-  const dp = Math.round(pkg.total * 0.1);
+  const baseDp = Math.round(pkg.total * 0.1);
+  const total = pkg.total + (transpoFee || 0);
+  const dp = baseDp + (transpoFee || 0);
+  const balance = total - dp;
   return {
     amount: `₱${dp.toLocaleString()}`,
-    balance: `₱${(pkg.total - dp).toLocaleString()}`,
-    totalLabel: `₱${pkg.total.toLocaleString()} total`,
+    balance: `₱${balance.toLocaleString()}`,
+    totalLabel: `₱${total.toLocaleString()} total${transpoFee > 0 ? ` (includes ₱${transpoFee.toLocaleString()} Transpo Fee)` : ''}`,
   };
 }
 
@@ -50,6 +53,10 @@ export async function POST(req: NextRequest) {
         guestCount: number;
         location: string;
         notes?: string;
+        transpoFee?: number;
+        transpo_fee?: number;
+        distanceKm?: number;
+        distance_km?: number;
       };
     };
 
@@ -57,9 +64,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing reservation data" }, { status: 400 });
     }
 
+    const fee = Number(reservation.transpoFee ?? reservation.transpo_fee ?? 0);
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://antonionigrounds.vercel.app";
     const reservationLink = `${baseUrl}/reservations/${reservation.id}`;
-    const { amount, balance, totalLabel } = getDownpaymentAmount(reservation.eventType, reservation.guestCount);
+    const { amount, balance, totalLabel } = getDownpaymentAmount(reservation.eventType, reservation.guestCount, fee);
 
     const htmlEmail = `
 <!DOCTYPE html>

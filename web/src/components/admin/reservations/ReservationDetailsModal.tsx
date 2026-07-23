@@ -116,15 +116,18 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
   const currentStatus = (reservation.id && reservationStatuses[reservation.id]) || reservationStatuses[compositeKey] || reservation.status || "Pending";
 
   const calculateAmount = () => {
+    const fee = Number((reservation as any).transpoFee ?? (reservation as any).transpo_fee ?? 0);
     if (reservation.eventType === "Coffee Cart Booking") {
       const pax = reservation.guestCount;
-      if (pax === 50) return "₱5,500.00 (Downpayment 10% = ₱550.00)";
-      if (pax === 100) return "₱11,000.00 (Downpayment 10% = ₱1,100.00)";
-      if (pax === 150) return "₱16,500.00 (Downpayment 10% = ₱1,650.00)";
-      if (pax === 200) return "₱22,000.00 (Downpayment 10% = ₱2,200.00)";
-      return "₱550.00 (10% DP)";
+      let base = 5500;
+      if (pax === 100) base = 11000;
+      if (pax === 150) base = 16500;
+      if (pax === 200) base = 22000;
+      const total = base + fee;
+      const dp = Math.round(base * 0.10) + fee;
+      return `₱${total.toLocaleString()}.00 (Downpayment = ₱${dp.toLocaleString()}.00${fee > 0 ? ` incl. ₱${fee.toLocaleString()} Transpo Fee` : ''})`;
     } else {
-      return "₱500.00 (Consumable Table Fee)";
+      return "₱3,500.00 (Consumable Table Fee)";
     }
   };
 

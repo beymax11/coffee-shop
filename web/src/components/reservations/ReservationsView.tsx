@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText, Printer, Check, Search, Eye, Loader2, X, ExternalLink } from "lucide-react";
+import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText, Printer, Check, Search, Eye, Loader2, X, ExternalLink, Navigation } from "lucide-react";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { notificationsService } from "@/utils/notifications";
+import { calculateAccurateDistance } from "@/utils/distance";
+import { LocationMapModal } from "./LocationMapModal";
 
 export type ReservationType = "Coffee Cart Booking" | "Table Reservation";
 
@@ -26,6 +28,8 @@ export interface FormData {
   coffeeFlavor2?: string;
   nonCoffeeFlavor1?: string;
   nonCoffeeFlavor2?: string;
+  transpoFee?: number;
+  distanceKm?: number;
 }
 
 import { TableReservationForm, TableReservationPolicy, TableReservationReceipt } from "./TableReservation";
@@ -52,6 +56,8 @@ export function ReservationsView() {
     coffeeFlavor2: "",
     nonCoffeeFlavor1: "",
     nonCoffeeFlavor2: "",
+    transpoFee: 0,
+    distanceKm: 0,
   });
 
   const [addressDetails, setAddressDetails] = useState({
@@ -62,17 +68,70 @@ export function ReservationsView() {
     province: "",
   });
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+  const handleAddressFieldChange = (field: keyof typeof addressDetails, value: string) => {
+    const updated = { ...addressDetails, [field]: value };
+    setAddressDetails(updated);
+
+    const parts = [
+      updated.street.trim(),
+      updated.barangay.trim() ? `Brgy. ${updated.barangay.trim().replace(/^brgy\.?\s*/i, "")}` : "",
+      updated.city.trim(),
+      updated.province.trim(),
+      updated.landmark.trim() ? `(Landmark: ${updated.landmark.trim()})` : ""
+    ].filter(Boolean);
+
+    const combinedLocation = parts.join(", ");
+    if (!combinedLocation) {
+      setFormData((prev) => ({
+        ...prev,
+        location: "",
+        distanceKm: 0,
+        transpoFee: 0,
+      }));
+      return;
+    }
+
+    const { distanceKm, transpoFee } = calculateAccurateDistance(
+      updated.street,
+      updated.barangay,
+      updated.city,
+      updated.province
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      location: combinedLocation,
+      distanceKm,
+      transpoFee,
+    }));
+  };
 
   const handleSaveAddress = () => {
     const parts = [
       addressDetails.street.trim(),
-      addressDetails.barangay.trim() ? `Brgy. ${addressDetails.barangay.trim()}` : "",
+      addressDetails.barangay.trim() ? `Brgy. ${addressDetails.barangay.trim().replace(/^brgy\.?\s*/i, "")}` : "",
       addressDetails.city.trim(),
       addressDetails.province.trim(),
       addressDetails.landmark.trim() ? `(Landmark: ${addressDetails.landmark.trim()})` : ""
     ].filter(Boolean);
     const combinedLocation = parts.join(", ");
+
+    const { distanceKm, transpoFee } = calculateAccurateDistance(
+      addressDetails.street,
+      addressDetails.barangay,
+      addressDetails.city,
+      addressDetails.province
+    );
+
     updateField("location", combinedLocation);
+    setFormData((prev) => ({
+      ...prev,
+      location: combinedLocation,
+      distanceKm: combinedLocation ? distanceKm : 0,
+      transpoFee: combinedLocation ? transpoFee : 0,
+    }));
     setIsAddressExpanded(false);
   };
 
@@ -658,23 +717,33 @@ export function ReservationsView() {
       return {
         totalPrice: 3500,
         downpayment: 1000,
+        transpoFee: 0,
+        distanceKm: 0,
         label: "Lounge Table Reservation Fee",
         notes: "₱3,500 consumable for 3 hours (₱1,000 downpayment required). Refundable up to 24 hours prior."
       };
     } else {
       const pax = formData.guestCount;
-      let totalPrice = 5500;
-      if (pax === 100) totalPrice = 11000;
-      else if (pax === 150) totalPrice = 16500;
-      else if (pax === 200) totalPrice = 22000;
+      let basePackagePrice = 5500;
+      if (pax === 100) basePackagePrice = 11000;
+      else if (pax === 150) basePackagePrice = 16500;
+      else if (pax === 200) basePackagePrice = 22000;
 
-      const dp = totalPrice * 0.10;
+      const transpoFee = formData.transpoFee || 0;
+      const distanceKm = formData.distanceKm || 0;
+
+      const totalPrice = basePackagePrice + transpoFee;
+      const baseDp = basePackagePrice * 0.10;
+      const downpayment = baseDp + transpoFee;
 
       return {
+        basePackagePrice,
+        transpoFee,
+        distanceKm,
         totalPrice,
-        downpayment: dp,
+        downpayment,
         label: `Brew Buggy Coffee Cart (${pax} Pax Package)`,
-        notes: `Total Price: ₱${totalPrice.toLocaleString()}. 10% Downpayment (₱${dp.toLocaleString()}) required. Refundable up to 1 week prior. Downpayment is non-refundable if cancelled less than 24h prior.`
+        notes: `Base Package: ₱${basePackagePrice.toLocaleString()}${transpoFee > 0 ? ` + Transpo Fee: ₱${transpoFee.toLocaleString()}` : ""}. Total: ₱${totalPrice.toLocaleString()}. Required Downpayment: ₱${downpayment.toLocaleString()} (10% package + transpo fee).`
       };
     }
   };
@@ -767,661 +836,779 @@ export function ReservationsView() {
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
 
-              <div className={`lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden`}>
-                {/* Track Status Button */}
-                <div className="mb-6 flex">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTrackModalOpen(true);
-                      setTrackingError(null);
-                      setTrackedReservation(null);
-                      setSearchTicketId("");
-                    }}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-600/5 px-4.5 py-2.5 font-sans text-[11px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 hover:border-emerald-600/50 transition-all active:scale-95 cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.06)]"
-                  >
-                    <Search size={12} className="stroke-[2.5]" />
-                    Track Booking Status
-                  </button>
-                </div>
+                <div className={`lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden`}>
+                  {/* Track Status Button */}
+                  <div className="mb-6 flex">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsTrackModalOpen(true);
+                        setTrackingError(null);
+                        setTrackedReservation(null);
+                        setSearchTicketId("");
+                      }}
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-600/5 px-4.5 py-2.5 font-sans text-[11px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 hover:border-emerald-600/50 transition-all active:scale-95 cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.06)]"
+                    >
+                      <Search size={12} className="stroke-[2.5]" />
+                      Track Booking Status
+                    </button>
+                  </div>
 
-                <div className={step === 1 ? 'hidden lg:block' : ''}>
-                  <span className={`text-[10px] uppercase font-bold tracking-[0.35em] block mb-3 font-sans transition-colors duration-300 ${step >= 2 ? labelAccent : "text-emerald-500/90"}`}>
-                    {step >= 2 ? "Reservation Details" : "Bespoke Experience"}
-                  </span>
-                  <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-2">
-                    {step >= 2 ? "Select Date & Time" : "Secure Your Ritual"}
-                  </h1>
-                  <div className="w-16 h-[1px] bg-brand-gold mt-6 mb-6" />
+                  <div className={step === 1 ? 'hidden lg:block' : ''}>
+                    <span className={`text-[10px] uppercase font-bold tracking-[0.35em] block mb-3 font-sans transition-colors duration-300 ${step >= 2 ? labelAccent : "text-emerald-500/90"}`}>
+                      {step >= 2 ? "Reservation Details" : "Bespoke Experience"}
+                    </span>
+                    <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-2">
+                      {step >= 2 ? "Select Date & Time" : "Secure Your Ritual"}
+                    </h1>
+                    <div className="w-16 h-[1px] bg-brand-gold mt-6 mb-6" />
 
-                  {step === 2 ? (
-                  <div className="space-y-6">
-                    {/* Custom Interactive Calendar */}
-                    <div className="rounded-xl border border-card-border bg-card/45 backdrop-blur-md p-5 shadow-md relative max-w-[420px] mx-auto w-full">
-                      <div className="flex items-center justify-between mb-5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newMonth = new Date(calendarMonth);
-                            newMonth.setMonth(newMonth.getMonth() - 1);
-                            const today = new Date();
-                            if (newMonth.getFullYear() > today.getFullYear() ||
-                              (newMonth.getFullYear() === today.getFullYear() && newMonth.getMonth() >= today.getMonth())) {
-                              setCalendarMonth(newMonth);
-                            }
-                          }}
-                          className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
-                        >
-                          <ChevronLeft size={16} />
-                        </button>
-                        <span className="font-serif text-sm font-semibold tracking-wide text-foreground">
-                          {monthNames[calendarMonth.getMonth()]} {calendarMonth.getFullYear()}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newMonth = new Date(calendarMonth);
-                            newMonth.setMonth(newMonth.getMonth() + 1);
-                            setCalendarMonth(newMonth);
-                          }}
-                          className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
-                        >
-                          <ChevronRight size={16} />
-                        </button>
-                      </div>
-
-                      {/* Weekday Labels */}
-                      <div className="grid grid-cols-7 gap-1.5 text-center mb-2">
-                        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-                          <span key={day} className="text-xs font-sans font-bold text-zinc-500 tracking-wider">
-                            {day}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Days Grid */}
-                      <div className="grid grid-cols-7 gap-1.5 text-center">
-                        {getCalendarDays(calendarMonth).map((day, idx) => {
-                          const dateStr = formatDateString(day.date);
-                          const isSelected = formData.date === dateStr;
-                          const isToday = formatDateString(new Date()) === dateStr;
-                          const isFullyBooked = existingReservations.some(
-                            (r) => r.date === dateStr &&
-                                   r.eventType === formData.eventType &&
-                                   (r.status === "Approved" || r.status === "Completed")
-                          );
-
-                          return (
-                            <div
-                              key={idx}
-                              className="relative"
-                              onMouseEnter={() => setHoveredDate(dateStr)}
-                              onMouseLeave={() => setHoveredDate(null)}
+                    {step === 2 ? (
+                      <div className="space-y-6">
+                        {/* Custom Interactive Calendar */}
+                        <div className="rounded-xl border border-card-border bg-card/45 backdrop-blur-md p-5 shadow-md relative max-w-[420px] mx-auto w-full">
+                          <div className="flex items-center justify-between mb-5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newMonth = new Date(calendarMonth);
+                                newMonth.setMonth(newMonth.getMonth() - 1);
+                                const today = new Date();
+                                if (newMonth.getFullYear() > today.getFullYear() ||
+                                  (newMonth.getFullYear() === today.getFullYear() && newMonth.getMonth() >= today.getMonth())) {
+                                  setCalendarMonth(newMonth);
+                                }
+                              }}
+                              className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
                             >
-                              <button
-                                type="button"
-                                disabled={day.isPast}
-                                onClick={() => {
-                                  if (isFullyBooked) return;
-                                  updateField("date", dateStr);
-                                }}
-                                className={`w-full aspect-square flex items-center justify-center text-xs font-sans rounded-full transition-all duration-200 relative ${isSelected
-                                  ? `${activeColor} font-bold text-white`
-                                  : day.isPast
-                                    ? "text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-30"
-                                    : isFullyBooked
-                                      ? "text-rose-500/60 dark:text-rose-400/50 line-through cursor-not-allowed bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20"
-                                      : day.isCurrentMonth
-                                        ? "text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
-                                        : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
-                                  }`}
-                              >
-                                {day.date.getDate()}
-                                {isToday && !isSelected && (
-                                  <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${todayActiveDot}`} />
-                                )}
-                              </button>
-
-                              <AnimatePresence>
-                                {hoveredDate === dateStr && isFullyBooked && !day.isPast && (
-                                  <motion.div
-                                    initial={{ opacity: 0, y: 4, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 4, scale: 0.95 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-30 px-2.5 py-1 text-[10px] font-sans font-bold uppercase tracking-wider text-white bg-rose-600 dark:bg-rose-500 rounded shadow-[0_4px_12px_rgba(244,63,94,0.3)] whitespace-nowrap pointer-events-none"
-                                  >
-                                    Fully Booked
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-rose-600 dark:border-t-rose-500" />
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    {errors.date && <span className="type-error block pl-1 text-xs text-red-500 font-sans">{errors.date}</span>}
-
-                    {/* Time Selector */}
-                    <div className="space-y-2">
-                      <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
-                        Select Starting Time
-                      </label>
-
-                      {(() => {
-                        const { hour: selectedHour, minute: selectedMinute, ampm: selectedAmPm } = parseTimeStr(formData.time);
-                        const handleTimeChange = (type: "hour" | "minute" | "ampm", val: string) => {
-                          let h = selectedHour;
-                          let m = selectedMinute;
-                          let ap = selectedAmPm;
-                          if (type === "hour") h = val;
-                          if (type === "minute") m = val;
-                          if (type === "ampm") ap = val;
-                          updateField("time", `${h}:${m} ${ap}`);
-                        };
-
-                        return (
-                          <div className="space-y-4">
-                            <div className="flex items-center gap-1.5 bg-card/65 p-3 rounded-xl border border-card-border max-w-md mx-auto w-full">
-                              {/* Hour Dropdown */}
-                              <div className="flex-1">
-                                <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Hour</span>
-                                <select
-                                  value={selectedHour}
-                                  onChange={(e) => handleTimeChange("hour", e.target.value)}
-                                  className="w-full bg-card border border-card-border rounded-lg px-2 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
-                                >
-                                  {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((h) => (
-                                    <option key={h} value={h}>{h}</option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              <span className="text-foreground self-end mb-2.5 font-bold font-mono">:</span>
-
-                              {/* Minute Dropdown */}
-                              <div className="flex-1">
-                                <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Minute</span>
-                                <select
-                                  value={selectedMinute}
-                                  onChange={(e) => handleTimeChange("minute", e.target.value)}
-                                  className="w-full bg-card border border-card-border rounded-lg px-2 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
-                                >
-                                  {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => (
-                                    <option key={m} value={m}>{m}</option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              {/* AM/PM Button Toggle */}
-                              <div className="flex flex-col justify-end">
-                                <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Period</span>
-                                <div className="flex rounded-lg border border-card-border overflow-hidden bg-card p-0.5">
-                                  {["AM", "PM"].map((period) => {
-                                    const isActive = selectedAmPm === period;
-                                    return (
-                                      <button
-                                        key={period}
-                                        type="button"
-                                        onClick={() => handleTimeChange("ampm", period)}
-                                        className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all duration-300 font-sans ${isActive
-                                          ? "bg-[#2E5A44] text-white shadow-sm"
-                                          : "text-zinc-500 hover:text-foreground"
-                                          }`}
-                                      >
-                                        {period}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            </div>
-                            {!isTable && (
-                              <span className="text-[10px] text-zinc-400 font-light block text-center mt-1">
-                                Duration: Exactly 3 Hours slot (e.g. {formData.time} - {getEndTimeString(formData.time)})
-                              </span>
-                            )}
-                            {errors.time && <span className="type-error block pl-1 text-xs text-red-500 font-sans text-center">{errors.time}</span>}
+                              <ChevronLeft size={16} />
+                            </button>
+                            <span className="font-serif text-sm font-semibold tracking-wide text-foreground">
+                              {monthNames[calendarMonth.getMonth()]} {calendarMonth.getFullYear()}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newMonth = new Date(calendarMonth);
+                                newMonth.setMonth(newMonth.getMonth() + 1);
+                                setCalendarMonth(newMonth);
+                              }}
+                              className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all text-zinc-500 hover:text-foreground"
+                            >
+                              <ChevronRight size={16} />
+                            </button>
                           </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="relative rounded-xl overflow-hidden border border-card-border shadow-[0_10px_35px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.6)] bg-card/40 w-full aspect-[4/5] md:aspect-[3/4] group">
-                    <AnimatePresence mode="wait">
-                      <motion.img
-                        key={currentImgIndex}
-                        src={sidebarImages[currentImgIndex]}
-                        alt="Antonioni Grounds Experience"
-                        initial={{ opacity: 0, scale: 1.12, y: 3 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.96, y: -3 }}
-                        transition={{ duration: 1.2, ease: "easeOut" }}
-                        className="w-full h-full object-cover block"
-                      />
-                    </AnimatePresence>
 
-                    {/* Glassmorphic Indicator dots at the bottom */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/45 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                      {sidebarImages.map((_, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setCurrentImgIndex(idx)}
-                          className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentImgIndex === idx
-                            ? "bg-emerald-600 w-3.5"
-                            : "bg-white/30 hover:bg-white/60"
-                            }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                </div>
-              </div>
+                          {/* Weekday Labels */}
+                          <div className="grid grid-cols-7 gap-1.5 text-center mb-2">
+                            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                              <span key={day} className="text-xs font-sans font-bold text-zinc-500 tracking-wider">
+                                {day}
+                              </span>
+                            ))}
+                          </div>
 
-              {/* Right Column: Form & Stepper */}
-              <div className="lg:col-span-8 order-2">
-                {/* Stepper indicators only visible on desktop */}
-                <div className="hidden lg:block">
-                  {renderStepper()}
-                </div>
+                          {/* Days Grid */}
+                          <div className="grid grid-cols-7 gap-1.5 text-center">
+                            {getCalendarDays(calendarMonth).map((day, idx) => {
+                              const dateStr = formatDateString(day.date);
+                              const isSelected = formData.date === dateStr;
+                              const isToday = formatDateString(new Date()) === dateStr;
+                              const isFullyBooked = existingReservations.some(
+                                (r) => r.date === dateStr &&
+                                  r.eventType === formData.eventType &&
+                                  (r.status === "Approved" || r.status === "Completed")
+                              );
 
-                {/* Form Content Wrapper */}
-                <div className="rounded-2xl border border-card-border bg-card p-8 md:p-10 shadow-[0_0_50px_rgba(0,0,0,0.08)] dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden backdrop-blur-xl">
-                  {/* Decorative corner borders */}
-                  <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-emerald-500/30" />
-                  <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-emerald-500/30" />
-                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-emerald-500/30" />
-                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-emerald-500/30" />
+                              return (
+                                <div
+                                  key={idx}
+                                  className="relative"
+                                  onMouseEnter={() => setHoveredDate(dateStr)}
+                                  onMouseLeave={() => setHoveredDate(null)}
+                                >
+                                  <button
+                                    type="button"
+                                    disabled={day.isPast}
+                                    onClick={() => {
+                                      if (isFullyBooked) return;
+                                      updateField("date", dateStr);
+                                    }}
+                                    className={`w-full aspect-square flex items-center justify-center text-xs font-sans rounded-full transition-all duration-200 relative ${isSelected
+                                      ? `${activeColor} font-bold text-white`
+                                      : day.isPast
+                                        ? "text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-30"
+                                        : isFullyBooked
+                                          ? "text-rose-500/60 dark:text-rose-400/50 line-through cursor-not-allowed bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20"
+                                          : day.isCurrentMonth
+                                            ? "text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
+                                            : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
+                                      }`}
+                                  >
+                                    {day.date.getDate()}
+                                    {isToday && !isSelected && (
+                                      <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${todayActiveDot}`} />
+                                    )}
+                                  </button>
 
-                  <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-                    {/* STEP 1: EVENT TYPE SELECT */}
-                    {step === 1 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="space-y-6"
-                      >
-                        <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
-                          <h3 className="text-xl font-serif text-foreground tracking-wide">Select Experience Type</h3>
-                          <p className="text-xs text-zinc-500 mt-1 font-light">Choose how you wish to spend your time with us.</p>
+                                  <AnimatePresence>
+                                    {hoveredDate === dateStr && isFullyBooked && !day.isPast && (
+                                      <motion.div
+                                        initial={{ opacity: 0, y: 4, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-30 px-2.5 py-1 text-[10px] font-sans font-bold uppercase tracking-wider text-white bg-rose-600 dark:bg-rose-500 rounded shadow-[0_4px_12px_rgba(244,63,94,0.3)] whitespace-nowrap pointer-events-none"
+                                      >
+                                        Fully Booked
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-rose-600 dark:border-t-rose-500" />
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
+                        {errors.date && <span className="type-error block pl-1 text-xs text-red-500 font-sans">{errors.date}</span>}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                          {eventTypes.map((item) => {
-                            const Icon = item.icon;
-                            const isSelected = formData.eventType === item.type;
-                            const isTable = item.type === "Table Reservation";
+                        {/* Time Selector */}
+                        <div className="space-y-2">
+                          <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                            Select Starting Time
+                          </label>
+
+                          {(() => {
+                            const { hour: selectedHour, minute: selectedMinute, ampm: selectedAmPm } = parseTimeStr(formData.time);
+                            const handleTimeChange = (type: "hour" | "minute" | "ampm", val: string) => {
+                              let h = selectedHour;
+                              let m = selectedMinute;
+                              let ap = selectedAmPm;
+                              if (type === "hour") h = val;
+                              if (type === "minute") m = val;
+                              if (type === "ampm") ap = val;
+                              updateField("time", `${h}:${m} ${ap}`);
+                            };
 
                             return (
-                              <motion.div
-                                key={item.type}
-                                whileHover={{ y: -4, scale: 1.01 }}
-                                whileTap={{ scale: 0.99 }}
-                                onClick={() => selectType(item.type)}
-                                className={`rounded-xl border p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[310px] h-auto select-none ${isSelected
-                                  ? "bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1] border-emerald-600/50 shadow-[0_10px_30px_rgba(46,90,68,0.12)] text-foreground dark:from-[#07130E]/95 dark:to-[#0F261B]/95 dark:border-emerald-500/80 dark:shadow-[0_10px_30px_rgba(46,90,68,0.25)]"
-                                  : "bg-card border-card-border text-neutral-500 hover:border-emerald-600/30 hover:bg-background"
-                                  }`}
-                              >
-                                <div className="space-y-4 flex-1">
-                                  {/* Card Top Row */}
-                                  <div className="flex justify-between items-start">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all ${isSelected
-                                      ? "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-[#2E5A44]/20 dark:text-emerald-400 dark:border-emerald-500/40"
-                                      : "bg-zinc-100 dark:bg-white/5 text-zinc-500 border-zinc-200 dark:border-white/5"
-                                      }`}>
-                                      <Icon size={18} />
+                              <>
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-1.5 bg-card/65 p-3 rounded-xl border border-card-border max-w-md mx-auto w-full">
+                                    {/* Hour Dropdown */}
+                                    <div className="flex-1">
+                                      <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Hour</span>
+                                      <select
+                                        value={selectedHour}
+                                        onChange={(e) => handleTimeChange("hour", e.target.value)}
+                                        className="w-full bg-card border border-card-border rounded-lg px-2 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
+                                      >
+                                        {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((h) => (
+                                          <option key={h} value={h}>{h}</option>
+                                        ))}
+                                      </select>
                                     </div>
-                                    <div className="text-right">
-                                      <span className={`text-[8px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full border ${isSelected
-                                        ? "text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/20 dark:border-emerald-500/30"
-                                        : "text-zinc-500 border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5"
-                                        }`}>
-                                        {item.category}
-                                      </span>
+
+                                    <span className="text-foreground self-end mb-2.5 font-bold font-mono">:</span>
+
+                                    {/* Minute Dropdown */}
+                                    <div className="flex-1">
+                                      <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Minute</span>
+                                      <select
+                                        value={selectedMinute}
+                                        onChange={(e) => handleTimeChange("minute", e.target.value)}
+                                        className="w-full bg-card border border-card-border rounded-lg px-2 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-mono"
+                                      >
+                                        {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => (
+                                          <option key={m} value={m}>{m}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+                                    {/* AM/PM Button Toggle */}
+                                    <div className="flex flex-col justify-end">
+                                      <span className="text-[8px] uppercase font-bold text-zinc-500 block mb-0.5 pl-1 font-sans tracking-wide">Period</span>
+                                      <div className="flex rounded-lg border border-card-border overflow-hidden bg-card p-0.5">
+                                        {["AM", "PM"].map((period) => {
+                                          const isActive = selectedAmPm === period;
+                                          return (
+                                            <button
+                                              key={period}
+                                              type="button"
+                                              onClick={() => handleTimeChange("ampm", period)}
+                                              className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all duration-300 font-sans ${isActive
+                                                ? "bg-[#2E5A44] text-white shadow-sm"
+                                                : "text-zinc-500 hover:text-foreground"
+                                                }`}
+                                            >
+                                              {period}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
                                   </div>
+                                  {!isTable && (
+                                    <span className="text-[10px] text-zinc-400 font-light block text-center mt-1">
+                                      Duration: Exactly 3 Hours slot (e.g. {formData.time} - {getEndTimeString(formData.time)})
+                                    </span>
+                                  )}
+                                  {errors.time && <span className="type-error block pl-1 text-xs text-red-500 font-sans text-center">{errors.time}</span>}
+                                </div>
 
-                                  {/* Title & Description */}
-                                  <div>
-                                    <div className="flex justify-between items-baseline gap-2">
-                                      <h4 className="font-serif text-sm md:text-base text-foreground tracking-wide font-medium">{item.title}</h4>
-                                      <span className={`font-serif text-xs italic ${isSelected
-                                        ? "text-emerald-700 dark:text-emerald-400"
-                                        : "text-zinc-500"
-                                        }`}>
-                                        {item.pricing}
-                                      </span>
+                                {!isTable && (
+                                  <div className="mt-6 pt-5 border-t border-zinc-200 dark:border-white/10 space-y-3">
+                                    <div className="flex items-center justify-between flex-wrap gap-2">
+                                      <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                        Event Venue Address & Transportation Fee
+                                      </label>
+                                      <button
+                                        type="button"
+                                        onClick={() => setIsMapModalOpen(true)}
+                                        className="flex items-center gap-1.5 text-[10px] font-sans text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 px-3 py-1 rounded-lg font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
+                                      >
+                                        <Navigation size={12} className="stroke-[2.5]" />
+                                        Choose Location on Map
+                                      </button>
                                     </div>
-                                    <p className="font-sans text-[11px] text-zinc-600 dark:text-zinc-400 font-light mt-1.5 leading-relaxed">{item.desc}</p>
+
+                                    <div className="bg-card/70 border border-card-border p-4 rounded-xl space-y-3.5">
+                                      {/* Origin Point Reference */}
+                                      <div className="flex items-start gap-2.5 text-xs text-zinc-500 font-sans pb-2 border-b border-zinc-200/10">
+                                        <MapPin size={15} className="text-emerald-500 shrink-0 mt-0.5" />
+                                        <div>
+                                          <span className="font-bold text-foreground block text-[11px]">Origin Point</span>
+                                          <span className="text-[10px] text-zinc-400">J.P Rizal Street, Poblacion 3, Tiaong, 4325 Quezon</span>
+                                        </div>
+                                      </div>
+
+                                      {/* Structured Venue Address Inputs Grid */}
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                        {/* Street Address */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider font-sans block pl-1">
+                                            Street Address / Subd.
+                                          </label>
+                                          <input
+                                            type="text"
+                                            required
+                                            placeholder="e.g. 123 Rizal St. / Villa Executive"
+                                            value={addressDetails.street}
+                                            onChange={(e) => handleAddressFieldChange("street", e.target.value)}
+                                            className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-sans placeholder:text-zinc-500"
+                                          />
+                                        </div>
+
+                                        {/* Barangay */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider font-sans block pl-1">
+                                            Barangay
+                                          </label>
+                                          <input
+                                            type="text"
+                                            required
+                                            placeholder="e.g. Lalig / Poblacion 3 / Lusacan"
+                                            value={addressDetails.barangay}
+                                            onChange={(e) => handleAddressFieldChange("barangay", e.target.value)}
+                                            className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-sans placeholder:text-zinc-500"
+                                          />
+                                        </div>
+
+                                        {/* City / Municipality */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider font-sans block pl-1">
+                                            City / Municipality
+                                          </label>
+                                          <input
+                                            type="text"
+                                            required
+                                            placeholder="e.g. Tiaong / Candelaria / San Pablo City"
+                                            value={addressDetails.city}
+                                            onChange={(e) => handleAddressFieldChange("city", e.target.value)}
+                                            className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-sans placeholder:text-zinc-500"
+                                          />
+                                        </div>
+
+                                        {/* Province */}
+                                        <div className="space-y-1">
+                                          <label className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider font-sans block pl-1">
+                                            Province
+                                          </label>
+                                          <input
+                                            type="text"
+                                            required
+                                            placeholder="e.g. Quezon / Laguna / Batangas"
+                                            value={addressDetails.province}
+                                            onChange={(e) => handleAddressFieldChange("province", e.target.value)}
+                                            className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-xs text-foreground outline-none focus:border-emerald-500 transition-all font-sans placeholder:text-zinc-500"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Calculated Transpo Fee & Distance Display */}
+                                      <div className="flex justify-between items-center p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                        <div className="space-y-0.5 text-[10px] font-sans">
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-bold text-foreground block text-xs">Estimated Distance:</span>
+                                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25">
+                                              {formData.distanceKm ? `${formData.distanceKm.toFixed(1)} km` : "0.0 km"}
+                                            </span>
+                                          </div>
+                                          <span className="text-zinc-500 block">
+                                            {(formData.distanceKm || 0) <= 6
+                                              ? "Within 6.0 km FREE coverage zone"
+                                              : `First 6km Free + ${((formData.distanceKm || 0) - 6).toFixed(1)} km excess @ ₱80/km`}
+                                          </span>
+                                        </div>
+
+                                        <div className="text-right">
+                                          <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500 block font-sans">Transpo Fee</span>
+                                          <span className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                                            {(formData.transpoFee || 0) === 0 ? "FREE (₱0)" : `₱${(formData.transpoFee || 0).toLocaleString()}`}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-
-                                  {/* Features list */}
-                                  <ul className="space-y-1.5 pt-3 border-t border-zinc-200 dark:border-white/5">
-                                    {item.features.map((feat) => (
-                                      <li key={feat} className="flex items-center gap-2 font-sans text-[10px] text-zinc-600 dark:text-zinc-400 font-light">
-                                        <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-emerald-600 dark:bg-emerald-400" : "bg-zinc-400 dark:bg-zinc-600"}`} />
-                                        {feat}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-
-                                <div className="flex justify-end pt-4 border-t border-zinc-200 dark:border-white/5 mt-4">
-                                  <span className={`font-sans text-[9px] uppercase tracking-widest font-bold ${isSelected
-                                    ? "text-emerald-700 dark:text-emerald-400"
-                                    : "text-zinc-500 dark:text-zinc-600"
-                                    }`}>
-                                    {isSelected ? "● Selected" : "Choose"}
-                                  </span>
-                                </div>
-                              </motion.div>
+                                )}
+                              </>
                             );
-                          })}
+                          })()}
                         </div>
+                      </div>
+                    ) : (
+                      <div className="relative rounded-xl overflow-hidden border border-card-border shadow-[0_10px_35px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.6)] bg-card/40 w-full aspect-[4/5] md:aspect-[3/4] group">
+                        <AnimatePresence mode="wait">
+                          <motion.img
+                            key={currentImgIndex}
+                            src={sidebarImages[currentImgIndex]}
+                            alt="Antonioni Grounds Experience"
+                            initial={{ opacity: 0, scale: 1.12, y: 3 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.96, y: -3 }}
+                            transition={{ duration: 1.2, ease: "easeOut" }}
+                            className="w-full h-full object-cover block"
+                          />
+                        </AnimatePresence>
 
-                        <div className="flex justify-end pt-6 border-t border-zinc-200 dark:border-white/5">
-                          <button
-                            type="button"
-                            onClick={handleNext}
-                            className="flex items-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-6 py-3 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)] active:scale-95"
-                          >
-                            Continue
-                            <ChevronRight size={14} />
-                          </button>
+                        {/* Glassmorphic Indicator dots at the bottom */}
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/45 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                          {sidebarImages.map((_, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setCurrentImgIndex(idx)}
+                              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentImgIndex === idx
+                                ? "bg-emerald-600 w-3.5"
+                                : "bg-white/30 hover:bg-white/60"
+                                }`}
+                            />
+                          ))}
                         </div>
-                      </motion.div>
+                      </div>
                     )}
+                  </div>
+                </div>
 
-                    {/* STEP 2: BOOKING DETAILS & CONTACT */}
-                    {step === 2 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="space-y-6"
-                      >
-                        <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
-                          <h3 className="text-xl font-serif text-foreground tracking-wide">Booking Details & Contact Info</h3>
-                          <p className="text-xs text-zinc-500 mt-1 font-light">Provide your group details and contact coordinates.</p>
-                        </div>
+                {/* Right Column: Form & Stepper */}
+                <div className="lg:col-span-8 order-2">
+                  {/* Stepper indicators only visible on desktop */}
+                  <div className="hidden lg:block">
+                    {renderStepper()}
+                  </div>
 
-                        {/* Booking & Contact Information Block */}
-                        <div className="space-y-5 bg-background-alt/40 p-6 rounded-xl border border-card-border backdrop-blur-sm">
-                          {formData.eventType === "Table Reservation" ? (
-                            <TableReservationForm
-                              formData={formData}
-                              errors={errors}
-                              updateField={updateField}
-                              labelAccent={labelAccent}
-                            />
-                          ) : (
-                            <CartReservationForm
-                              formData={formData}
-                              errors={errors}
-                              updateField={updateField}
-                              labelAccent={labelAccent}
-                              addressDetails={addressDetails}
-                              setAddressDetails={setAddressDetails}
-                              isAddressExpanded={isAddressExpanded}
-                              setIsAddressExpanded={setIsAddressExpanded}
-                              handleSaveAddress={handleSaveAddress}
-                              isPackageModalOpen={isPackageModalOpen}
-                              setIsPackageModalOpen={setIsPackageModalOpen}
-                            />
+                  {/* Form Content Wrapper */}
+                  <div className="rounded-2xl border border-card-border bg-card p-8 md:p-10 shadow-[0_0_50px_rgba(0,0,0,0.08)] dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden backdrop-blur-xl">
+                    {/* Decorative corner borders */}
+                    <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-emerald-500/30" />
+                    <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-emerald-500/30" />
+                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-emerald-500/30" />
+                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-emerald-500/30" />
+
+                    <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+                      {/* STEP 1: EVENT TYPE SELECT */}
+                      {step === 1 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="space-y-6"
+                        >
+                          <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
+                            <h3 className="text-xl font-serif text-foreground tracking-wide">Select Experience Type</h3>
+                            <p className="text-xs text-zinc-500 mt-1 font-light">Choose how you wish to spend your time with us.</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            {eventTypes.map((item) => {
+                              const Icon = item.icon;
+                              const isSelected = formData.eventType === item.type;
+                              const isTable = item.type === "Table Reservation";
+
+                              return (
+                                <motion.div
+                                  key={item.type}
+                                  whileHover={{ y: -4, scale: 1.01 }}
+                                  whileTap={{ scale: 0.99 }}
+                                  onClick={() => selectType(item.type)}
+                                  className={`rounded-xl border p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[310px] h-auto select-none ${isSelected
+                                    ? "bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1] border-emerald-600/50 shadow-[0_10px_30px_rgba(46,90,68,0.12)] text-foreground dark:from-[#07130E]/95 dark:to-[#0F261B]/95 dark:border-emerald-500/80 dark:shadow-[0_10px_30px_rgba(46,90,68,0.25)]"
+                                    : "bg-card border-card-border text-neutral-500 hover:border-emerald-600/30 hover:bg-background"
+                                    }`}
+                                >
+                                  <div className="space-y-4 flex-1">
+                                    {/* Card Top Row */}
+                                    <div className="flex justify-between items-start">
+                                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all ${isSelected
+                                        ? "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-[#2E5A44]/20 dark:text-emerald-400 dark:border-emerald-500/40"
+                                        : "bg-zinc-100 dark:bg-white/5 text-zinc-500 border-zinc-200 dark:border-white/5"
+                                        }`}>
+                                        <Icon size={18} />
+                                      </div>
+                                      <div className="text-right">
+                                        <span className={`text-[8px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full border ${isSelected
+                                          ? "text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/20 dark:border-emerald-500/30"
+                                          : "text-zinc-500 border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5"
+                                          }`}>
+                                          {item.category}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Title & Description */}
+                                    <div>
+                                      <div className="flex justify-between items-baseline gap-2">
+                                        <h4 className="font-serif text-sm md:text-base text-foreground tracking-wide font-medium">{item.title}</h4>
+                                        <span className={`font-serif text-xs italic ${isSelected
+                                          ? "text-emerald-700 dark:text-emerald-400"
+                                          : "text-zinc-500"
+                                          }`}>
+                                          {item.pricing}
+                                        </span>
+                                      </div>
+                                      <p className="font-sans text-[11px] text-zinc-600 dark:text-zinc-400 font-light mt-1.5 leading-relaxed">{item.desc}</p>
+                                    </div>
+
+                                    {/* Features list */}
+                                    <ul className="space-y-1.5 pt-3 border-t border-zinc-200 dark:border-white/5">
+                                      {item.features.map((feat) => (
+                                        <li key={feat} className="flex items-center gap-2 font-sans text-[10px] text-zinc-600 dark:text-zinc-400 font-light">
+                                          <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-emerald-600 dark:bg-emerald-400" : "bg-zinc-400 dark:bg-zinc-600"}`} />
+                                          {feat}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+
+                                  <div className="flex justify-end pt-4 border-t border-zinc-200 dark:border-white/5 mt-4">
+                                    <span className={`font-sans text-[9px] uppercase tracking-widest font-bold ${isSelected
+                                      ? "text-emerald-700 dark:text-emerald-400"
+                                      : "text-zinc-500 dark:text-zinc-600"
+                                      }`}>
+                                      {isSelected ? "● Selected" : "Choose"}
+                                    </span>
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex justify-end pt-6 border-t border-zinc-200 dark:border-white/5">
+                            <button
+                              type="button"
+                              onClick={handleNext}
+                              className="flex items-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-6 py-3 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)] active:scale-95"
+                            >
+                              Continue
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* STEP 2: BOOKING DETAILS & CONTACT */}
+                      {step === 2 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="space-y-6"
+                        >
+                          <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
+                            <h3 className="text-xl font-serif text-foreground tracking-wide">Booking Details & Contact Info</h3>
+                            <p className="text-xs text-zinc-500 mt-1 font-light">Provide your group details and contact coordinates.</p>
+                          </div>
+
+                          {/* Booking & Contact Information Block */}
+                          <div className="space-y-5 bg-background-alt/40 p-6 rounded-xl border border-card-border backdrop-blur-sm">
+                            {formData.eventType === "Table Reservation" ? (
+                              <TableReservationForm
+                                formData={formData}
+                                errors={errors}
+                                updateField={updateField}
+                                labelAccent={labelAccent}
+                              />
+                            ) : (
+                              <CartReservationForm
+                                formData={formData}
+                                errors={errors}
+                                updateField={updateField}
+                                labelAccent={labelAccent}
+                                addressDetails={addressDetails}
+                                setAddressDetails={setAddressDetails}
+                                isAddressExpanded={isAddressExpanded}
+                                setIsAddressExpanded={setIsAddressExpanded}
+                                handleSaveAddress={handleSaveAddress}
+                                isPackageModalOpen={isPackageModalOpen}
+                                setIsPackageModalOpen={setIsPackageModalOpen}
+                              />
+                            )}
+
+                            {/* Contact Details Fields */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                              {/* Full Name */}
+                              <div>
+                                <label className={`type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent}`}>Full Name</label>
+                                <div className="relative">
+                                  <User className="absolute left-3 top-[15px] text-zinc-500" size={16} />
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g. Juan Dela Cruz"
+                                    value={formData.fullName}
+                                    onChange={(e) => updateField("fullName", e.target.value)}
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                                  />
+                                </div>
+                                {errors.fullName && <span className="type-error block mt-1">{errors.fullName}</span>}
+                              </div>
+
+                              {/* Email */}
+                              <div>
+                                <label className={`type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent}`}>Email Address</label>
+                                <div className="relative">
+                                  <Mail className="absolute left-3 top-[15px] text-zinc-500" size={16} />
+                                  <input
+                                    type="email"
+                                    required
+                                    placeholder="e.g. juan.delacruz@gmail.com"
+                                    value={formData.email}
+                                    onChange={(e) => updateField("email", e.target.value)}
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                                  />
+                                </div>
+                                {errors.email && <span className="type-error block mt-1">{errors.email}</span>}
+                              </div>
+                            </div>
+
+                            {/* Phone */}
+                            <div className="space-y-2">
+                              <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                Phone Number
+                              </label>
+                              <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
+                                  <Phone size={14} />
+                                </div>
+                                <input
+                                  type="tel"
+                                  required
+                                  placeholder="e.g. 09171234567"
+                                  value={formData.phone}
+                                  onChange={(e) => updateField("phone", e.target.value)}
+                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
+                                />
+                              </div>
+                              {errors.phone && <span className="type-error block mt-1">{errors.phone}</span>}
+                            </div>
+
+                            {/* Additional Notes */}
+                            <div className="space-y-2">
+                              <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                Special Requests / Notes
+                              </label>
+                              <div className="relative group">
+                                <div className="absolute top-3.5 left-3.5 pointer-events-none text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
+                                  <FileText size={14} />
+                                </div>
+                                <textarea
+                                  rows={3}
+                                  placeholder="e.g. Extra table for gifts, custom foam design..."
+                                  value={formData.notes}
+                                  onChange={(e) => updateField("notes", e.target.value)}
+                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none placeholder:text-neutral-400 dark:placeholder:text-zinc-700 min-h-[90px]"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Flavor Selection Dropdowns (Only for Coffee Cart Booking) */}
+                          {formData.eventType === "Coffee Cart Booking" && (
+                            <div className="space-y-5 bg-background-alt/45 p-6 rounded-xl border border-card-border backdrop-blur-sm">
+                              <div className="border-b border-zinc-200/10 pb-2 mb-4 flex justify-between items-baseline">
+                                <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-600 dark:text-emerald-400 block pl-1 font-sans">
+                                  Customize Package Flavors
+                                </span>
+                                <span className="text-[8px] uppercase text-zinc-500 font-sans tracking-wide">Required Selection</span>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Coffee Flavor 1 */}
+                                <div className="space-y-2">
+                                  <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                    Coffee Flavor 1 (Iced/Hot)
+                                  </label>
+                                  <select
+                                    value={formData.coffeeFlavor1 || ""}
+                                    onChange={(e) => updateField("coffeeFlavor1", e.target.value)}
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
+                                  >
+                                    <option value="" disabled>Select Coffee Flavor 1</option>
+                                    <option value="Spanish Latté">Spanish Latté</option>
+                                    <option value="Salted Caramel Latté">Salted Caramel Latté</option>
+                                    <option value="White Mocha Latté">White Mocha Latté</option>
+                                    <option value="Dark Mocha Latté">Dark Mocha Latté</option>
+                                    <option value="Vanilla Bean Latté">Vanilla Bean Latté</option>
+                                    <option value="Hazelnut Praline Latté">Hazelnut Praline Latté</option>
+                                  </select>
+                                  {errors.coffeeFlavor1 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.coffeeFlavor1}</span>}
+                                </div>
+
+                                {/* Coffee Flavor 2 */}
+                                <div className="space-y-2">
+                                  <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                    Coffee Flavor 2 (Iced/Hot)
+                                  </label>
+                                  <select
+                                    value={formData.coffeeFlavor2 || ""}
+                                    onChange={(e) => updateField("coffeeFlavor2", e.target.value)}
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
+                                  >
+                                    <option value="" disabled>Select Coffee Flavor 2</option>
+                                    <option value="Spanish Latté">Spanish Latté</option>
+                                    <option value="Salted Caramel Latté">Salted Caramel Latté</option>
+                                    <option value="White Mocha Latté">White Mocha Latté</option>
+                                    <option value="Dark Mocha Latté">Dark Mocha Latté</option>
+                                    <option value="Vanilla Bean Latté">Vanilla Bean Latté</option>
+                                    <option value="Hazelnut Praline Latté">Hazelnut Praline Latté</option>
+                                  </select>
+                                  {errors.coffeeFlavor2 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.coffeeFlavor2}</span>}
+                                </div>
+
+                                {/* Non-Coffee Flavor 1 */}
+                                <div className="space-y-2">
+                                  <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                    Non-Coffee Flavor 1 (Over Ice)
+                                  </label>
+                                  <select
+                                    value={formData.nonCoffeeFlavor1 || ""}
+                                    onChange={(e) => updateField("nonCoffeeFlavor1", e.target.value)}
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
+                                  >
+                                    <option value="" disabled>Select Non-Coffee Flavor 1</option>
+                                    <option value="Uji Matcha Latté">Uji Matcha Latté</option>
+                                    <option value="Ecuadorian Dark Cocoa">Ecuadorian Dark Cocoa</option>
+                                    <option value="Strawberry Sakura Milk">Strawberry Sakura Milk</option>
+                                    <option value="Hibiscus Berry Iced Tea">Hibiscus Berry Iced Tea</option>
+                                    <option value="Premium Peach Blossom Soda">Premium Peach Blossom Soda</option>
+                                  </select>
+                                  {errors.nonCoffeeFlavor1 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.nonCoffeeFlavor1}</span>}
+                                </div>
+
+                                {/* Non-Coffee Flavor 2 */}
+                                <div className="space-y-2">
+                                  <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                    Non-Coffee Flavor 2 (Over Ice)
+                                  </label>
+                                  <select
+                                    value={formData.nonCoffeeFlavor2 || ""}
+                                    onChange={(e) => updateField("nonCoffeeFlavor2", e.target.value)}
+                                    className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
+                                  >
+                                    <option value="" disabled>Select Non-Coffee Flavor 2</option>
+                                    <option value="Uji Matcha Latté">Uji Matcha Latté</option>
+                                    <option value="Ecuadorian Dark Cocoa">Ecuadorian Dark Cocoa</option>
+                                    <option value="Strawberry Sakura Milk">Strawberry Sakura Milk</option>
+                                    <option value="Hibiscus Berry Iced Tea">Hibiscus Berry Iced Tea</option>
+                                    <option value="Premium Peach Blossom Soda">Premium Peach Blossom Soda</option>
+                                  </select>
+                                  {errors.nonCoffeeFlavor2 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.nonCoffeeFlavor2}</span>}
+                                </div>
+                              </div>
+                            </div>
                           )}
 
-                          {/* Contact Details Fields */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                            {/* Full Name */}
-                            <div>
-                              <label className={`type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent}`}>Full Name</label>
-                              <div className="relative">
-                                <User className="absolute left-3 top-[15px] text-zinc-500" size={16} />
-                                <input
-                                  type="text"
-                                  required
-                                  placeholder="e.g. Juan Dela Cruz"
-                                  value={formData.fullName}
-                                  onChange={(e) => updateField("fullName", e.target.value)}
-                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
-                                />
-                              </div>
-                              {errors.fullName && <span className="type-error block mt-1">{errors.fullName}</span>}
+                          {/* Policy Info Card */}
+                          {formData.eventType === "Table Reservation" ? (
+                            <TableReservationPolicy />
+                          ) : (
+                            <CartReservationPolicy />
+                          )}
+
+                          {/* Summary Block */}
+                          <div className="rounded-xl border border-card-border bg-card p-6 space-y-4 mt-8 relative overflow-hidden">
+                            {/* Inner emerald decorative line */}
+                            <div className="absolute inset-2 border border-emerald-500/10 dark:border-emerald-950/20 rounded-lg pointer-events-none" />
+                            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/5 pb-3 relative z-10">
+                              <h4 className={`font-sans text-[10px] uppercase font-bold tracking-[0.25em] ${labelAccent}`}>Review Booking Details</h4>
+                              <span className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Summary</span>
                             </div>
 
-                            {/* Email */}
-                            <div>
-                              <label className={`type-label block mb-2 text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent}`}>Email Address</label>
-                              <div className="relative">
-                                <Mail className="absolute left-3 top-[15px] text-zinc-500" size={16} />
-                                <input
-                                  type="email"
-                                  required
-                                  placeholder="e.g. juan.delacruz@gmail.com"
-                                  value={formData.email}
-                                  onChange={(e) => updateField("email", e.target.value)}
-                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
-                                />
-                              </div>
-                              {errors.email && <span className="type-error block mt-1">{errors.email}</span>}
+                            <div className="space-y-3.5 pt-2 relative z-10">
+                              {(() => {
+                                const pricing = getPricingDetails();
+                                const endTime = getEndTimeString(formData.time);
+                                const list = [
+                                  { label: "Selected Experience", value: formData.eventType === "Table Reservation" ? "Lounge Table Reservation" : '"Brew Buggy" Mobile Coffee Cart', highlight: true },
+                                  { label: "Reservation Date", value: formData.date },
+                                  { label: "Service Time (3 Hrs)", value: `${formData.time} - ${endTime}` },
+                                  { label: "Capacity / Package", value: formData.eventType === "Table Reservation" ? `${formData.guestCount} Guests` : `${formData.guestCount} Pax Package` },
+                                  { label: "Location", value: formData.eventType === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location },
+                                  { label: "Package Price", value: `₱${pricing.totalPrice.toLocaleString()}` },
+                                  { label: "Required Downpayment", value: `₱${pricing.downpayment.toLocaleString()}`, highlight: true }
+                                ];
+
+                                return list.map((row, idx) => (
+                                  <div key={idx} className="flex justify-between items-baseline gap-4 text-xs">
+                                    <span className="font-sans text-zinc-500 dark:text-zinc-400 font-normal whitespace-nowrap">{row.label}</span>
+                                    <span className={`font-sans text-right ${row.highlight ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-foreground font-medium"}`}>
+                                      {row.value || "—"}
+                                    </span>
+                                  </div>
+                                ));
+                              })()}
                             </div>
                           </div>
 
-                          {/* Phone */}
-                          <div className="space-y-2">
-                            <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
-                              Phone Number
-                            </label>
-                            <div className="relative group">
-                              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
-                                <Phone size={14} />
-                              </div>
-                              <input
-                                type="tel"
-                                required
-                                placeholder="e.g. 09171234567"
-                                value={formData.phone}
-                                onChange={(e) => updateField("phone", e.target.value)}
-                                className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700"
-                              />
-                            </div>
-                            {errors.phone && <span className="type-error block mt-1">{errors.phone}</span>}
+                          {/* Summary Policy footer note */}
+                          <div className="mt-4 px-2 text-[10px] text-zinc-500 dark:text-zinc-400 font-light leading-relaxed">
+                            {getPricingDetails().notes}
                           </div>
 
-                          {/* Additional Notes */}
-                          <div className="space-y-2">
-                            <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
-                              Special Requests / Notes
-                            </label>
-                            <div className="relative group">
-                              <div className="absolute top-3.5 left-3.5 pointer-events-none text-zinc-500 group-focus-within:text-emerald-400 transition-colors">
-                                <FileText size={14} />
-                              </div>
-                              <textarea
-                                rows={3}
-                                placeholder="e.g. Extra table for gifts, custom foam design..."
-                                value={formData.notes}
-                                onChange={(e) => updateField("notes", e.target.value)}
-                                className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none placeholder:text-neutral-400 dark:placeholder:text-zinc-700 min-h-[90px]"
-                              />
-                            </div>
+                          <div className="flex justify-between pt-6 border-t border-zinc-200 dark:border-white/5 mt-8">
+                            <button
+                              type="button"
+                              onClick={handleBack}
+                              className="flex items-center gap-1.5 rounded-full border border-emerald-600/20 bg-emerald-600/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 transition-all active:scale-95"
+                            >
+                              <ChevronLeft size={14} />
+                              Back
+                            </button>
+                            <button
+                              type="submit"
+                              className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-8 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.3)] hover:shadow-[0_0_25px_rgba(46,90,68,0.5)] active:scale-95"
+                            >
+                              Confirm Booking
+                              <CheckCircle2 size={14} />
+                            </button>
                           </div>
-                        </div>
-
-                        {/* Flavor Selection Dropdowns (Only for Coffee Cart Booking) */}
-                        {formData.eventType === "Coffee Cart Booking" && (
-                          <div className="space-y-5 bg-background-alt/45 p-6 rounded-xl border border-card-border backdrop-blur-sm">
-                            <div className="border-b border-zinc-200/10 pb-2 mb-4 flex justify-between items-baseline">
-                              <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-600 dark:text-emerald-400 block pl-1 font-sans">
-                                Customize Package Flavors
-                              </span>
-                              <span className="text-[8px] uppercase text-zinc-500 font-sans tracking-wide">Required Selection</span>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              {/* Coffee Flavor 1 */}
-                              <div className="space-y-2">
-                                <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
-                                  Coffee Flavor 1 (Iced/Hot)
-                                </label>
-                                <select
-                                  value={formData.coffeeFlavor1 || ""}
-                                  onChange={(e) => updateField("coffeeFlavor1", e.target.value)}
-                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
-                                >
-                                  <option value="" disabled>Select Coffee Flavor 1</option>
-                                  <option value="Spanish Latté">Spanish Latté</option>
-                                  <option value="Salted Caramel Latté">Salted Caramel Latté</option>
-                                  <option value="White Mocha Latté">White Mocha Latté</option>
-                                  <option value="Dark Mocha Latté">Dark Mocha Latté</option>
-                                  <option value="Vanilla Bean Latté">Vanilla Bean Latté</option>
-                                  <option value="Hazelnut Praline Latté">Hazelnut Praline Latté</option>
-                                </select>
-                                {errors.coffeeFlavor1 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.coffeeFlavor1}</span>}
-                              </div>
-
-                              {/* Coffee Flavor 2 */}
-                              <div className="space-y-2">
-                                <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
-                                  Coffee Flavor 2 (Iced/Hot)
-                                </label>
-                                <select
-                                  value={formData.coffeeFlavor2 || ""}
-                                  onChange={(e) => updateField("coffeeFlavor2", e.target.value)}
-                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
-                                >
-                                  <option value="" disabled>Select Coffee Flavor 2</option>
-                                  <option value="Spanish Latté">Spanish Latté</option>
-                                  <option value="Salted Caramel Latté">Salted Caramel Latté</option>
-                                  <option value="White Mocha Latté">White Mocha Latté</option>
-                                  <option value="Dark Mocha Latté">Dark Mocha Latté</option>
-                                  <option value="Vanilla Bean Latté">Vanilla Bean Latté</option>
-                                  <option value="Hazelnut Praline Latté">Hazelnut Praline Latté</option>
-                                </select>
-                                {errors.coffeeFlavor2 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.coffeeFlavor2}</span>}
-                              </div>
-
-                              {/* Non-Coffee Flavor 1 */}
-                              <div className="space-y-2">
-                                <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
-                                  Non-Coffee Flavor 1 (Over Ice)
-                                </label>
-                                <select
-                                  value={formData.nonCoffeeFlavor1 || ""}
-                                  onChange={(e) => updateField("nonCoffeeFlavor1", e.target.value)}
-                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
-                                >
-                                  <option value="" disabled>Select Non-Coffee Flavor 1</option>
-                                  <option value="Uji Matcha Latté">Uji Matcha Latté</option>
-                                  <option value="Ecuadorian Dark Cocoa">Ecuadorian Dark Cocoa</option>
-                                  <option value="Strawberry Sakura Milk">Strawberry Sakura Milk</option>
-                                  <option value="Hibiscus Berry Iced Tea">Hibiscus Berry Iced Tea</option>
-                                  <option value="Premium Peach Blossom Soda">Premium Peach Blossom Soda</option>
-                                </select>
-                                {errors.nonCoffeeFlavor1 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.nonCoffeeFlavor1}</span>}
-                              </div>
-
-                              {/* Non-Coffee Flavor 2 */}
-                              <div className="space-y-2">
-                                <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
-                                  Non-Coffee Flavor 2 (Over Ice)
-                                </label>
-                                <select
-                                  value={formData.nonCoffeeFlavor2 || ""}
-                                  onChange={(e) => updateField("nonCoffeeFlavor2", e.target.value)}
-                                  className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 cursor-pointer dark:[&>option]:bg-zinc-950 [&>option]:bg-white"
-                                >
-                                  <option value="" disabled>Select Non-Coffee Flavor 2</option>
-                                  <option value="Uji Matcha Latté">Uji Matcha Latté</option>
-                                  <option value="Ecuadorian Dark Cocoa">Ecuadorian Dark Cocoa</option>
-                                  <option value="Strawberry Sakura Milk">Strawberry Sakura Milk</option>
-                                  <option value="Hibiscus Berry Iced Tea">Hibiscus Berry Iced Tea</option>
-                                  <option value="Premium Peach Blossom Soda">Premium Peach Blossom Soda</option>
-                                </select>
-                                {errors.nonCoffeeFlavor2 && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.nonCoffeeFlavor2}</span>}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Policy Info Card */}
-                        {formData.eventType === "Table Reservation" ? (
-                          <TableReservationPolicy />
-                        ) : (
-                          <CartReservationPolicy />
-                        )}
-
-                        {/* Summary Block */}
-                        <div className="rounded-xl border border-card-border bg-card p-6 space-y-4 mt-8 relative overflow-hidden">
-                          {/* Inner emerald decorative line */}
-                          <div className="absolute inset-2 border border-emerald-500/10 dark:border-emerald-950/20 rounded-lg pointer-events-none" />
-                          <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/5 pb-3 relative z-10">
-                            <h4 className={`font-sans text-[10px] uppercase font-bold tracking-[0.25em] ${labelAccent}`}>Review Booking Details</h4>
-                            <span className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Summary</span>
-                          </div>
-
-                          <div className="space-y-3.5 pt-2 relative z-10">
-                            {(() => {
-                              const pricing = getPricingDetails();
-                              const endTime = getEndTimeString(formData.time);
-                              const list = [
-                                { label: "Selected Experience", value: formData.eventType === "Table Reservation" ? "Lounge Table Reservation" : '"Brew Buggy" Mobile Coffee Cart', highlight: true },
-                                { label: "Reservation Date", value: formData.date },
-                                { label: "Service Time (3 Hrs)", value: `${formData.time} - ${endTime}` },
-                                { label: "Capacity / Package", value: formData.eventType === "Table Reservation" ? `${formData.guestCount} Guests` : `${formData.guestCount} Pax Package` },
-                                { label: "Location", value: formData.eventType === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location },
-                                { label: "Package Price", value: `₱${pricing.totalPrice.toLocaleString()}` },
-                                { label: "Required Downpayment", value: `₱${pricing.downpayment.toLocaleString()}`, highlight: true }
-                              ];
-
-                              return list.map((row, idx) => (
-                                <div key={idx} className="flex justify-between items-baseline gap-4 text-xs">
-                                  <span className="font-sans text-zinc-500 dark:text-zinc-400 font-normal whitespace-nowrap">{row.label}</span>
-                                  <span className={`font-sans text-right ${row.highlight ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-foreground font-medium"}`}>
-                                    {row.value || "—"}
-                                  </span>
-                                </div>
-                              ));
-                            })()}
-                          </div>
-                        </div>
-
-                        {/* Summary Policy footer note */}
-                        <div className="mt-4 px-2 text-[10px] text-zinc-500 dark:text-zinc-400 font-light leading-relaxed">
-                          {getPricingDetails().notes}
-                        </div>
-
-                        <div className="flex justify-between pt-6 border-t border-zinc-200 dark:border-white/5 mt-8">
-                          <button
-                            type="button"
-                            onClick={handleBack}
-                            className="flex items-center gap-1.5 rounded-full border border-emerald-600/20 bg-emerald-600/5 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 transition-all active:scale-95"
-                          >
-                            <ChevronLeft size={14} />
-                            Back
-                          </button>
-                          <button
-                            type="submit"
-                            className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-8 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.3)] hover:shadow-[0_0_25px_rgba(46,90,68,0.5)] active:scale-95"
-                          >
-                            Confirm Booking
-                            <CheckCircle2 size={14} />
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </form>
+                        </motion.div>
+                      )}
+                    </form>
+                  </div>
                 </div>
-              </div>
 
+              </div>
             </div>
-          </div>
           ) : (
             /* Centered success docket screen */
             <SuccessDocket
@@ -1520,7 +1707,7 @@ export function ReservationsView() {
                   {/* Recent Bookings Shortcut List */}
                   {!trackedReservation && !isTrackingLoading && (() => {
                     const seenIds = new Set();
-                    const localBookings = (sessionEmail 
+                    const localBookings = (sessionEmail
                       ? dbReservations.filter((r: any) => r.email && r.email.toLowerCase() === sessionEmail.toLowerCase())
                       : db.getReservations()
                     ).filter(
@@ -1541,8 +1728,8 @@ export function ReservationsView() {
 
                         {localBookings.length === 0 ? (
                           <p className="text-[11px] text-zinc-500 dark:text-zinc-600 font-light italic pl-1">
-                            {sessionEmail 
-                              ? "No bookings found in our records for your email." 
+                            {sessionEmail
+                              ? "No bookings found in our records for your email."
                               : "No recent bookings detected on this browser session."}
                           </p>
                         ) : (
@@ -1586,12 +1773,12 @@ export function ReservationsView() {
                             <span className="text-[9px] uppercase text-zinc-500 font-sans tracking-wide block">Reservation ID</span>
                             <span className="font-mono text-sm font-semibold text-foreground tracking-wider">{trackedReservation.id}</span>
                           </div>
-                          
+
                           {/* Premium Status Badge */}
                           {(() => {
                             const status = trackedReservation.status;
                             const isPaid = trackedReservation.referenceNumber && trackedReservation.proofOfPayment;
-                            
+
                             if (status === "Cancelled") {
                               return (
                                 <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded font-bold">
@@ -1693,7 +1880,7 @@ export function ReservationsView() {
                             {(() => {
                               const status = trackedReservation.status;
                               const isPaid = trackedReservation.referenceNumber && trackedReservation.proofOfPayment;
-                              
+
                               const steps = [
                                 {
                                   label: "Booking Submitted",
@@ -1724,13 +1911,12 @@ export function ReservationsView() {
                               return steps.map((step, idx) => (
                                 <div key={idx} className="relative text-xs">
                                   {/* Dot */}
-                                  <div className={`absolute -left-[24px] top-0.5 w-4.5 h-4.5 rounded-full flex items-center justify-center border transition-all duration-300 ${
-                                    step.isDone 
-                                      ? "bg-emerald-600 border-emerald-500 text-white" 
-                                      : step.isCurrent 
-                                        ? "bg-amber-500 border-amber-400 text-white animate-pulse" 
-                                        : "bg-card border-card-border text-zinc-400"
-                                  }`}>
+                                  <div className={`absolute -left-[24px] top-0.5 w-4.5 h-4.5 rounded-full flex items-center justify-center border transition-all duration-300 ${step.isDone
+                                    ? "bg-emerald-600 border-emerald-500 text-white"
+                                    : step.isCurrent
+                                      ? "bg-amber-500 border-amber-400 text-white animate-pulse"
+                                      : "bg-card border-card-border text-zinc-400"
+                                    }`}>
                                     {step.isDone ? <Check size={10} className="stroke-[3]" /> : <Clock size={10} />}
                                   </div>
                                   <div>
@@ -1786,8 +1972,40 @@ export function ReservationsView() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
 
+        <LocationMapModal
+          isOpen={isMapModalOpen}
+          onClose={() => setIsMapModalOpen(false)}
+          onConfirm={(data) => {
+            setAddressDetails({
+              landmark: addressDetails.landmark,
+              street: data.street || addressDetails.street,
+              barangay: data.barangay || addressDetails.barangay,
+              city: data.city || addressDetails.city,
+              province: data.province || addressDetails.province,
+            });
+
+            const parts = [
+              (data.street || addressDetails.street).trim(),
+              (data.barangay || addressDetails.barangay).trim()
+                ? `Brgy. ${(data.barangay || addressDetails.barangay).trim().replace(/^brgy\.?\s*/i, "")}`
+                : "",
+              (data.city || addressDetails.city).trim(),
+              (data.province || addressDetails.province).trim(),
+              addressDetails.landmark.trim() ? `(Landmark: ${addressDetails.landmark.trim()})` : "",
+            ].filter(Boolean);
+
+            const combinedLocation = parts.join(", ");
+
+            setFormData((prev) => ({
+              ...prev,
+              location: combinedLocation,
+              distanceKm: data.distanceKm,
+              transpoFee: data.transpoFee,
+            }));
+          }}
+        />
+      </div>
 
     </PageTransition>
   );

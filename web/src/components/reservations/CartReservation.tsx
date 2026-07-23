@@ -338,8 +338,16 @@ export function CartReservationReceipt({
         <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-0.5 block">{formData.date} at {formData.time} - {endTime}</span>
       </div>
       <div>
-        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Package Price</span>
+        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Total Package Cost</span>
         <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-0.5 block">₱{totalPrice.toLocaleString()}</span>
+      </div>
+      <div>
+        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Transportation Fee</span>
+        <span className="font-sans text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5 block">
+          {(formData.transpoFee || 0) === 0
+            ? "FREE (within 6km)"
+            : `₱${(formData.transpoFee || 0).toLocaleString()} (${formData.distanceKm || 0} km)`}
+        </span>
       </div>
       <div>
         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Downpayment (Required)</span>
@@ -347,7 +355,7 @@ export function CartReservationReceipt({
       </div>
       <div>
         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Venue / Sourced Location</span>
-        <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-0.5 block">{formData.location}</span>
+        <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-0.5 block">{formData.location || "Not specified"}</span>
       </div>
       <div>
         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Special Requests</span>

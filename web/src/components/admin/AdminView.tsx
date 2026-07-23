@@ -26,14 +26,16 @@ import { UsersTab } from "./users/UsersTab";
 import { LifestyleTab } from "./lifestyle/LifestyleTab";
 import { EventsTab } from "./events/EventsTab";
 import { SettingsTab } from "./settings/SettingsTab";
+import { AuditLogsTab } from "./audit/AuditLogsTab";
 import { ConfirmModal } from "./common/ConfirmModal";
+import { auditLogger } from "@/utils/auditLogger";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 export const AdminView: React.FC = () => {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings" | "audit">("dashboard");
 
   // Database States
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -175,7 +177,7 @@ export const AdminView: React.FC = () => {
 
   // Safeguard tab permissions for Baristas
   useEffect(() => {
-    if (currentUserRole === "barista" && (activeTab === "menu" || activeTab === "users" || activeTab === "lifestyle" || activeTab === "events")) {
+    if (currentUserRole === "barista" && (activeTab === "menu" || activeTab === "users" || activeTab === "lifestyle" || activeTab === "events" || activeTab === "audit" || activeTab === "settings")) {
       setActiveTab("dashboard");
     }
   }, [activeTab, currentUserRole]);
@@ -184,10 +186,10 @@ export const AdminView: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       const savedTab = localStorage.getItem("admin_active_tab");
-      const validTabs = ["dashboard", "menu", "reservations", "loyalty", "users", "lifestyle", "events", "settings"];
+      const validTabs = ["dashboard", "menu", "reservations", "loyalty", "users", "lifestyle", "events", "settings", "audit"];
       if (savedTab && validTabs.includes(savedTab)) {
         const isBarista = currentUserRole === "barista";
-        const isRestricted = ["menu", "users", "lifestyle", "events"].includes(savedTab);
+        const isRestricted = ["menu", "users", "lifestyle", "events", "audit", "settings"].includes(savedTab);
         if (!(isBarista && isRestricted)) {
           setActiveTab(savedTab as any);
         }
@@ -391,7 +393,7 @@ export const AdminView: React.FC = () => {
       if (supabase) {
         const { data, error } = await supabase
           .from("profiles")
-          .select("*")
+          .select("*, loyalty_cards(*)")
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -401,20 +403,30 @@ export const AdminView: React.FC = () => {
         }
 
         if (data) {
-          const mappedUsers: UserProfile[] = data.map((profile: any) => ({
-            id: profile.id,
-            name: profile.name || profile.username || "Unknown",
-            username: profile.username || undefined,
-            email: profile.email || "",
-            phone: profile.phone || undefined,
-            role: profile.role || "customer",
-            stamps: profile.stamps || 0,
-            points: profile.points || 0,
-            member_id: profile.member_id || undefined,
-            joinedAt: profile.created_at
-              ? new Date(profile.created_at).toISOString().split("T")[0]
-              : new Date().toISOString().split("T")[0]
-          }));
+          const mappedUsers: UserProfile[] = data.map((profile: any) => {
+            const rawCard = profile.loyalty_cards;
+            const loyaltyCard = Array.isArray(rawCard) ? rawCard[0] : rawCard;
+            const userRole = profile.role || "customer";
+            const isCustomer = userRole === "customer";
+            const memberIdToUse = isCustomer
+              ? profile.member_id || loyaltyCard?.id || profile.id
+              : undefined;
+
+            return {
+              id: profile.id,
+              name: profile.name || profile.username || "Unknown",
+              username: profile.username || undefined,
+              email: profile.email || "",
+              phone: profile.phone || undefined,
+              role: userRole,
+              stamps: profile.stamps || loyaltyCard?.stamps || 0,
+              points: profile.points || loyaltyCard?.points || 0,
+              member_id: memberIdToUse,
+              joinedAt: profile.created_at
+                ? new Date(profile.created_at).toISOString().split("T")[0]
+                : new Date().toISOString().split("T")[0]
+            };
+          });
           setUsers(mappedUsers);
         }
       } else {
@@ -452,7 +464,7 @@ export const AdminView: React.FC = () => {
         return r;
       })
     );
-    
+
     // Propagate status update back to the reservation object in localStorage
     const localReservations = db.getReservations();
     const idx = localReservations.findIndex(
@@ -479,6 +491,15 @@ export const AdminView: React.FC = () => {
         console.warn("Could not update reservation status in backend:", err);
       }
     }
+
+    auditLogger.log({
+      action: newStatus === "Approved" ? "APPROVE" : newStatus === "Cancelled" ? "REJECT" : "UPDATE",
+      category: "reservations",
+      target: `Reservation (${res.fullName})`,
+      details: `Updated reservation status to '${newStatus}' for ${res.fullName} on ${res.date} at ${res.time} (${res.eventType}).`,
+      severity: newStatus === "Approved" ? "success" : newStatus === "Cancelled" ? "warning" : "info",
+      metadata: { reservationId: res.id, newStatus, fullName: res.fullName, date: res.date }
+    });
 
     // Dispatch storage event AFTER backend call completes to avoid race conditions
     window.dispatchEvent(new Event("storage"));
@@ -644,6 +665,16 @@ export const AdminView: React.FC = () => {
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
     db.saveLoyaltyMember(updated);
     playBeep();
+
+    auditLogger.log({
+      action: "AWARD",
+      category: "loyalty",
+      target: `Loyalty Card (${member.name})`,
+      details: `Awarded +1 loyalty stamp to ${member.name}. New total: ${newStamps}/10 stamps.`,
+      severity: "success",
+      metadata: { memberId: member.id, email: member.email, newStamps }
+    });
+
     toast.success(`Awarded 1 stamp to ${member.name}. (${newStamps}/10)`);
 
     notificationsService.addNotification(
@@ -680,6 +711,16 @@ export const AdminView: React.FC = () => {
     const updated = { ...member, stamps: newStamps };
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
     db.saveLoyaltyMember(updated);
+
+    auditLogger.log({
+      action: "DELETE",
+      category: "loyalty",
+      target: `Loyalty Card (${member.name})`,
+      details: `Revoked 1 loyalty stamp from ${member.name}. New total: ${newStamps}/10 stamps.`,
+      severity: "warning",
+      metadata: { memberId: member.id, email: member.email, newStamps }
+    });
+
     toast.info(`Revoked 1 stamp from ${member.name}. (${newStamps}/10)`);
 
     notificationsService.addNotification(
@@ -720,7 +761,16 @@ export const AdminView: React.FC = () => {
 
         const updated = { ...member, stamps: 0 };
         setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
-        
+
+        auditLogger.log({
+          action: "REDEEM",
+          category: "loyalty",
+          target: `Loyalty Card (${member.name})`,
+          details: `Redeemed full loyalty rewards card (free drink claimed) for ${member.name}. Stamps reset to 0.`,
+          severity: "success",
+          metadata: { memberId: member.id, email: member.email }
+        });
+
         notificationsService.addNotification(
           member.email,
           "Loyalty Card Redeemed",
@@ -752,6 +802,15 @@ export const AdminView: React.FC = () => {
 
     db.deleteLoyaltyMember(id);
     setLoyaltyMembers(prev => prev.filter(m => m.id !== id));
+
+    auditLogger.log({
+      action: "DELETE",
+      category: "loyalty",
+      target: `Loyalty Member (${member?.name || id})`,
+      details: `Deleted digital loyalty member card record for ${member?.name || id} (${member?.email || ""}).`,
+      severity: "warning",
+      metadata: { memberId: id, email: member?.email }
+    });
     toast.success("Loyalty card deleted successfully!");
   };
 
@@ -780,6 +839,16 @@ export const AdminView: React.FC = () => {
         }
       }
 
+      const targetUser = users.find(u => u.id === userId);
+      auditLogger.log({
+        action: "UPDATE",
+        category: "users",
+        target: `User Account (${targetUser?.name || targetUser?.email || userId})`,
+        details: `Updated account authorization role to '${newRole}' for user ${targetUser?.name || userId} (${targetUser?.email || ""}).`,
+        severity: "warning",
+        metadata: { userId, newRole, email: targetUser?.email }
+      });
+
       toast.success("User role updated successfully.");
       await fetchUsers();
       await fetchLoyaltyFromSupabase(); // refresh loyalty to stay in sync
@@ -790,6 +859,7 @@ export const AdminView: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
+    const targetUser = users.find(u => u.id === userId);
     try {
       const { supabase } = await import("@/utils/supabase");
       if (supabase) {
@@ -807,6 +877,15 @@ export const AdminView: React.FC = () => {
         // Mock mode delete
         db.deleteMockUser(userId);
       }
+
+      auditLogger.log({
+        action: "DELETE",
+        category: "users",
+        target: `User Account (${targetUser?.name || targetUser?.email || userId})`,
+        details: `Permanently deleted user account for ${targetUser?.name || userId} (${targetUser?.email || ""}) from system database.`,
+        severity: "critical",
+        metadata: { userId, email: targetUser?.email }
+      });
 
       toast.success("User account deleted successfully.");
       await fetchUsers();
@@ -908,6 +987,16 @@ export const AdminView: React.FC = () => {
     loadAllData();
     setShowAddMenuModal(false);
     setEditingMenuItem(null);
+
+    auditLogger.log({
+      action: isEditing ? "UPDATE" : "CREATE",
+      category: "menu",
+      target: `Menu Offering (${menuForm.name})`,
+      details: `${isEditing ? "Updated" : "Created"} menu offering '${menuForm.name}' priced at ₱${menuForm.price} in category '${menuForm.category}'.`,
+      severity: "info",
+      metadata: { name: menuForm.name, price: menuForm.price, category: menuForm.category }
+    });
+
     resetMenuForm();
     toast.success(isEditing ? "Menu item updated successfully!" : "Menu item added successfully!");
   };
@@ -955,6 +1044,14 @@ export const AdminView: React.FC = () => {
         }
 
         loadAllData();
+        auditLogger.log({
+          action: "DELETE",
+          category: "menu",
+          target: `Menu Offering (${item?.name || id})`,
+          details: `Deleted menu offering item '${item?.name || id}' from inventory.`,
+          severity: "warning",
+          metadata: { itemId: id, name: item?.name }
+        });
         toast.success("Menu item deleted successfully!");
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
       }
@@ -1198,6 +1295,16 @@ export const AdminView: React.FC = () => {
 
     db.saveLoyaltyMember(newMember);
     await loadAllData();
+
+    auditLogger.log({
+      action: "CREATE",
+      category: "loyalty",
+      target: `Loyalty Card (${name})`,
+      details: `Registered digital loyalty card for ${name} (${email}) with initial ${stamps} stamps.`,
+      severity: "info",
+      metadata: { memberId, name, email, stamps }
+    });
+
     setShowAddLoyaltyModal(false);
     setLoyaltyForm({ name: "", email: "", phone: "", stamps: 0 });
     toast.success(`Loyalty card registered for ${newMember.name}!`);
@@ -1242,8 +1349,7 @@ export const AdminView: React.FC = () => {
         {/* TOP BAR / Header */}
         <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-8 pb-3 md:pb-4 border-b border-card-border relative">
           <div>
-            <span className="type-eyebrow text-[9px] text-brand-green dark:text-emerald-400 tracking-[0.25em]">Console Panel</span>
-            <h1 className="type-h2 text-foreground font-serif tracking-tight mt-1 text-lg sm:text-xl md:text-2xl">
+            <h1 className="type-h2 text-foreground font-serif tracking-tight text-lg sm:text-xl md:text-2xl">
               {activeTab === "dashboard" && "DASHBOARD OVERVIEW"}
               {activeTab === "menu" && "MENU OFFERINGS"}
               {activeTab === "reservations" && "EXPERIENCE BOOKINGS"}
@@ -1252,6 +1358,7 @@ export const AdminView: React.FC = () => {
               {activeTab === "lifestyle" && "LIFESTYLE SELECTIONS"}
               {activeTab === "events" && "EVENTS & ANNOUNCEMENTS"}
               {activeTab === "settings" && "CONSOLE SETTINGS"}
+              {activeTab === "audit" && "SYSTEM AUDIT LOGS"}
             </h1>
             <p className="type-caption text-neutral-500 mt-1 hidden sm:block">
               {activeTab === "users"
@@ -1262,7 +1369,9 @@ export const AdminView: React.FC = () => {
                     ? "Manage promotional events, holiday schedules, and seasonal menu announcements."
                     : activeTab === "settings"
                       ? "Configure your personal dashboard details and set console system preferences."
-                      : "Manage menu inventory, client reservations, and card records."
+                      : activeTab === "audit"
+                        ? "Inspect administrative security activity, operator actions, and historical audit trails."
+                        : "Manage menu inventory, client reservations, and card records."
               }
             </p>
           </div>
@@ -1391,6 +1500,15 @@ export const AdminView: React.FC = () => {
 
               {activeTab === "settings" && currentUserRole !== "barista" && (
                 <SettingsTab />
+              )}
+
+              {activeTab === "audit" && currentUserRole !== "barista" && (
+                <AuditLogsTab
+                  reservations={reservations}
+                  menuItems={menuItems}
+                  loyaltyMembers={loyaltyMembers}
+                  users={users}
+                />
               )}
             </motion.div>
           </AnimatePresence>

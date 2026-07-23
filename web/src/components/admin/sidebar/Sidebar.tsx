@@ -13,21 +13,22 @@ import {
   Megaphone,
   Wrench,
   HelpCircle,
+  History,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/utils/supabase";
 import { AdminHelpModal } from "./AdminHelpModal";
 
 interface SidebarTabItem {
-  id: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings";
+  id: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings" | "audit";
   label: string;
   icon: React.ComponentType<any>;
   badge?: number;
 }
 
 interface SidebarProps {
-  activeTab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings";
-  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings") => void;
+  activeTab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings" | "audit";
+  setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings" | "audit") => void;
   onLogout: () => void;
   currentUserRole?: "admin" | "barista";
 }
@@ -241,10 +242,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 { id: "lifestyle", label: "Lifestyle Posts", icon: Camera },
                 { id: "events", label: "Events & Updates", icon: Megaphone },
                 { id: "users", label: "Users & Roles", icon: Users },
+                { id: "audit", label: "Audit Logs", icon: History },
               ] as SidebarTabItem[]
             ).filter(tab => {
               if (currentUserRole === "barista") {
-                return tab.id !== "menu" && tab.id !== "users" && tab.id !== "lifestyle" && tab.id !== "events";
+                return tab.id !== "menu" && tab.id !== "users" && tab.id !== "lifestyle" && tab.id !== "events" && tab.id !== "audit";
               }
               return true;
             }).map((tab) => {
@@ -304,7 +306,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="flex flex-col relative overflow-visible">
           {/* Admin User Section */}
-          <div className="p-4 border-t border-card-border bg-background-alt/90 flex flex-col gap-4 overflow-visible relative">
+          <div className="p-4 border-t border-card-border bg-white dark:bg-card/90 flex flex-col gap-4 overflow-visible relative">
             <button
               type="button"
               onClick={() => setShowProfileMenu(prev => !prev)}
@@ -332,7 +334,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9, y: 15 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  className={`absolute bottom-16 z-40 bg-card border border-card-border rounded-xl shadow-2xl p-2.5 space-y-1 ${isCollapsed ? "left-20 w-48" : "left-4 right-4"
+                  className={`absolute bottom-16 z-40 bg-white dark:bg-card border border-card-border rounded-xl shadow-2xl p-2.5 space-y-1 ${isCollapsed ? "left-20 w-48" : "left-4 right-4"
                     }`}
                 >
                   {currentUserRole !== "barista" && (

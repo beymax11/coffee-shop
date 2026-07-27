@@ -42,9 +42,6 @@ async function verifyUserAndGetProfile(req: NextRequest) {
 }
 
 async function isAuthorized(req: NextRequest, reservationEmail: string, reservationPhone: string) {
-  // 1. Staff access (via admin_session cookie or Supabase role)
-  const adminSession = req.cookies.get("admin_session")?.value;
-  if (adminSession === "true") return true;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

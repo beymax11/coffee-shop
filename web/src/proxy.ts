@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
 
@@ -20,16 +20,10 @@ export async function middleware(request: NextRequest) {
   const requiresStaffRole = isAdminPage || isEmailAdminRoute;
 
   if (requiresStaffRole) {
-    // 0. ADMIN / STAFF SESSION COOKIE CHECK
-    const adminSession = request.cookies.get("admin_session")?.value;
-    if (adminSession === "true") {
-      return NextResponse.next();
-    }
-
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // 1. REAL SUPABASE AUTHENTICATION
+    // REAL SUPABASE AUTHENTICATION
     if (supabaseUrl && supabaseAnonKey) {
       const token = request.cookies.get("sb-access-token")?.value;
 
@@ -46,49 +40,42 @@ export async function middleware(request: NextRequest) {
         }
 
         // For staff-only routes, validate user role by checking the profiles table
-        if (requiresStaffRole) {
-          let profile = null;
-          let profileError = null;
+        let profile = null;
+        let profileError = null;
 
-          const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-          if (serviceRoleKey) {
-            const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-            const { data, error } = await supabaseAdmin
-              .from("profiles")
-              .select("role")
-              .eq("id", user.id)
-              .single();
-            profile = data;
-            profileError = error;
-          } else {
-            const { data, error } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", user.id)
-              .single();
-            profile = data;
-            profileError = error;
-          }
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (serviceRoleKey) {
+          const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+          const { data, error } = await supabaseAdmin
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+          profile = data;
+          profileError = error;
+        } else {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+          profile = data;
+          profileError = error;
+        }
 
-          if (
-            profileError ||
-            !profile ||
-            (profile.role !== "admin" && profile.role !== "barista")
-          ) {
-            return handleUnauthorized(request, isAdminPage);
-          }
+        if (
+          profileError ||
+          !profile ||
+          (profile.role !== "admin" && profile.role !== "barista")
+        ) {
+          return handleUnauthorized(request, isAdminPage);
         }
       } catch (err) {
-        console.error("Middleware verification error:", err);
+        console.error("Proxy authentication error:", err);
         return handleUnauthorized(request, isAdminPage);
       }
     } else {
-      // 2. FALLBACK MOCK AUTHENTICATION (if env vars are missing/local mock testing)
-      if (requiresStaffRole) {
-        if (adminSession !== "true") {
-          return handleUnauthorized(request, isAdminPage);
-        }
-      }
+      return handleUnauthorized(request, isAdminPage);
     }
   }
 

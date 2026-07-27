@@ -4,12 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const method = request.method;
 
   // Paths requiring protection
   const isAdminPage = pathname.startsWith("/admin");
-  const isApiReservationList = pathname === "/api/reservations";
-  const isApiReservationDetail = pathname.startsWith("/api/reservations/") && pathname !== "/api/reservations";
   
   const isEmailAdminRoute = 
     pathname.startsWith("/api/send-email/approved") ||
@@ -23,58 +20,84 @@ export async function proxy(request: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // REAL SUPABASE AUTHENTICATION
-    if (supabaseUrl && supabaseAnonKey) {
-      const token = request.cookies.get("sb-access-token")?.value;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return handleUnauthorized(request, isAdminPage);
+    }
 
-      if (!token) {
-        return handleUnauthorized(request, isAdminPage);
-      }
+    const token = request.cookies.get("sb-access-token")?.value;
+    if (!token) {
+      return handleUnauthorized(request, isAdminPage);
+    }
 
-      try {
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+    // ⚡ STEP 1: FAST-PATH JWT CHECK (0ms Edge Execution)
+    try {
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+            .join("")
+        );
+        const payload = JSON.parse(jsonPayload);
 
-        if (error || !user) {
+        // Instant rejection if token is expired
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
           return handleUnauthorized(request, isAdminPage);
         }
 
-        // For staff-only routes, validate user role by checking the profiles table
-        let profile = null;
-        let profileError = null;
+        // Instant passthrough if role is present in metadata
+        const role =
+          payload.app_metadata?.role ||
+          payload.user_metadata?.role ||
+          payload.role;
 
-        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (serviceRoleKey) {
-          const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-          const { data, error } = await supabaseAdmin
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single();
-          profile = data;
-          profileError = error;
-        } else {
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single();
-          profile = data;
-          profileError = error;
+        if (role === "admin" || role === "barista") {
+          return NextResponse.next();
         }
+      }
+    } catch {
+      // Ignore JWT parsing errors and proceed to fallback Supabase auth check
+    }
 
-        if (
-          profileError ||
-          !profile ||
-          (profile.role !== "admin" && profile.role !== "barista")
-        ) {
-          return handleUnauthorized(request, isAdminPage);
-        }
-      } catch (err) {
-        console.error("Proxy authentication error:", err);
+    // ⚡ STEP 2: FALLBACK SUPABASE AUTHENTICATION
+    try {
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const activeKey = serviceRoleKey || supabaseAnonKey;
+      const supabase = createClient(supabaseUrl, activeKey);
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !user) {
         return handleUnauthorized(request, isAdminPage);
       }
-    } else {
+
+      // Check metadata role first from Supabase Auth user object
+      const userRole =
+        user.app_metadata?.role ||
+        user.user_metadata?.role;
+
+      if (userRole === "admin" || userRole === "barista") {
+        return NextResponse.next();
+      }
+
+      // Single database query fallback to profiles table if metadata lacks role
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (
+        profileError ||
+        !profile ||
+        (profile.role !== "admin" && profile.role !== "barista")
+      ) {
+        return handleUnauthorized(request, isAdminPage);
+      }
+    } catch (err) {
+      console.error("Proxy authentication error:", err);
       return handleUnauthorized(request, isAdminPage);
     }
   }

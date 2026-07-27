@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
-import path from "path";
 import { getSecuredEmailHtml } from "@/lib/emails/reservation-templates";
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+import { sendEmail } from "@/lib/resend";
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,30 +31,11 @@ export async function POST(req: NextRequest) {
       reservationLink,
     });
 
-    const attachments: Array<{ filename: string; path: string; cid: string }> = [
-      {
-        filename: "logo.png",
-        path: path.join(process.cwd(), "public", "logo.png"),
-        cid: "logo",
-      },
-    ];
-
-    const heroPath = path.join(process.cwd(), "public", "hero.png");
-    if (require("fs").existsSync(heroPath)) {
-      attachments.push({
-        filename: "hero.png",
-        path: heroPath,
-        cid: "hero",
-      });
-    }
-
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || `"Antonioni Grounds" <${process.env.SMTP_USER}>`,
+    await sendEmail({
       to: reservation.email,
       subject: `✓ Booking Confirmed & Paid — ${reservation.eventType} | Antonioni Grounds`,
       html: htmlEmail,
       text: `Hi ${reservation.fullName},\n\nYour payment has been verified! Your ${reservation.eventType} booking on ${reservation.date} is now fully secured and approved.\n\nView details: ${reservationLink}\n\nThank you,\nAntonioni Grounds`,
-      attachments,
     });
 
     return NextResponse.json({ success: true });

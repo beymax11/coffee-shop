@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/utils/supabase";
 import { createClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
-import path from "path";
+import { sendEmail } from "@/lib/resend";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -10,16 +9,6 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAdmin = supabaseUrl && serviceKey
   ? createClient(supabaseUrl, serviceKey)
   : supabase;
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
 
 function getDownpaymentAmount(
   eventType: string,
@@ -306,19 +295,11 @@ export async function POST(req: NextRequest) {
 </body>
 </html>`;
 
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM || `"Antonioni Grounds" <${process.env.SMTP_USER}>`,
+      await sendEmail({
         to: data.email,
         subject: `Booking Received — ${data.event_type} on ${data.date} | Antonioni Grounds`,
         html: htmlEmail,
         text: `Hi ${data.full_name},\n\nThank you for your reservation request at Antonioni Grounds!\n\nReference: ${data.id}\nExperience: ${data.event_type}\nDate: ${data.date} at ${data.time}\nGuests: ${data.guest_count}\nLocation: ${data.location}\n\nYour booking is currently pending review. Once approved, you'll receive a follow-up email with downpayment instructions.\n\nView your reservation: ${reservationLink}\n\nWarm regards,\nAntonioni Grounds`,
-        attachments: [
-          {
-            filename: "logo.png",
-            path: path.join(process.cwd(), "public", "logo.png"),
-            cid: "logo",
-          },
-        ],
       });
     } catch (emailErr) {
       console.error("Failed to send reservation confirmation email:", emailErr);

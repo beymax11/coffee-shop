@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
-import path from "path";
 import { getApprovedEmailHtml } from "@/lib/emails/reservation-templates";
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+import { sendEmail } from "@/lib/resend";
 
 function getDownpaymentAmount(eventType: string, guestCount: number, transpoFee: number = 0): { amount: string; balance: string; totalLabel: string } {
   if (eventType === "Table Reservation") {
@@ -78,30 +67,11 @@ export async function POST(req: NextRequest) {
       reservationLink,
     });
 
-    const attachments: Array<{ filename: string; path: string; cid: string }> = [
-      {
-        filename: "logo.png",
-        path: path.join(process.cwd(), "public", "logo.png"),
-        cid: "logo",
-      },
-    ];
-
-    const heroPath = path.join(process.cwd(), "public", "hero.png");
-    if (require("fs").existsSync(heroPath)) {
-      attachments.push({
-        filename: "hero.png",
-        path: heroPath,
-        cid: "hero",
-      });
-    }
-
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || `"Antonioni Grounds" <${process.env.SMTP_USER}>`,
+    await sendEmail({
       to: reservation.email,
       subject: `✓ Reservation Approved — ${reservation.eventType} on ${reservation.date} | Antonioni Grounds`,
       html: htmlEmail,
       text: `Hi ${reservation.fullName},\n\nYour ${reservation.eventType} reservation on ${reservation.date} at ${reservation.time} has been approved!\n\nPlease visit the link below to view your reservation details and submit your downpayment of ${amount}:\n\n${reservationLink}\n\nThank you,\nAntonioni Grounds`,
-      attachments,
     });
 
     return NextResponse.json({ success: true });

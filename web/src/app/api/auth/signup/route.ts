@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import nodemailer from "nodemailer";
-import path from "path";
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+import { sendEmail } from "@/lib/resend";
 
 export async function POST(req: NextRequest) {
   try {
@@ -118,8 +107,8 @@ export async function POST(req: NextRequest) {
       console.warn("Using Fallback Mock Auth in Signup Route");
       const actionLink = `${baseUrl}/auth/verified`;
 
-      // Send Mock HTML Email via SMTP if user credentials exist
-      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      // Send Mock HTML Email via Resend if API key exists
+      if (process.env.RESEND_API_KEY || process.env.SMTP_USER) {
         await sendCustomVerificationEmail(email.trim(), name.trim(), username.trim(), actionLink);
       }
 
@@ -142,29 +131,10 @@ async function sendCustomVerificationEmail(email: string, name: string, username
     isPreview: false,
   });
 
-  const attachments: Array<{ filename: string; path: string; cid: string }> = [
-    {
-      filename: "logo.png",
-      path: path.join(process.cwd(), "public", "logo.png"),
-      cid: "logo",
-    },
-  ];
-
-  const heroPath = path.join(process.cwd(), "public", "hero.png");
-  if (require("fs").existsSync(heroPath)) {
-    attachments.push({
-      filename: "hero.png",
-      path: heroPath,
-      cid: "hero",
-    });
-  }
-
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || `"Antonioni Grounds" <${process.env.SMTP_USER}>`,
+  await sendEmail({
     to: email,
     subject: `Confirm your email — Antonioni Grounds`,
     html: htmlEmail,
     text: `Thank you for signing up for Antonioni Grounds!\n\nPlease confirm your email by clicking the link below:\n${actionLink}\n\nIf you didn't create an account, you can safely ignore this email.`,
-    attachments,
   });
 }

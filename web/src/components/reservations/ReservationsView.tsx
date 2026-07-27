@@ -69,6 +69,7 @@ export function ReservationsView() {
   });
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddressFieldChange = (field: keyof typeof addressDetails, value: string) => {
     const updated = { ...addressDetails, [field]: value };
@@ -152,6 +153,7 @@ export function ReservationsView() {
   const [trackedReservation, setTrackedReservation] = useState<any | null>(null);
   const [isTrackingLoading, setIsTrackingLoading] = useState(false);
   const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [selectingLoadingType, setSelectingLoadingType] = useState<ReservationType | null>(null);
 
   useEffect(() => {
     const updateSession = () => {
@@ -204,48 +206,76 @@ export function ReservationsView() {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadReservations = async () => {
-      let merged = db.getReservations();
-      setExistingReservations(merged);
+      const savedStatuses = (() => {
+        try {
+          return JSON.parse(localStorage.getItem("admin_reservation_statuses") || "{}");
+        } catch { return {}; }
+      })();
+
+      const local = db.getReservations();
+      const updatedLocal = local.map((r: any) => {
+        const key = `${r.fullName}-${r.date}-${r.time}`;
+        const st = (r.id && savedStatuses[r.id]) || savedStatuses[key] || r.status || "Pending";
+        return { ...r, status: st };
+      });
 
       try {
         const response = await fetch("/api/reservations");
         if (response.ok) {
           const { reservations } = await response.json();
-          if (reservations) {
-            const mapped = reservations.map((r: any) => ({
-              id: r.id,
-              fullName: r.full_name,
-              email: r.email,
-              phone: r.phone,
-              eventType: r.event_type,
-              date: r.date,
-              time: r.time,
-              guestCount: r.guest_count,
-              location: r.location,
-              notes: r.notes,
-              status: r.status,
-              paymentMethod: r.payment_method,
-              referenceNumber: r.reference_number,
-              proofOfPayment: r.proof_of_payment,
-              created_at: r.created_at,
-            }));
+          if (reservations && isMounted) {
+            const mapped = reservations.map((r: any) => {
+              const key = `${r.full_name}-${r.date}-${r.time}`;
+              const st = (r.id && savedStatuses[r.id]) || savedStatuses[key] || r.status || "Pending";
+              return {
+                id: r.id,
+                fullName: r.full_name,
+                email: r.email,
+                phone: r.phone,
+                eventType: r.event_type,
+                date: r.date,
+                time: r.time,
+                guestCount: r.guest_count,
+                location: r.location,
+                notes: r.notes,
+                status: st,
+                paymentMethod: r.payment_method,
+                referenceNumber: r.reference_number,
+                proofOfPayment: r.proof_of_payment,
+                transpoFee: r.transpo_fee,
+                distanceKm: r.distance_km,
+                created_at: r.created_at,
+              };
+            });
 
             setDbReservations(mapped);
 
-            const local = db.getReservations();
             const remoteIds = new Set(mapped.map((r: any) => r.id));
-            const onlyLocal = local.filter((r) => r.id && !remoteIds.has(r.id));
-            merged = [...mapped, ...onlyLocal];
-            setExistingReservations(merged);
+            const onlyLocal = updatedLocal.filter((r: any) => r.id && !remoteIds.has(r.id));
+            setExistingReservations([...mapped, ...onlyLocal]);
+            return;
           }
         }
       } catch (err) {
         console.warn("Could not sync reservations from backend API:", err);
       }
+
+      if (isMounted) {
+        setExistingReservations(updatedLocal);
+      }
     };
 
     loadReservations();
+    window.addEventListener("storage", loadReservations);
+    const interval = setInterval(loadReservations, 3000);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("storage", loadReservations);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -283,6 +313,48 @@ export function ReservationsView() {
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  };
+
+  const normalizeDateString = (input?: string) => {
+    if (!input) return "";
+    const trimmed = String(input).trim();
+    const match = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (match) {
+      const y = match[1];
+      const m = match[2].padStart(2, '0');
+      const d = match[3].padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    const months: Record<string, string> = {
+      january: "01", jan: "01", february: "02", feb: "02", march: "03", mar: "03",
+      april: "04", apr: "04", may: "05", june: "06", jun: "06", july: "07", jul: "07",
+      august: "08", aug: "08", september: "09", sep: "09", sept: "09", october: "10", oct: "10",
+      november: "11", nov: "11", december: "12", dec: "12"
+    };
+
+    const textMatch = trimmed.match(/^([a-z]+)\s+(\d{1,2}),?\s+(\d{4})/i);
+    if (textMatch) {
+      const monthStr = textMatch[1].toLowerCase();
+      const m = months[monthStr];
+      if (m) {
+        const d = textMatch[2].padStart(2, '0');
+        const y = textMatch[3];
+        return `${y}-${m}-${d}`;
+      }
+    }
+    return trimmed;
+  };
+
+  const getReservationEffectiveStatus = (r: any, savedStatuses: Record<string, string>) => {
+    if (r.id && savedStatuses[r.id]) {
+      return savedStatuses[r.id];
+    }
+    const key = `${r.fullName}-${r.date}-${r.time}`;
+    if (savedStatuses[key]) {
+      return savedStatuses[key];
+    }
+    return r.status || "Pending";
   };
 
   const parseTimeStr = (timeStr: string) => {
@@ -382,7 +454,6 @@ export function ReservationsView() {
     desc: string;
     features: string[];
     pricing: string;
-    icon: any;
   }[] = [
       {
         type: "Table Reservation",
@@ -396,7 +467,6 @@ export function ReservationsView() {
           "100% refundable up to 24h prior"
         ],
         pricing: "₱3,500 / 3 Hours",
-        icon: Coffee,
       },
       {
         type: "Coffee Cart Booking",
@@ -411,7 +481,6 @@ export function ReservationsView() {
           "100% Refundable up to 1 week before booking date"
         ],
         pricing: "From ₱5,500 / 3 Hours",
-        icon: CalendarIcon,
       },
     ];
 
@@ -421,7 +490,35 @@ export function ReservationsView() {
     if (step === 1) {
       if (!formData.eventType) newErrors.eventType = "Please select an event type";
     } else if (step === 2) {
-      if (!formData.date) newErrors.date = "Date is required";
+      if (!formData.date) {
+        newErrors.date = "Date is required";
+      } else {
+        const isCurrentTable = formData.eventType === "Table Reservation";
+        const savedStatuses = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("admin_reservation_statuses") || "{}");
+          } catch {
+            return {};
+          }
+        })();
+
+        const targetNormDate = normalizeDateString(formData.date);
+
+        const isBooked = existingReservations.some((r) => {
+          if (!r.date) return false;
+          const rNormDate = normalizeDateString(r.date);
+          if (rNormDate !== targetNormDate) return false;
+          const isResTable = r.eventType === "Table Reservation" || (r.eventType || "").toLowerCase().includes("table");
+          if (isCurrentTable !== isResTable) return false;
+          const st = getReservationEffectiveStatus(r, savedStatuses);
+          const stLower = (st || "").toLowerCase();
+          return stLower === "approved" || stLower === "completed";
+        });
+
+        if (isBooked) {
+          newErrors.date = `This date is already fully booked for ${isCurrentTable ? "Table Reservations" : "Mobile Coffee Cart"}. Please choose another date.`;
+        }
+      }
       if (!formData.time) newErrors.time = "Time is required";
       if (formData.guestCount <= 0) newErrors.guestCount = "Guest count must be greater than 0";
 
@@ -454,6 +551,17 @@ export function ReservationsView() {
     }
   };
 
+  const handleCardContinue = (type: ReservationType) => {
+    setSelectingLoadingType(type);
+    selectType(type);
+    setTimeout(() => {
+      if (validateStep()) {
+        setStep((prev) => prev + 1);
+      }
+      setSelectingLoadingType(null);
+    }, 400);
+  };
+
   const handleBack = () => {
     setStep((prev) => prev - 1);
   };
@@ -462,39 +570,43 @@ export function ReservationsView() {
     e.preventDefault();
     if (!validateStep()) return;
 
-    const newReservation = {
-      ...formData,
-      id: ticketId,
-      status: "Pending" as const,
-      created_at: new Date().toISOString(),
-    };
+    setIsSubmitting(true);
 
-    // Save to localStorage (always works, even offline)
-    db.saveReservation(newReservation);
-    setExistingReservations((prev) => [newReservation, ...prev]);
-
-    // Add customer notification for booking submission
-    notificationsService.addNotification(
-      newReservation.email,
-      "Reservation Submitted",
-      `We received your request for a ${newReservation.eventType} on ${newReservation.date} at ${newReservation.time}.`,
-      "reservation"
-    );
-
-    // Also persist to Supabase via API
     try {
-      await fetch("/api/reservations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newReservation),
-      });
-    } catch (err) {
-      console.warn("Could not save reservation to backend (offline fallback):", err);
+      const newReservation = {
+        ...formData,
+        id: ticketId,
+        status: "Pending" as const,
+        created_at: new Date().toISOString(),
+      };
+
+      // Save to localStorage (always works, even offline)
+      db.saveReservation(newReservation);
+      setExistingReservations((prev) => [newReservation, ...prev]);
+
+      // Add customer notification for booking submission
+      notificationsService.addNotification(
+        newReservation.email,
+        "Reservation Submitted",
+        `We received your request for a ${newReservation.eventType} on ${newReservation.date} at ${newReservation.time}.`,
+        "reservation"
+      );
+
+      // Also persist to Supabase via API
+      try {
+        await fetch("/api/reservations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newReservation),
+        });
+      } catch (err) {
+        console.warn("Could not save reservation to backend (offline fallback):", err);
+      }
+
+      setStep(3);
+    } finally {
+      setIsSubmitting(false);
     }
-
-
-
-    setStep(3);
   };
 
   const handleConfirmPayment = async () => {
@@ -598,13 +710,14 @@ export function ReservationsView() {
 
   const selectType = (type: ReservationType) => {
     const isTableType = type === "Table Reservation";
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       eventType: type,
+      date: "", // Reset date when switching experience type so user picks an available date for the new experience
       location: isTableType ? "Antonioni Grounds - Tiaong" : "",
       time: "08:00 AM", // default start time
       guestCount: isTableType ? 2 : 50, // default to 50 pax package for Brew Buggy, 2 for Table
-    });
+    }));
     setAddressDetails({
       landmark: "",
       street: "",
@@ -836,32 +949,18 @@ export function ReservationsView() {
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
 
-                <div className={`lg:col-span-4 order-1 lg:sticky lg:top-16 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:py-4 print:hidden`}>
-                  {/* Track Status Button */}
-                  <div className="mb-6 flex">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsTrackModalOpen(true);
-                        setTrackingError(null);
-                        setTrackedReservation(null);
-                        setSearchTicketId("");
-                      }}
-                      className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-600/5 px-4.5 py-2.5 font-sans text-[11px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 hover:border-emerald-600/50 transition-all active:scale-95 cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.06)]"
-                    >
-                      <Search size={12} className="stroke-[2.5]" />
-                      Track Booking Status
-                    </button>
-                  </div>
+                <div className={`lg:col-span-4 order-1 lg:sticky lg:top-6 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:pt-0 lg:pb-4 print:hidden`}>
 
                   <div className={step === 1 ? 'hidden lg:block' : ''}>
-                    <span className={`text-[10px] uppercase font-bold tracking-[0.35em] block mb-3 font-sans transition-colors duration-300 ${step >= 2 ? labelAccent : "text-emerald-500/90"}`}>
-                      {step >= 2 ? "Reservation Details" : "Bespoke Experience"}
-                    </span>
-                    <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-2">
+                    {step >= 2 && (
+                      <span className={`text-[10px] uppercase font-bold tracking-[0.35em] block mb-3 font-sans transition-colors duration-300 ${labelAccent}`}>
+                        Reservation Details
+                      </span>
+                    )}
+                    <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-0">
                       {step >= 2 ? "Select Date & Time" : "Secure Your Ritual"}
                     </h1>
-                    <div className="w-16 h-[1px] bg-brand-gold mt-6 mb-6" />
+                    <div className="w-16 h-[1px] bg-brand-gold mt-4 mb-5" />
 
                     {step === 2 ? (
                       <div className="space-y-6">
@@ -899,6 +998,20 @@ export function ReservationsView() {
                             </button>
                           </div>
 
+                          {/* Calendar Header Legend */}
+                          <div className="flex items-center justify-end px-1 mb-3 text-[10px] font-sans font-medium">
+                            <div className="flex items-center gap-3.5 text-zinc-500 dark:text-zinc-400">
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                <span>Available</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                <span>Fully Booked</span>
+                              </div>
+                            </div>
+                          </div>
+
                           {/* Weekday Labels */}
                           <div className="grid grid-cols-7 gap-1.5 text-center mb-2">
                             {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
@@ -914,41 +1027,62 @@ export function ReservationsView() {
                               const dateStr = formatDateString(day.date);
                               const isSelected = formData.date === dateStr;
                               const isToday = formatDateString(new Date()) === dateStr;
-                              const isFullyBooked = existingReservations.some(
-                                (r) => r.date === dateStr &&
-                                  r.eventType === formData.eventType &&
-                                  (r.status === "Approved" || r.status === "Completed")
-                              );
+                              const isCurrentTable = formData.eventType === "Table Reservation";
+
+                              const savedStatuses = (() => {
+                                try {
+                                  return JSON.parse(localStorage.getItem("admin_reservation_statuses") || "{}");
+                                } catch { return {}; }
+                              })();
+
+                              const targetNormDate = normalizeDateString(dateStr);
+
+                              const isFullyBooked = existingReservations.some((r) => {
+                                if (!r.date) return false;
+                                const rNormDate = normalizeDateString(r.date);
+                                if (rNormDate !== targetNormDate) return false;
+
+                                const isResTable = r.eventType === "Table Reservation" || (r.eventType || "").toLowerCase().includes("table");
+                                if (isCurrentTable !== isResTable) return false;
+
+                                const st = getReservationEffectiveStatus(r, savedStatuses);
+                                const stLower = (st || "").toLowerCase();
+                                return stLower === "approved" || stLower === "completed";
+                              });
 
                               return (
                                 <div
                                   key={idx}
-                                  className="relative"
+                                  className="relative group"
                                   onMouseEnter={() => setHoveredDate(dateStr)}
                                   onMouseLeave={() => setHoveredDate(null)}
                                 >
                                   <button
                                     type="button"
-                                    disabled={day.isPast}
+                                    disabled={day.isPast || isFullyBooked}
                                     onClick={() => {
                                       if (isFullyBooked) return;
                                       updateField("date", dateStr);
                                     }}
-                                    className={`w-full aspect-square flex items-center justify-center text-xs font-sans rounded-full transition-all duration-200 relative ${isSelected
-                                      ? `${activeColor} font-bold text-white`
+                                    className={`w-full aspect-square flex flex-col items-center justify-center text-xs font-sans rounded-full transition-all duration-200 relative ${isSelected
+                                      ? `${activeColor} font-bold text-white shadow-md`
                                       : day.isPast
                                         ? "text-zinc-300 dark:text-zinc-700 cursor-not-allowed opacity-30"
                                         : isFullyBooked
-                                          ? "text-rose-500/60 dark:text-rose-400/50 line-through cursor-not-allowed bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20"
+                                          ? "text-rose-600 dark:text-rose-400 font-extrabold cursor-not-allowed bg-rose-500/15 dark:bg-rose-500/20 border-2 border-rose-500/50 shadow-[0_2px_8px_rgba(244,63,94,0.2)]"
                                           : day.isCurrentMonth
-                                            ? "text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
+                                            ? "text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer font-medium"
                                             : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-white/5 cursor-pointer"
                                       }`}
                                   >
-                                    {day.date.getDate()}
-                                    {isToday && !isSelected && (
+                                    <span className={isFullyBooked ? "line-through leading-none" : ""}>{day.date.getDate()}</span>
+                                    {isFullyBooked ? (
+                                      <span className="text-[7px] uppercase font-bold text-rose-600 dark:text-rose-400 leading-none mt-0.5 tracking-tighter">
+                                        FULL
+                                      </span>
+                                    ) : isToday && !isSelected ? (
                                       <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${todayActiveDot}`} />
-                                    )}
+                                    ) : null}
                                   </button>
 
                                   <AnimatePresence>
@@ -1056,33 +1190,44 @@ export function ReservationsView() {
                                 </div>
 
                                 {!isTable && (
-                                  <div className="mt-6 pt-5 border-t border-zinc-200 dark:border-white/10 space-y-3">
-                                    <div className="flex items-center justify-between flex-wrap gap-2">
-                                      <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
-                                        Event Venue Address & Transportation Fee
-                                      </label>
-                                      <button
-                                        type="button"
-                                        onClick={() => setIsMapModalOpen(true)}
-                                        className="flex items-center gap-1.5 text-[10px] font-sans text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 px-3 py-1 rounded-lg font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
-                                      >
-                                        <Navigation size={12} className="stroke-[2.5]" />
-                                        Choose Location on Map
-                                      </button>
+                                  <div className="mt-6 pt-5 border-t border-zinc-200 dark:border-white/10 space-y-3.5">
+                                    <label className={`font-sans text-[10px] uppercase font-bold tracking-[0.2em] ${labelAccent} block pl-1`}>
+                                      Event Venue Address & Transportation Fee
+                                    </label>
+
+                                    {/* 2-Row Table Box: Origin Point (Top) & Choose Location on Map (Bottom) */}
+                                    <div className="rounded-xl border border-card-border bg-background-alt/40 overflow-hidden divide-y divide-card-border font-sans text-xs">
+                                      {/* Top Row: Origin Point */}
+                                      <div className="flex items-center justify-between px-4 py-3 bg-card/50 gap-3">
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <MapPin size={14} className="text-emerald-500 shrink-0" />
+                                          <span className="font-semibold text-foreground">Origin Point</span>
+                                        </div>
+                                        <span className="text-[11px] text-zinc-400 text-right truncate">
+                                          J.P Rizal Street, Poblacion 3, Tiaong, 4325 Quezon
+                                        </span>
+                                      </div>
+
+                                      {/* Bottom Row: Choose Location on Map */}
+                                      <div className="flex items-center justify-between px-4 py-3 bg-card/50 gap-3">
+                                        <div className="flex items-center gap-2">
+                                          <Navigation size={14} className="text-emerald-500 shrink-0" />
+                                          <span className="font-semibold text-foreground">Interactive Map</span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => setIsMapModalOpen(true)}
+                                          className="flex items-center gap-1.5 text-[10px] font-sans text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 px-3 py-1 rounded-lg font-bold transition-all active:scale-95 cursor-pointer shadow-xs shrink-0"
+                                        >
+                                          <Navigation size={12} className="stroke-[2.5]" />
+                                          Choose Location on Map
+                                        </button>
+                                      </div>
                                     </div>
 
                                     <div className="bg-card/70 border border-card-border p-4 rounded-xl space-y-3.5">
-                                      {/* Origin Point Reference */}
-                                      <div className="flex items-start gap-2.5 text-xs text-zinc-500 font-sans pb-2 border-b border-zinc-200/10">
-                                        <MapPin size={15} className="text-emerald-500 shrink-0 mt-0.5" />
-                                        <div>
-                                          <span className="font-bold text-foreground block text-[11px]">Origin Point</span>
-                                          <span className="text-[10px] text-zinc-400">J.P Rizal Street, Poblacion 3, Tiaong, 4325 Quezon</span>
-                                        </div>
-                                      </div>
-
                                       {/* Structured Venue Address Inputs Grid */}
-                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {/* Street Address */}
                                         <div className="space-y-1">
                                           <label className="text-[9px] uppercase font-bold text-zinc-400 tracking-wider font-sans block pl-1">
@@ -1145,25 +1290,23 @@ export function ReservationsView() {
                                       </div>
 
                                       {/* Calculated Transpo Fee & Distance Display */}
-                                      <div className="flex justify-between items-center p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                                        <div className="space-y-0.5 text-[10px] font-sans">
+                                      <div className="mt-3 rounded-xl border border-card-border bg-background-alt/40 overflow-hidden divide-y divide-card-border font-sans text-xs">
+                                        {/* Top Row: Estimated Distance */}
+                                        <div className="flex items-center justify-between px-4 py-3 bg-card/50">
                                           <div className="flex items-center gap-2">
-                                            <span className="font-bold text-foreground block text-xs">Estimated Distance:</span>
-                                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25">
-                                              {formData.distanceKm ? `${formData.distanceKm.toFixed(1)} km` : "0.0 km"}
-                                            </span>
+                                            <Navigation size={14} className="text-emerald-500 shrink-0" />
+                                            <span className="font-semibold text-foreground">Estimated Distance</span>
                                           </div>
-                                          <span className="text-zinc-500 block">
-                                            {(formData.distanceKm || 0) <= 6
-                                              ? "Within 6.0 km FREE coverage zone"
-                                              : `First 6km Free + ${((formData.distanceKm || 0) - 6).toFixed(1)} km excess @ ₱80/km`}
+                                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                            {formData.distanceKm ? `${formData.distanceKm.toFixed(1)} km` : "0.0 km"}
                                           </span>
                                         </div>
 
-                                        <div className="text-right">
-                                          <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500 block font-sans">Transpo Fee</span>
-                                          <span className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
-                                            {(formData.transpoFee || 0) === 0 ? "FREE (₱0)" : `₱${(formData.transpoFee || 0).toLocaleString()}`}
+                                        {/* Bottom Row: Transpo Fee */}
+                                        <div className="flex items-center justify-between px-4 py-3 bg-card/50">
+                                          <span className="font-semibold text-foreground">Transportation Fee</span>
+                                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base">
+                                            {(formData.transpoFee || 0) === 0 ? "FREE" : `₱${(formData.transpoFee || 0).toLocaleString()}`}
                                           </span>
                                         </div>
                                       </div>
@@ -1233,14 +1376,28 @@ export function ReservationsView() {
                           exit={{ opacity: 0, y: -10 }}
                           className="space-y-6"
                         >
-                          <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6">
-                            <h3 className="text-xl font-serif text-foreground tracking-wide">Select Experience Type</h3>
-                            <p className="text-xs text-zinc-500 mt-1 font-light">Choose how you wish to spend your time with us.</p>
+                          <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                              <h3 className="text-xl font-serif text-foreground tracking-wide">Select Experience Type</h3>
+                              <p className="text-xs text-zinc-500 mt-1 font-light">Choose how you wish to spend your time with us.</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsTrackModalOpen(true);
+                                setTrackingError(null);
+                                setTrackedReservation(null);
+                                setSearchTicketId("");
+                              }}
+                              className="flex items-center justify-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-600/5 px-4 py-2 font-sans text-[11px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 hover:border-emerald-600/50 transition-all active:scale-95 cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.06)] shrink-0 self-start sm:self-auto"
+                            >
+                              <Search size={12} className="stroke-[2.5]" />
+                              Track Booking Status
+                            </button>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             {eventTypes.map((item) => {
-                              const Icon = item.icon;
                               const isSelected = formData.eventType === item.type;
                               const isTable = item.type === "Table Reservation";
 
@@ -1256,24 +1413,6 @@ export function ReservationsView() {
                                     }`}
                                 >
                                   <div className="space-y-4 flex-1">
-                                    {/* Card Top Row */}
-                                    <div className="flex justify-between items-start">
-                                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-all ${isSelected
-                                        ? "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-[#2E5A44]/20 dark:text-emerald-400 dark:border-emerald-500/40"
-                                        : "bg-zinc-100 dark:bg-white/5 text-zinc-500 border-zinc-200 dark:border-white/5"
-                                        }`}>
-                                        <Icon size={18} />
-                                      </div>
-                                      <div className="text-right">
-                                        <span className={`text-[8px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full border ${isSelected
-                                          ? "text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/20 dark:border-emerald-500/30"
-                                          : "text-zinc-500 border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5"
-                                          }`}>
-                                          {item.category}
-                                        </span>
-                                      </div>
-                                    </div>
-
                                     {/* Title & Description */}
                                     <div>
                                       <div className="flex justify-between items-baseline gap-2">
@@ -1299,28 +1438,38 @@ export function ReservationsView() {
                                     </ul>
                                   </div>
 
-                                  <div className="flex justify-end pt-4 border-t border-zinc-200 dark:border-white/5 mt-4">
-                                    <span className={`font-sans text-[9px] uppercase tracking-widest font-bold ${isSelected
-                                      ? "text-emerald-700 dark:text-emerald-400"
-                                      : "text-zinc-500 dark:text-zinc-600"
-                                      }`}>
-                                      {isSelected ? "● Selected" : "Choose"}
-                                    </span>
+                                  <div className="flex justify-end items-center pt-4 border-t border-zinc-200 dark:border-white/5 mt-4 min-h-[44px]">
+                                    {isSelected ? (
+                                      <button
+                                        type="button"
+                                        disabled={selectingLoadingType === item.type}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCardContinue(item.type);
+                                        }}
+                                        className="flex items-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)] active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed"
+                                      >
+                                        {selectingLoadingType === item.type ? (
+                                          <>
+                                            <Loader2 size={14} className="animate-spin" />
+                                            <span>Loading...</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <span>Continue</span>
+                                            <ChevronRight size={14} />
+                                          </>
+                                        )}
+                                      </button>
+                                    ) : (
+                                      <span className="font-sans text-[9px] uppercase tracking-widest font-bold text-zinc-500 dark:text-zinc-600 py-1">
+                                        Choose
+                                      </span>
+                                    )}
                                   </div>
                                 </motion.div>
                               );
                             })}
-                          </div>
-
-                          <div className="flex justify-end pt-6 border-t border-zinc-200 dark:border-white/5">
-                            <button
-                              type="button"
-                              onClick={handleNext}
-                              className="flex items-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-6 py-3 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)] active:scale-95"
-                            >
-                              Continue
-                              <ChevronRight size={14} />
-                            </button>
                           </div>
                         </motion.div>
                       )}
@@ -1557,13 +1706,28 @@ export function ReservationsView() {
                               {(() => {
                                 const pricing = getPricingDetails();
                                 const endTime = getEndTimeString(formData.time);
+                                const isTable = formData.eventType === "Table Reservation";
+
                                 const list = [
-                                  { label: "Selected Experience", value: formData.eventType === "Table Reservation" ? "Lounge Table Reservation" : '"Brew Buggy" Mobile Coffee Cart', highlight: true },
+                                  { label: "Selected Experience", value: isTable ? "Lounge Table Reservation" : '"Brew Buggy" Mobile Coffee Cart', highlight: true },
                                   { label: "Reservation Date", value: formData.date },
                                   { label: "Service Time (3 Hrs)", value: `${formData.time} - ${endTime}` },
-                                  { label: "Capacity / Package", value: formData.eventType === "Table Reservation" ? `${formData.guestCount} Guests` : `${formData.guestCount} Pax Package` },
-                                  { label: "Location", value: formData.eventType === "Table Reservation" ? "Antonioni Grounds - Tiaong" : formData.location },
-                                  { label: "Package Price", value: `₱${pricing.totalPrice.toLocaleString()}` },
+                                  { label: "Capacity / Package", value: isTable ? `${formData.guestCount} Guests` : `${formData.guestCount} Pax Package` },
+                                  { label: "Location", value: isTable ? "Antonioni Grounds - Tiaong" : formData.location },
+                                  ...(isTable
+                                    ? [
+                                        { label: "Package Price", value: "₱3,500 (Consumable)" },
+                                      ]
+                                    : [
+                                        { label: "Base Package Price", value: `₱${(pricing.basePackagePrice || 5500).toLocaleString()}` },
+                                        { 
+                                          label: "Transportation Fee", 
+                                          value: (pricing.transpoFee || 0) === 0 
+                                            ? "FREE" 
+                                            : `₱${(pricing.transpoFee || 0).toLocaleString()}${pricing.distanceKm ? ` (${pricing.distanceKm.toFixed(1)} km)` : ""}` 
+                                        },
+                                        { label: "Total Reservation Cost", value: `₱${pricing.totalPrice.toLocaleString()}` },
+                                      ]),
                                   { label: "Required Downpayment", value: `₱${pricing.downpayment.toLocaleString()}`, highlight: true }
                                 ];
 
@@ -1595,10 +1759,20 @@ export function ReservationsView() {
                             </button>
                             <button
                               type="submit"
-                              className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-8 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.3)] hover:shadow-[0_0_25px_rgba(46,90,68,0.5)] active:scale-95"
+                              disabled={isSubmitting}
+                              className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] disabled:opacity-60 disabled:cursor-not-allowed px-8 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.3)] hover:shadow-[0_0_25px_rgba(46,90,68,0.5)] active:scale-95 cursor-pointer"
                             >
-                              Confirm Booking
-                              <CheckCircle2 size={14} />
+                              {isSubmitting ? (
+                                <>
+                                  <Loader2 size={14} className="animate-spin" />
+                                  <span>Confirming...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>Confirm Booking</span>
+                                  <CheckCircle2 size={14} />
+                                </>
+                              )}
                             </button>
                           </div>
                         </motion.div>
@@ -1846,6 +2020,16 @@ export function ReservationsView() {
                             <span className="text-[9px] uppercase text-zinc-500 font-sans tracking-wide block">Date & Time</span>
                             <span className="text-foreground font-medium">{trackedReservation.date} @ {trackedReservation.time}</span>
                           </div>
+                          {trackedReservation.eventType !== "Table Reservation" && (
+                            <div>
+                              <span className="text-[9px] uppercase text-zinc-500 font-sans tracking-wide block">Transportation Fee</span>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                {(trackedReservation.transpoFee || 0) === 0
+                                  ? "FREE"
+                                  : `₱${(trackedReservation.transpoFee || 0).toLocaleString()}${trackedReservation.distanceKm ? ` (${trackedReservation.distanceKm} km)` : ""}`}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 

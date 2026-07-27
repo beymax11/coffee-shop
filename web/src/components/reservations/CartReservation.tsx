@@ -338,16 +338,22 @@ export function CartReservationReceipt({
         <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-0.5 block">{formData.date} at {formData.time} - {endTime}</span>
       </div>
       <div>
-        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Total Package Cost</span>
-        <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-0.5 block">₱{totalPrice.toLocaleString()}</span>
+        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Base Package Price</span>
+        <span className="font-sans text-xs text-foreground print:text-black font-semibold mt-0.5 block">
+          ₱{(((totalPrice - (formData.transpoFee || 0)) > 0 ? (totalPrice - (formData.transpoFee || 0)) : 5500)).toLocaleString()}
+        </span>
       </div>
       <div>
         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Transportation Fee</span>
         <span className="font-sans text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-0.5 block">
           {(formData.transpoFee || 0) === 0
-            ? "FREE (within 6km)"
+            ? "FREE"
             : `₱${(formData.transpoFee || 0).toLocaleString()} (${formData.distanceKm || 0} km)`}
         </span>
+      </div>
+      <div>
+        <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Total Reservation Cost</span>
+        <span className="font-sans text-xs text-foreground print:text-black font-bold mt-0.5 block">₱{totalPrice.toLocaleString()}</span>
       </div>
       <div>
         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Downpayment (Required)</span>

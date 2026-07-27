@@ -93,19 +93,66 @@ export const SettingsTab: React.FC = () => {
     }
   };
 
-  const handleFile = (file: File) => {
+  // Image compression helper to prevent localStorage QuotaExceededError
+  const compressImage = (file: File, maxWidth = 1920, maxHeight = 1080, quality = 0.82): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rawDataUrl = event.target?.result as string;
+        if (!rawDataUrl) {
+          resolve("");
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width / height > maxWidth / maxHeight) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL("image/webp", quality);
+            if (compressed && compressed.length < rawDataUrl.length) {
+              resolve(compressed);
+              return;
+            }
+          }
+          resolve(rawDataUrl);
+        };
+        img.onerror = () => resolve(rawDataUrl);
+        img.src = rawDataUrl;
+      };
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload a valid image file (PNG, JPG, WebP).");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        setHeroBgImageUrl(e.target.result as string);
-        toast.success("Hero image loaded from file upload!");
-      }
-    };
-    reader.readAsDataURL(file);
+    const compressedUrl = await compressImage(file);
+    if (compressedUrl) {
+      setHeroBgImageUrl(compressedUrl);
+      toast.success("Hero image uploaded & optimized successfully!");
+    } else {
+      toast.error("Failed to read image file.");
+    }
   };
 
   // Load configuration on mount
@@ -187,13 +234,20 @@ export const SettingsTab: React.FC = () => {
 
       await setHeroConfig(updatedConfig);
 
+      const displayBgUrl = heroBgImageUrl.startsWith("data:")
+        ? `${heroBgImageUrl.substring(0, 30)}... [Compressed Image Data]`
+        : heroBgImageUrl;
+
       auditLogger.log({
         action: "UPDATE",
         category: "settings",
         target: "Home Hero Configuration",
-        details: `Updated Home Hero text & background image (${heroBgImageUrl}).`,
+        details: `Updated Home Hero text & background image (${displayBgUrl}).`,
         severity: "info",
-        metadata: updatedConfig,
+        metadata: {
+          ...updatedConfig,
+          bgImageUrl: displayBgUrl,
+        },
       });
 
       toast.success("Home Hero settings updated successfully!");
@@ -754,7 +808,7 @@ export const SettingsTab: React.FC = () => {
               <div className="space-y-3">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-zinc-500 flex items-center justify-between">
                   <span>Hero Background Image (Drag & Drop or Select)</span>
-                  <span className="text-[9px] font-normal text-neutral-400">Drag image file or choose preset</span>
+                  <span className="text-[9px] font-normal text-neutral-400">Drag image file or click to upload</span>
                 </label>
 
                 {/* Drag and Drop Zone */}
@@ -807,15 +861,6 @@ export const SettingsTab: React.FC = () => {
                     </div>
                   )}
                 </div>
-
-                {/* Custom URL Input */}
-                <input
-                  type="text"
-                  value={heroBgImageUrl}
-                  onChange={(e) => setHeroBgImageUrl(e.target.value)}
-                  placeholder="/hero.png or https://..."
-                  className="w-full bg-white dark:bg-background-alt border border-card-border rounded-xl py-2 px-3.5 text-xs text-foreground placeholder:text-neutral-500 outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/30 transition-all font-mono"
-                />
               </div>
 
               <div className="pt-3 border-t border-card-border/60 flex items-center justify-between">

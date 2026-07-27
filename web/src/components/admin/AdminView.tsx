@@ -474,6 +474,9 @@ export const AdminView: React.FC = () => {
       localReservations[idx].status = newStatus;
       localStorage.setItem("reservations", JSON.stringify(localReservations));
     }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("storage"));
+    }
 
     // Also update status in Supabase via API (if reservation has an id) FIRST
     if (res.id) {

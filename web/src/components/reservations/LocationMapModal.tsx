@@ -232,7 +232,14 @@ export const LocationMapModal: React.FC<LocationMapModalProps> = ({
 
     mapInstanceRef.current = map;
 
+    const timer = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 150);
+
     return () => {
+      clearTimeout(timer);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -255,75 +262,66 @@ export const LocationMapModal: React.FC<LocationMapModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-3xl bg-card border border-card-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-card-border bg-card/90">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
-              <Navigation size={18} />
+    <div className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full h-full sm:h-auto max-w-3xl bg-card border-0 sm:border border-card-border rounded-none sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col sm:max-h-[90vh]">
+        {/* Modal Top Header Bar */}
+        <div className="px-4 sm:px-6 py-3 bg-card border-b border-card-border flex items-center justify-between gap-3 font-sans shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Navigation size={16} className="stroke-[2.5]" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-serif text-lg font-bold text-foreground">
-                  Pin Venue Location
-                </h3>
-                <span className="text-[9px] font-sans font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                  OpenStreetMap Powered • 100% Free
-                </span>
-              </div>
-              <p className="text-xs text-zinc-500 font-sans">
-                Drag the marker or click anywhere on the map to choose your event venue
+            <div className="min-w-0">
+              <h3 className="font-serif text-sm sm:text-base font-semibold text-foreground leading-tight truncate">
+                Interactive Map Location
+              </h3>
+              <p className="font-sans text-[10px] text-zinc-500 truncate">
+                Tap map or drag marker to set event venue
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-foreground rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+            className="p-2 text-zinc-400 hover:text-foreground rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 transition-all cursor-pointer shrink-0"
+            title="Close Map"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Live Distance & Fee Summary Badge */}
-        <div className="px-6 py-3 bg-emerald-500/5 border-b border-emerald-500/15 flex flex-wrap justify-between items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="text-[11px] font-sans">
-              <span className="text-zinc-500 block text-[9px] uppercase font-bold tracking-wider">
-                Origin Point
-              </span>
-              <span className="font-semibold text-foreground">
-                J.P Rizal St., Poblacion 3, Tiaong, Quezon
-              </span>
-            </div>
+        {/* Distance & Transpo Fee Compact Live Summary Bar */}
+        <div className="px-4 py-2.5 bg-emerald-500/5 dark:bg-[#2E5A44]/15 border-b border-emerald-500/15 flex items-center justify-between text-xs font-sans gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 text-[11px] min-w-0">
+            <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider hidden xs:inline">Origin:</span>
+            <span className="font-medium text-foreground text-[11px] truncate max-w-[130px] sm:max-w-none">
+              Poblacion 3, Tiaong
+            </span>
+          </div>
 
-            <div className="h-6 w-[1px] bg-zinc-300 dark:bg-white/10 hidden sm:block" />
-
-            <div className="text-[11px] font-sans">
-              <span className="text-zinc-500 block text-[9px] uppercase font-bold tracking-wider">
-                Distance
-              </span>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-1 text-[11px]">
+              <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider">Dist:</span>
               <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                 {distanceKm.toFixed(1)} km
               </span>
             </div>
-          </div>
 
-          <div className="text-right">
-            <span className="text-zinc-500 block text-[9px] uppercase font-bold tracking-wider font-sans">
-              Calculated Transpo Fee
-            </span>
-            <span className="font-mono font-bold text-base text-emerald-600 dark:text-emerald-400">
-              {transpoFee === 0 ? "FREE (₱0)" : `₱${transpoFee.toLocaleString()}`}
-            </span>
+            <div className="h-3.5 w-[1px] bg-zinc-300 dark:bg-white/10" />
+
+            <div className="flex items-center gap-1 text-[11px]">
+              <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-wider">Fee:</span>
+              <span className="font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
+                {transpoFee === 0 ? "FREE" : `₱${transpoFee.toLocaleString()}`}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Map Container */}
-        <div className="relative w-full h-[380px] sm:h-[420px] bg-zinc-900">
+        <div className="relative w-full flex-1 min-h-[280px] sm:h-[420px] sm:flex-none bg-zinc-900">
           {!leafletLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-card text-foreground gap-2 font-sans text-xs">
+            <div className="absolute inset-0 flex items-center justify-center bg-card text-foreground gap-2 font-sans text-xs z-10">
               <Loader2 size={18} className="animate-spin text-emerald-500" />
               Loading Interactive Map...
             </div>
@@ -332,20 +330,20 @@ export const LocationMapModal: React.FC<LocationMapModalProps> = ({
         </div>
 
         {/* Reverse Geocoded Address Preview & Confirm Bar */}
-        <div className="p-4 sm:p-5 border-t border-card-border bg-card/90 space-y-3">
-          <div className="flex items-start gap-2 text-xs font-sans">
-            <MapPin size={15} className="text-blue-500 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <span className="font-bold text-foreground block text-[11px]">
-                Detected Pinned Address:
+        <div className="p-3.5 sm:p-5 border-t border-card-border bg-card/95 space-y-3 shrink-0">
+          <div className="flex items-start gap-2.5 text-xs font-sans bg-background/50 p-2.5 rounded-xl border border-card-border">
+            <MapPin size={16} className="text-blue-500 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <span className="font-bold text-foreground block text-[10px] uppercase tracking-wider text-zinc-400">
+                Pinned Address:
               </span>
               {isGeocoding ? (
                 <span className="text-zinc-400 italic text-[11px] flex items-center gap-1.5 mt-0.5">
                   <Loader2 size={12} className="animate-spin text-emerald-500" />
-                  Fetching address details from map coordinates...
+                  Fetching address from map...
                 </span>
               ) : (
-                <span className="text-zinc-400 block text-[11px]">
+                <span className="text-foreground font-medium block text-xs truncate">
                   {[
                     addressDetails.street,
                     addressDetails.barangay ? `Brgy. ${addressDetails.barangay}` : "",
@@ -353,35 +351,38 @@ export const LocationMapModal: React.FC<LocationMapModalProps> = ({
                     addressDetails.province,
                   ]
                     .filter(Boolean)
-                    .join(", ") || "Click on the map or drag the pin to set venue location"}
+                    .join(", ") || "Tap on map or drag pin to select location"}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-zinc-200/10">
-            <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 font-sans">
-              <Info size={12} className="text-emerald-500 shrink-0" />
-              <span>You can refine the street & barangay text afterwards.</span>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-xs font-sans font-semibold rounded-lg border border-card-border text-zinc-400 hover:text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirm}
-                className="px-5 py-2 text-xs font-sans font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Check size={14} className="stroke-[3]" />
-                Confirm Selected Location
-              </button>
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-xs font-sans font-semibold rounded-xl sm:rounded-lg border border-card-border text-zinc-400 hover:text-foreground hover:bg-zinc-100 dark:hover:bg-white/5 transition-all cursor-pointer text-center"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={isGeocoding}
+              className="flex-[2] sm:flex-none px-5 py-2.5 sm:py-2 text-xs font-sans font-bold rounded-xl sm:rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center"
+            >
+              {isGeocoding ? (
+                <>
+                  <Loader2 size={14} className="animate-spin text-white" />
+                  <span>Detecting...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={14} className="stroke-[3]" />
+                  <span>Confirm Location</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

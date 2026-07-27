@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Calendar, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
-import { getHeroConfig, DEFAULT_HERO_CONFIG, HomeHeroConfig } from "@/utils/heroSettings";
+import { getHeroConfig, getSyncHeroConfig, DEFAULT_HERO_CONFIG, HomeHeroConfig } from "@/utils/heroSettings";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -31,44 +31,56 @@ const ctaHover = { scale: 1.03, transition: { duration: 0.25, ease: EASE } };
 const ctaTap = { scale: 0.97 };
 
 export const HomeHero: React.FC = () => {
-  const [heroConfig, setHeroConfig] = useState<HomeHeroConfig>(DEFAULT_HERO_CONFIG);
+  const [heroConfig, setHeroConfig] = useState<HomeHeroConfig | null>(() => getSyncHeroConfig());
 
   useEffect(() => {
+    let isMounted = true;
     const loadConfig = async () => {
       const config = await getHeroConfig(true);
-      setHeroConfig(config);
+      if (isMounted) {
+        setHeroConfig(config);
+      }
     };
     loadConfig();
 
-    const handleConfigChange = () => {
-      loadConfig();
+    const handleConfigChange = (e: any) => {
+      if (e && e.detail) {
+        setHeroConfig(e.detail);
+      } else {
+        loadConfig();
+      }
     };
 
     window.addEventListener("storage", handleConfigChange);
-    window.addEventListener("hero_config_changed", handleConfigChange);
+    window.addEventListener("hero_config_changed", handleConfigChange as EventListener);
     return () => {
+      isMounted = false;
       window.removeEventListener("storage", handleConfigChange);
-      window.removeEventListener("hero_config_changed", handleConfigChange);
+      window.removeEventListener("hero_config_changed", handleConfigChange as EventListener);
     };
   }, []);
+
+  const displayConfig = heroConfig || DEFAULT_HERO_CONFIG;
 
   return (
     <section className="relative min-h-[calc(100vh-72px)] md:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] py-16 sm:py-0">
       {/* Background with slow Ken Burns */}
       <div className="absolute inset-0 opacity-100 dark:opacity-80 transition-opacity duration-500">
-        <motion.div
-          key={heroConfig.bgImageUrl}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('${heroConfig.bgImageUrl || "/hero.png"}')`,
-          }}
-          initial={{ scale: 1.12, opacity: 0 }}
-          animate={{ scale: [1.08, 1.12, 1.08], opacity: 1 }}
-          transition={{
-            opacity: { duration: 1.4, ease: EASE },
-            scale: { duration: 22, repeat: Infinity, ease: "linear" },
-          }}
-        />
+        {heroConfig && (
+          <motion.div
+            key={heroConfig.bgImageUrl}
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url('${heroConfig.bgImageUrl || "/hero.png"}')`,
+            }}
+            initial={{ scale: 1.02, opacity: 0 }}
+            animate={{ scale: [1.0, 1.03, 1.0], opacity: 1 }}
+            transition={{
+              opacity: { duration: 1.4, ease: EASE },
+              scale: { duration: 22, repeat: Infinity, ease: "linear" },
+            }}
+          />
+        )}
       </div>
 
       {/* Overlays — left scrim for readable copy, photo stays visible on the right */}
@@ -113,7 +125,7 @@ export const HomeHero: React.FC = () => {
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             <span className="type-eyebrow tracking-[0.12em] sm:tracking-[0.25em] font-semibold text-emerald-400 text-[8.5px] sm:text-[10px]">
-              {heroConfig.eyebrowText || "Welcome to Antonioni Grounds"}
+              {displayConfig.eyebrowText || "Welcome to Antonioni Grounds"}
             </span>
           </motion.div>
 
@@ -122,9 +134,9 @@ export const HomeHero: React.FC = () => {
             className="type-display text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] font-serif leading-[1.12] tracking-tight"
             variants={heroItem}
           >
-            {heroConfig.headlineMain || "Where Every Cup"}{" "}
+            {displayConfig.headlineMain || "Where Every Cup"}{" "}
             <span className="text-emerald-400 italic block sm:inline-block">
-              {heroConfig.headlineHighlight || "Finds Its Story"}
+              {displayConfig.headlineHighlight || "Finds Its Story"}
             </span>
           </motion.h1>
 
@@ -133,7 +145,7 @@ export const HomeHero: React.FC = () => {
             variants={heroItem}
             className="type-body mt-4 sm:mt-6 text-zinc-300/90 max-w-lg mx-auto md:mx-0 drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-sm sm:text-base md:text-[1.05rem]"
           >
-            {heroConfig.subcopy}
+            {displayConfig.subcopy}
           </motion.p>
 
           {/* CTAs */}

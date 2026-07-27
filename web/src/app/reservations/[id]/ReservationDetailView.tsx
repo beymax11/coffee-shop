@@ -23,19 +23,24 @@ interface ReservationData {
   referenceNumber?: string;
   proofOfPayment?: string;
   cancellationReason?: string;
+  transpoFee?: number;
+  distanceKm?: number;
   created_at?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getPaymentInfo(eventType: string, guestCount: number) {
+function getPaymentInfo(eventType: string, guestCount: number, transpoFee: number = 0) {
   if (eventType === "Table Reservation") {
-    return { total: 3500, downpayment: 1000, balance: 2500 };
+    return { basePackage: 3500, transpoFee: 0, total: 3500, downpayment: 1000, balance: 2500 };
   }
   const packages: Record<number, number> = { 50: 5500, 100: 11000, 150: 16500, 200: 22000 };
-  const total = packages[guestCount] || 5500;
-  const dp = Math.round(total * 0.1);
-  return { total, downpayment: dp, balance: total - dp };
+  const basePackage = packages[guestCount] || 5500;
+  const baseDp = Math.round(basePackage * 0.1);
+  const fee = transpoFee || 0;
+  const total = basePackage + fee;
+  const downpayment = baseDp + fee;
+  return { basePackage, transpoFee: fee, total, downpayment, balance: total - downpayment };
 }
 
 function getEndTime(timeStr: string) {
@@ -453,7 +458,7 @@ export default function ReservationDetailView({ reservationId }: { reservationId
     );
   }
 
-  const pricing = getPaymentInfo(reservation.eventType, reservation.guestCount);
+  const pricing = getPaymentInfo(reservation.eventType, reservation.guestCount, reservation.transpoFee);
   const endTime = getEndTime(reservation.time);
   const canPay = (reservation.status === "Pre-Approved" || reservation.status === "Approved") && !isPaid;
 
@@ -601,18 +606,49 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                       <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Schedule</span>
                       <span className="text-foreground font-semibold">{reservation.date} at {reservation.time}{endTime ? ` - ${endTime}` : ""}</span>
                     </div>
-                    <div>
-                      <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Package Price</span>
-                      <span className="text-foreground font-semibold">₱{pricing.total.toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Downpayment (Required)</span>
-                      <span className="text-emerald-500 font-bold">₱{pricing.downpayment.toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Store Location</span>
-                      <span className="text-foreground font-semibold">{reservation.location}</span>
-                    </div>
+                    {reservation.eventType === "Table Reservation" ? (
+                      <>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Package Price</span>
+                          <span className="text-foreground font-semibold">₱{pricing.total.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Downpayment (Required)</span>
+                          <span className="text-emerald-500 font-bold">₱{pricing.downpayment.toLocaleString()}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Store Location</span>
+                          <span className="text-foreground font-semibold">{reservation.location}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Base Package Price</span>
+                          <span className="text-foreground font-semibold">₱{pricing.basePackage.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Transportation Fee</span>
+                          <span className="text-emerald-500 font-bold">
+                            {(reservation.transpoFee || 0) === 0
+                              ? "FREE"
+                              : `₱${(reservation.transpoFee || 0).toLocaleString()}${reservation.distanceKm ? ` (${reservation.distanceKm} km)` : ""}`}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Total Reservation Cost</span>
+                          <span className="text-foreground font-bold">₱{pricing.total.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Downpayment (Required)</span>
+                          <span className="text-emerald-500 font-bold">₱{pricing.downpayment.toLocaleString()}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Venue / Sourced Location</span>
+                          <span className="text-foreground font-semibold">{reservation.location || "Not specified"}</span>
+                        </div>
+                      </>
+                    )}
                     {notes && (
                       <div className="col-span-2">
                         <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Special Requests</span>

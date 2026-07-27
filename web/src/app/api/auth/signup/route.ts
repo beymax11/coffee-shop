@@ -131,118 +131,40 @@ export async function POST(req: NextRequest) {
   }
 }
 
+import { getSignupEmailHtml } from "@/lib/emails/signup-template";
+
 async function sendCustomVerificationEmail(email: string, name: string, username: string, actionLink: string) {
-  const htmlEmail = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Confirm Your Account — Antonioni Grounds</title>
-</head>
-<body style="margin:0;padding:0;background-color:#FAF7F2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FAF7F2;padding:40px 16px;">
-    <tr>
-      <td align="center">
-        <!-- Main Card Container -->
-        <table width="560" cellpadding="0" cellspacing="0" style="background-color:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid rgba(45,31,24,0.08);max-width:100%;box-shadow:0 4px 20px rgba(45,31,24,0.03);">
-          
-          <!-- Top Accent Band -->
-          <tr><td style="height:6px;background-color:#2E5A44;"></td></tr>
-          
-          <!-- Logo & Header -->
-          <tr>
-            <td style="padding:40px 40px 24px;text-align:center;border-bottom:1px solid #222222;background-color:#121212;">
-              <img src="cid:logo" alt="Antonioni Grounds Logo" style="height:72px;width:auto;margin:0 auto 16px;display:block;" />
-              <p style="margin:0;font-size:10px;letter-spacing:0.35em;color:#C5A880;font-weight:700;text-transform:uppercase;">Antonioni Grounds</p>
-              <h1 style="margin:12px 0 0;font-size:26px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;font-family:'Georgia',serif;">Verify Your Account</h1>
-              <p style="margin:8px 0 0;font-size:13px;color:#A8A29E;line-height:1.6;max-width:400px;margin-left:auto;margin-right:auto;">
-                Welcome to Antonioni Grounds. Please verify your email address to complete your registration and activate your reserve account.
-              </p>
-            </td>
-          </tr>
+  const htmlEmail = getSignupEmailHtml({
+    name,
+    username,
+    email,
+    actionLink,
+    isPreview: false,
+  });
 
-          <!-- Account Details -->
-          <tr>
-            <td style="padding:24px 40px 0;">
-              <p style="margin:0 0 12px;font-size:10px;letter-spacing:0.2em;color:#2E5A44;font-weight:700;text-transform:uppercase;">Account Details</p>
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#FAF7F2;border:1px solid rgba(45,31,24,0.06);border-radius:12px;overflow:hidden;">
-                <tr>
-                  <td style="padding:14px 16px;border-bottom:1px solid rgba(45,31,24,0.06);">
-                    <span style="font-size:9px;color:#7C6E65;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;">Full Name</span><br/>
-                    <span style="font-size:13px;font-weight:700;color:#2D1F18;margin-top:2px;display:inline-block;">${name}</span>
-                  </td>
-                  <td style="padding:14px 16px;border-bottom:1px solid rgba(45,31,24,0.06);text-align:right;">
-                    <span style="font-size:9px;color:#7C6E65;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;">Username</span><br/>
-                    <span style="font-size:13px;font-weight:700;color:#2D1F18;margin-top:2px;display:inline-block;">@${username}</span>
-                  </td>
-                </tr>
-                <tr>
-                  <td colspan="2" style="padding:14px 16px;">
-                    <span style="font-size:9px;color:#7C6E65;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;">Email Address</span><br/>
-                    <span style="font-size:13px;font-weight:700;color:#2D1F18;margin-top:2px;display:inline-block;">${email}</span>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+  const attachments: Array<{ filename: string; path: string; cid: string }> = [
+    {
+      filename: "logo.png",
+      path: path.join(process.cwd(), "public", "logo.png"),
+      cid: "logo",
+    },
+  ];
 
-          <!-- Welcome Message -->
-          <tr>
-            <td style="padding:24px 40px 0;color:#2D1F18;font-size:14px;line-height:1.7;">
-              <p style="margin:0 0 16px;">Hello ${name},</p>
-              <p style="margin:0 0 16px;">
-                Thank you for creating an account with us. By confirming your email address, you'll gain access to your loyalty stamps panel, table reservation bookings, and mobile cart requests.
-              </p>
-              <p style="margin:0 0 8px;">
-                Please click the button below to confirm your account:
-              </p>
-            </td>
-          </tr>
-
-          <!-- CTA Button -->
-          <tr>
-            <td style="padding:28px 40px 24px;text-align:center;">
-              <a href="${actionLink}" style="display:inline-block;background-color:#2E5A44;color:#ffffff;text-decoration:none;padding:14px 40px;border-radius:50px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border:1px solid #234533;">
-                Confirm Account →
-              </a>
-              <p style="margin:12px 0 0;font-size:11px;color:#7C6E65;">
-                Or copy this link: <a href="${actionLink}" style="color:#2E5A44;text-decoration:underline;">${actionLink}</a>
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding:30px 40px;text-align:center;border-top:1px solid rgba(45,31,24,0.08);background-color:#FAF7F2;">
-              <p style="margin:0;font-size:11px;color:#7C6E65;line-height:1.7;">
-                Questions? Contact us at <a href="mailto:${process.env.SMTP_USER}" style="color:#2E5A44;text-decoration:underline;">${process.env.SMTP_USER}</a><br/>
-                <strong>Antonioni Grounds</strong> — Tiaong, Quezon Province<br/>
-                <span style="color:#A88B62;font-size:10px;margin-top:6px;display:block;">© ${new Date().getFullYear()} Antonioni Grounds. All rights reserved.</span>
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-  `;
+  const heroPath = path.join(process.cwd(), "public", "hero.png");
+  if (require("fs").existsSync(heroPath)) {
+    attachments.push({
+      filename: "hero.png",
+      path: heroPath,
+      cid: "hero",
+    });
+  }
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM || `"Antonioni Grounds" <${process.env.SMTP_USER}>`,
     to: email,
-    subject: `Confirm Your Account — Antonioni Grounds`,
+    subject: `Confirm your email — Antonioni Grounds`,
     html: htmlEmail,
-    text: `Hi ${name},\n\nWelcome to Antonioni Grounds! Please verify your email address to complete registration.\n\nConfirm Account: ${actionLink}\n\nThank you,\nAntonioni Grounds`,
-    attachments: [
-      {
-        filename: "logo.png",
-        path: path.join(process.cwd(), "public", "logo.png"),
-        cid: "logo",
-      },
-    ],
+    text: `Thank you for signing up for Antonioni Grounds!\n\nPlease confirm your email by clicking the link below:\n${actionLink}\n\nIf you didn't create an account, you can safely ignore this email.`,
+    attachments,
   });
 }

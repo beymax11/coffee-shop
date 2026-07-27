@@ -16,8 +16,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/send-email/completed") ||
     pathname.startsWith("/api/send-email/secured");
 
-  // Require admin/barista role for admin pages, reservation list, and admin email triggers
-  const requiresStaffRole = isAdminPage || (isApiReservationList && method === "GET") || isEmailAdminRoute;
+  // Require admin/barista role for admin pages and admin email triggers
+  const requiresStaffRole = isAdminPage || isEmailAdminRoute;
 
   if (requiresStaffRole) {
     // 0. ADMIN / STAFF SESSION COOKIE CHECK

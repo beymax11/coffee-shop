@@ -117,6 +117,8 @@ export async function GET(
       nonCoffeeFlavor1: data.non_coffee_flavor_1,
       nonCoffeeFlavor2: data.non_coffee_flavor_2,
       cancellationReason: data.cancellation_reason,
+      transpoFee: data.transpo_fee,
+      distanceKm: data.distance_km,
       created_at: data.created_at,
     };
 

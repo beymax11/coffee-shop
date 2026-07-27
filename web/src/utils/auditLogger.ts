@@ -69,13 +69,21 @@ export const auditLogger = {
       metadata: params.metadata,
     };
 
+    const MAX_LOCAL_LOGS = 100;
     const logs = this.getAuditLogs();
-    const updatedLogs = [newLog, ...logs];
+    const updatedLogs = [newLog, ...logs].slice(0, MAX_LOCAL_LOGS);
 
     if (isBrowser) {
       try {
         localStorage.removeItem("audit_logs_cleared");
-        localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(updatedLogs));
+        try {
+          localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(updatedLogs));
+        } catch (storageErr) {
+          console.warn("Notice: Quota exceeded when writing audit logs, pruning array:", storageErr);
+          try {
+            localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(updatedLogs.slice(0, 30)));
+          } catch (_) {}
+        }
         window.dispatchEvent(new Event("storage"));
 
         // Sync to Supabase audit_logs table in background

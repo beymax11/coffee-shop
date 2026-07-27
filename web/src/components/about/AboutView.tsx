@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Coffee, Award, ShieldCheck, Heart, ArrowRight, Eye, Leaf } from "lucide-react";
+import { Coffee, Award, ShieldCheck, Heart, ArrowRight, Eye, Leaf, Target, Compass } from "lucide-react";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import Link from "next/link";
 
@@ -91,6 +91,31 @@ export function AboutView() {
         </div>
 
         <div className="mx-auto max-w-7xl px-6 md:px-8 space-y-28">
+
+          {/* Section: Mission & Vision */}
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Mission Card */}
+            <StaggerItem className="rounded-xl border border-card-border bg-card p-8 space-y-4 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 dark:hover:shadow-none hover:-translate-y-1 transition-all duration-300">
+              <div className="rounded-full bg-[#2E5A44]/10 p-3 text-[#2E5A44] dark:text-emerald-400 w-fit">
+                <Target size={20} />
+              </div>
+              <h3 className="type-subheading text-foreground">Our Mission</h3>
+              <p className="type-body text-neutral-600 dark:text-zinc-400">
+                To elevate coffee from a daily routine into an extraordinary sensory ritual. We are dedicated to ethically sourcing the top 1% single-origin microlots directly from smallholder family farms, micro-roasting with scientific precision, and serving every cup in mindful, beautifully crafted spaces.
+              </p>
+            </StaggerItem>
+
+            {/* Vision Card */}
+            <StaggerItem className="rounded-xl border border-card-border bg-card p-8 space-y-4 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 dark:hover:shadow-none hover:-translate-y-1 transition-all duration-300">
+              <div className="rounded-full bg-[#2E5A44]/10 p-3 text-[#2E5A44] dark:text-emerald-400 w-fit">
+                <Compass size={20} />
+              </div>
+              <h3 className="type-subheading text-foreground">Our Vision</h3>
+              <p className="type-body text-neutral-600 dark:text-zinc-400">
+                To be the gold standard of modern luxury coffee culture globally—setting new benchmarks in direct-trade ethics, eco-conscious roasting, and architectural aesthetic quietude, while inspiring a deeper appreciation for the rich heritage behind every coffee origin.
+              </p>
+            </StaggerItem>
+          </StaggerContainer>
 
           {/* Section 1: The Ritual Sourcing */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">

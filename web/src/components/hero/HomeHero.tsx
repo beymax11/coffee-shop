@@ -31,11 +31,19 @@ const ctaHover = { scale: 1.03, transition: { duration: 0.25, ease: EASE } };
 const ctaTap = { scale: 0.97 };
 
 export const HomeHero: React.FC = () => {
-  const [heroConfig, setHeroConfig] = useState<HomeHeroConfig | null>(() => getSyncHeroConfig());
+  // Start as null to match SSR (localStorage is unavailable on the server).
+  // Reading localStorage in a lazy useState initializer causes a hydration mismatch
+  // because the server renders null while the client reads a different value.
+  const [heroConfig, setHeroConfig] = useState<HomeHeroConfig | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     const loadConfig = async () => {
+      // Prefer the in-memory / localStorage value first for instant paint, then
+      // follow up with a fresh Supabase fetch.
+      const syncConfig = getSyncHeroConfig();
+      if (isMounted && syncConfig) setHeroConfig(syncConfig);
+
       const config = await getHeroConfig(true);
       if (isMounted) {
         setHeroConfig(config);
@@ -63,24 +71,22 @@ export const HomeHero: React.FC = () => {
   const displayConfig = heroConfig || DEFAULT_HERO_CONFIG;
 
   return (
-    <section className="relative min-h-[calc(100vh-72px)] md:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] py-16 sm:py-0">
+    <section className="relative -mt-[72px] lg:mt-0 min-h-screen lg:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] pt-[72px] lg:pt-0 pb-12 sm:pb-0">
       {/* Background with slow Ken Burns */}
       <div className="absolute inset-0 opacity-100 dark:opacity-80 transition-opacity duration-500">
-        {heroConfig && (
-          <motion.div
-            key={heroConfig.bgImageUrl}
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{
-              backgroundImage: `url('${heroConfig.bgImageUrl || "/hero.png"}')`,
-            }}
-            initial={{ scale: 1.02, opacity: 0 }}
-            animate={{ scale: [1.0, 1.03, 1.0], opacity: 1 }}
-            transition={{
-              opacity: { duration: 1.4, ease: EASE },
-              scale: { duration: 22, repeat: Infinity, ease: "linear" },
-            }}
-          />
-        )}
+        <motion.div
+          key={displayConfig.bgImageUrl}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('${displayConfig.bgImageUrl || "/hero.png"}')`,
+          }}
+          initial={{ scale: 1.02, opacity: 0 }}
+          animate={{ scale: [1.0, 1.03, 1.0], opacity: 1 }}
+          transition={{
+            opacity: { duration: 1.4, ease: EASE },
+            scale: { duration: 22, repeat: Infinity, ease: "linear" },
+          }}
+        />
       </div>
 
       {/* Overlays — left scrim for readable copy, photo stays visible on the right */}

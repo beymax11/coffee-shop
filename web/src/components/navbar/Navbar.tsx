@@ -9,49 +9,62 @@ import { motion, AnimatePresence } from "framer-motion";
 import { db, LoyaltyMember } from "@/utils/db";
 import { NotificationDropdown, NotificationItem } from "./NotificationDropdown";
 import { ProfileModal } from "./ProfileModal";
-import { LoginDrawer } from "@/components/login/LoginDrawer";
 import { notificationsService } from "@/utils/notifications";
+import { LoginDrawer } from "@/components/login/LoginDrawer";
+// Social Media Icons for mobile drawer
+const FacebookIcon = ({ size = 20 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+);
 
-// Framer Motion Variants for mobile menu animation
+const InstagramIcon = ({ size = 20 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+);
+
+const TiktokIcon = ({ size = 20 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path></svg>
+);
+
+// Framer Motion Variants for DBTK-style mobile menu transition
 const menuVariants = {
-  hidden: { x: "100%" },
+  hidden: {
+    x: "-100%",
+  },
   visible: {
     x: 0,
     transition: {
-      type: "spring",
-      stiffness: 280,
-      damping: 30,
-      mass: 0.8,
+      duration: 0.45,
+      ease: [0.25, 1, 0.5, 1],
       staggerChildren: 0.05,
-      delayChildren: 0.05,
+      delayChildren: 0.12,
     },
   },
   exit: {
-    x: "100%",
+    x: "-100%",
     transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 32,
-      staggerChildren: 0.03,
+      duration: 0.35,
+      ease: [0.7, 0, 0.84, 0],
+      staggerChildren: 0.02,
       staggerDirection: -1,
     },
   },
 } as const;
 
 const itemVariants = {
-  hidden: { opacity: 0, x: 20 },
+  hidden: {
+    opacity: 0,
+    y: 24,
+  },
   visible: {
     opacity: 1,
-    x: 0,
+    y: 0,
     transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 24,
+      duration: 0.4,
+      ease: [0.25, 1, 0.5, 1],
     },
   },
   exit: {
     opacity: 0,
-    x: 10,
+    y: 12,
     transition: {
       duration: 0.15,
     },
@@ -240,31 +253,36 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 flex items-center ${isScrolled
-          ? "border-b border-card-border bg-background/80 backdrop-blur-md h-16 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
-          : "bg-transparent h-20"
-          }`}
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 flex items-center ${
+          isScrolled
+            ? "border-b border-card-border bg-background/80 backdrop-blur-md h-16 lg:h-20 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
+            : "bg-transparent lg:bg-background/80 lg:backdrop-blur-md lg:border-b lg:border-card-border h-20 lg:h-24 lg:shadow-[0_4px_20px_rgba(0,0,0,0.05)] lg:dark:shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
+        }`}
       >
-        <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between px-3 sm:px-6 md:px-8">
+        {/* ─── DESKTOP Layout (lg+) ─── */}
+        <div className="hidden lg:flex mx-auto h-full w-full max-w-7xl items-center justify-between px-8">
           {/* Logo */}
           <Link href="/" className="flex items-center group">
             <img
               src="/logo.png"
               alt="ANTONIONI GROUNDS"
-              className="h-9 sm:h-11 lg:h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105 invert dark:invert-0"
+              className="h-14 w-auto object-contain transition-transform duration-300 group-hover:scale-105 invert dark:invert-0"
             />
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-8">
+          <nav className="flex items-center gap-8">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`relative type-nav transition-colors ${isActive ? "text-foreground font-semibold" : "text-neutral-500 hover:text-brand-gold dark:hover:text-brand-gold-hover"
-                    }`}
+                  className={`relative type-nav transition-colors ${
+                    isActive
+                      ? "text-foreground font-semibold"
+                      : "text-neutral-500 hover:text-brand-green dark:hover:text-brand-green"
+                  }`}
                 >
                   {link.name}
                   {isActive && (
@@ -279,37 +297,36 @@ export const Navbar: React.FC = () => {
             })}
           </nav>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
+          {/* Desktop Action Buttons */}
+          <div className="flex items-center gap-3">
+            {/* Profile Capsule */}
             {customer && (
-              /* Profile Capsule Button */
               <button
                 onClick={() => setIsProfileOpen(true)}
-                className="group relative hidden sm:flex items-center justify-center w-8 h-8 rounded-full border border-brand-green/30 bg-card/90 transition-all duration-300 hover:border-brand-green hover:scale-[1.02] active:scale-[0.98] cursor-pointer sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 sm:justify-start sm:gap-2"
+                className="group relative flex items-center justify-center w-auto h-auto px-3 py-1.5 gap-2 rounded-full border border-brand-green/30 bg-card/90 transition-all duration-300 hover:border-brand-green hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 aria-label="Profile"
               >
                 <div className="absolute inset-0 rounded-full bg-brand-green/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none" />
                 <div className="relative w-5 h-5 rounded-full border border-brand-green/30 bg-background flex items-center justify-center text-brand-green dark:text-emerald-400 text-[9px] font-bold shadow-[0_0_8px_rgba(46,90,68,0.15)] select-none">
                   {(customer.username || customer.name).charAt(0).toUpperCase()}
-                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse sm:hidden" />
                 </div>
-                <span className="relative hidden sm:inline text-[10px] uppercase tracking-[0.15em] font-sans font-bold text-neutral-500 dark:text-zinc-300 group-hover:text-foreground dark:group-hover:text-white transition-colors">
+                <span className="relative text-[10px] uppercase tracking-[0.15em] font-sans font-bold text-neutral-500 dark:text-zinc-300 group-hover:text-foreground dark:group-hover:text-white transition-colors">
                   {customer.username || customer.name.split(" ")[0]}
                   <span className="absolute -top-1 -right-2 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 </span>
               </button>
             )}
 
-            {/* Theme Toggle Button */}
+            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="w-8 h-8 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-gold hover:border-brand-gold/30 transition-all duration-300 cursor-pointer"
+              className="w-8 h-8 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-green hover:border-brand-green/30 transition-all duration-300 cursor-pointer"
               aria-label="Toggle Theme"
             >
               {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
             </button>
 
-            {/* Notification Button */}
+            {/* Notifications */}
             {customer && (
               <NotificationDropdown
                 notifications={notifications}
@@ -318,44 +335,33 @@ export const Navbar: React.FC = () => {
               />
             )}
 
-            {/* Sign In Button (Only when NOT logged in) */}
+            {/* Sign In */}
             {!customer && (
-              <>
-                {/* Desktop Sign In Button */}
-                <button
-                  onClick={() => setIsLoginOpen(true)}
-                  className="hidden lg:block group relative cursor-pointer"
-                  aria-label="Sign In"
+              <button
+                onClick={() => setIsLoginOpen(true)}
+                className="group relative cursor-pointer"
+                aria-label="Sign In"
+              >
+                <div className="absolute inset-0 -m-[1px] rounded-full bg-gradient-to-r from-brand-green to-brand-green/70 opacity-0 blur-[6px] transition-opacity duration-500 group-hover:opacity-100" />
+                <div
+                  className={`relative flex items-center gap-2 px-5 py-2 rounded-full border text-[10px] font-sans font-bold tracking-[0.15em] uppercase transition-all duration-300 group-hover:scale-[1.02] active:scale-[0.98] ${
+                    isLoginOpen
+                      ? "bg-brand-green border-brand-green text-white shadow-[0_0_15px_rgba(46,90,68,0.3)]"
+                      : "bg-card/90 border-brand-green/30 text-neutral-500 dark:text-zinc-300 group-hover:border-brand-green group-hover:text-white group-hover:bg-brand-green shadow-[0_0_15px_rgba(46,90,68,0.03)]"
+                  }`}
                 >
-                  {/* Background glow ring on hover */}
-                  <div className="absolute inset-0 -m-[1px] rounded-full bg-gradient-to-r from-brand-gold to-brand-gold-hover opacity-0 blur-[6px] transition-opacity duration-500 group-hover:opacity-100" />
-                  {/* Main button container */}
-                  <div className={`relative flex items-center gap-2 px-5 py-2 rounded-full border text-[10px] font-sans font-bold tracking-[0.15em] uppercase transition-all duration-300 group-hover:scale-[1.02] active:scale-[0.98] ${isLoginOpen
-                      ? "bg-brand-gold border-brand-gold text-black shadow-[0_0_15px_rgba(197,168,128,0.3)]"
-                      : "bg-card/90 border-brand-gold/30 text-neutral-500 dark:text-zinc-300 group-hover:border-brand-gold group-hover:text-black group-hover:bg-gradient-to-r group-hover:from-brand-gold group-hover:to-brand-gold-hover shadow-[0_0_15px_rgba(197,168,128,0.03)]"
-                    }`}>
-                    <LogIn size={11} className="transition-transform duration-300 group-hover:translate-x-0.5" />
-                    <span>Sign In</span>
-                  </div>
-                </button>
-
-                {/* Mobile/Tablet Sign In Button */}
-                <button
-                  onClick={() => setIsLoginOpen(true)}
-                  className="lg:hidden w-8 h-8 rounded-full border border-brand-gold/30 bg-card/90 flex items-center justify-center text-zinc-500 hover:text-brand-gold hover:border-brand-gold transition-all duration-300 cursor-pointer"
-                  aria-label="Sign In"
-                >
-                  <LogIn size={13} />
-                </button>
-              </>
+                  <LogIn size={11} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                  <span>Sign In</span>
+                </div>
+              </button>
             )}
 
-            {/* Log Out Button */}
+            {/* Log Out */}
             {customer && (
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="hidden lg:flex w-8 h-8 rounded-full border border-card-border bg-card/50 items-center justify-center text-neutral-500 dark:text-zinc-400 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-8 h-8 rounded-full border border-card-border bg-card/50 flex items-center justify-center text-neutral-500 dark:text-zinc-400 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 aria-label="Sign Out"
               >
                 {isLoggingOut ? (
@@ -365,15 +371,59 @@ export const Navbar: React.FC = () => {
                 )}
               </button>
             )}
+          </div>
+        </div>
 
-            {/* Hamburger Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden w-8 h-8 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-gold hover:border-brand-gold/30 transition-all duration-300 cursor-pointer"
-              aria-label="Toggle Menu"
-            >
-              <Menu size={14} />
-            </button>
+        {/* ─── MOBILE Layout (below lg) — 3-column: Burger | Logo (center) | Notification ─── */}
+        <div className="lg:hidden relative flex items-center w-full h-full px-4">
+          {/* LEFT: Burger icon */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer ${
+              isScrolled
+                ? "border border-card-border bg-card/50 text-zinc-500 hover:text-brand-green hover:border-brand-green/30"
+                : "text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)] hover:opacity-75"
+            }`}
+            aria-label="Toggle Menu"
+          >
+            <Menu size={24} />
+          </button>
+
+          {/* CENTER: Logo — absolutely centered */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <Link href="/" className="pointer-events-auto flex items-center group">
+              <img
+                src="/logo.png"
+                alt="ANTONIONI GROUNDS"
+                className={`h-8 sm:h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105 ${
+                  isScrolled
+                    ? "invert dark:invert-0"
+                    : "brightness-0 invert drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]"
+                }`}
+              />
+            </Link>
+          </div>
+
+          {/* RIGHT: Notification icon (if logged in) or empty spacer */}
+          <div className="relative z-10 ml-auto">
+            {customer ? (
+              <div
+                className={`transition-all duration-300 ${
+                  !isScrolled
+                    ? "[&_button]:text-white [&_button]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]"
+                    : ""
+                }`}
+              >
+                <NotificationDropdown
+                  notifications={notifications}
+                  onMarkAsRead={handleMarkAsRead}
+                  onMarkAllAsRead={handleMarkAllAsRead}
+                />
+              </div>
+            ) : (
+              /* Spacer to keep logo centered when no notification */
+              <div className="w-10 h-10" />
+            )}
           </div>
         </div>
       </header>
@@ -391,136 +441,157 @@ export const Navbar: React.FC = () => {
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
 
-            {/* Menu Panel */}
+            {/* Menu Panel — DBTK Full-Screen Takeover Style */}
             <motion.div
               variants={menuVariants}
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="absolute right-0 top-0 bottom-0 w-full sm:w-80 h-full bg-background/95 dark:bg-[#0B0B0B]/95 backdrop-blur-2xl border-l border-brand-green/15 p-6 sm:p-8 flex flex-col justify-between shadow-2xl overflow-y-auto overflow-x-hidden"
+              className="absolute left-0 top-0 bottom-0 w-full h-full bg-background dark:bg-black p-6 sm:p-8 flex flex-col justify-between shadow-2xl overflow-y-auto overflow-x-hidden"
             >
-              {/* Decorative background glows */}
-              <div className="absolute top-1/4 -right-10 w-48 h-48 bg-brand-green/5 blur-[80px] rounded-full pointer-events-none" />
-              <div className="absolute bottom-10 -left-10 w-36 h-36 bg-brand-green/5 blur-[60px] rounded-full pointer-events-none" />
+              {/* Drawer Header */}
+              <div className="relative z-10 flex items-center justify-between border-b border-card-border/60 pb-5 mb-4 shrink-0">
+                {/* Left: Close Button */}
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ rotate: 90 }}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="relative z-10 w-10 h-10 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-green hover:border-brand-green/30 transition-all duration-300 cursor-pointer"
+                  aria-label="Close Menu"
+                >
+                  <X size={20} />
+                </motion.button>
 
-              <div className="relative z-10">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-card-border pb-6 mb-8">
-                  <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
+                {/* Center: Logo */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="pointer-events-auto">
                     <img
                       src="/logo.png"
                       alt="ANTONIONI GROUNDS"
-                      className="h-7 w-auto object-contain invert dark:invert-0"
+                      className="h-8 sm:h-9 w-auto object-contain invert dark:invert-0"
                     />
                   </Link>
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    whileHover={{ rotate: 90 }}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-8 h-8 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-green hover:border-brand-green/30 transition-all duration-300 cursor-pointer"
-                    aria-label="Close Menu"
-                  >
-                    <X size={14} />
-                  </motion.button>
                 </div>
 
-                {/* Mobile Links */}
-                <nav className="flex flex-col gap-3">
+                {/* Right: Spacer to keep logo centered */}
+                <div className="w-10 h-10 pointer-events-none" />
+              </div>
+
+              {/* Centered Navigation Links & Actions (DBTK Style Uniform Typography) */}
+              <div className="relative z-10 mt-2 sm:mt-4 mb-auto py-4 flex flex-col items-center justify-start w-full">
+                <nav className="flex flex-col items-center gap-3.5 sm:gap-4 w-full max-w-xs">
+                  {/* Page Navigation Links */}
                   {navLinks.map((link) => {
                     const isActive = pathname === link.href;
                     return (
-                      <motion.div key={link.name} variants={itemVariants}>
+                      <motion.div key={link.name} variants={itemVariants} className="w-full text-center">
                         <Link
                           href={link.href}
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className={`flex items-center justify-between type-nav text-sm py-2.5 px-4 rounded-xl transition-all duration-300 ${isActive
-                              ? "text-brand-green bg-brand-green/10 font-bold border-l-2 border-brand-green shadow-[inset_1px_0_0_0_rgba(46,90,68,0.2)]"
-                              : "text-neutral-500 dark:text-zinc-400 hover:text-brand-green hover:bg-card/40"
-                            }`}
+                          className={`inline-flex items-center justify-center text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 ${
+                            isActive
+                              ? "text-brand-green font-bold"
+                              : "text-neutral-600 dark:text-zinc-300 hover:text-brand-green hover:scale-105"
+                          }`}
                         >
                           <span>{link.name}</span>
-                          {isActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-brand-green shadow-[0_0_8px_rgba(46,90,68,0.6)]" />
-                          )}
                         </Link>
                       </motion.div>
                     );
                   })}
+
+                  {/* Dark Mode Toggle — Styled like navigation links */}
+                  <motion.div variants={itemVariants} className="w-full text-center pt-2">
+                    <button
+                      onClick={toggleTheme}
+                      className="inline-flex items-center justify-center gap-2.5 text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 text-neutral-600 dark:text-zinc-300 hover:text-brand-green hover:scale-105 cursor-pointer"
+                      aria-label="Toggle Theme"
+                    >
+                      {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                      <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+                    </button>
+                  </motion.div>
+
+                  {/* User Profile / Sign In / Sign Out — Styled like navigation links */}
+                  {customer ? (
+                    <>
+                      <motion.div variants={itemVariants} className="w-full text-center">
+                        <button
+                          onClick={() => {
+                            setIsProfileOpen(true);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="inline-flex items-center justify-center gap-2.5 text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 text-neutral-600 dark:text-zinc-300 hover:text-brand-green hover:scale-105 cursor-pointer"
+                        >
+                          <UserRound size={18} />
+                          <span>Profile ({customer.username || customer.name.split(" ")[0]})</span>
+                        </button>
+                      </motion.div>
+
+                      <motion.div variants={itemVariants} className="w-full text-center">
+                        <button
+                          onClick={handleLogout}
+                          disabled={isLoggingOut}
+                          className="inline-flex items-center justify-center gap-2.5 text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 text-red-500 hover:text-red-400 hover:scale-105 cursor-pointer disabled:opacity-50"
+                        >
+                          {isLoggingOut ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <LogOut size={18} />
+                          )}
+                          <span>{isLoggingOut ? "Signing Out..." : "Sign Out"}</span>
+                        </button>
+                      </motion.div>
+                    </>
+                  ) : (
+                    <motion.div variants={itemVariants} className="w-full text-center">
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          setIsLoginOpen(true);
+                        }}
+                        className="inline-flex items-center justify-center gap-2.5 text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 text-brand-green font-bold hover:scale-105 cursor-pointer"
+                      >
+                        <LogIn size={18} />
+                        <span>Sign In</span>
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {/* Social Media Links (FB, IG, TikTok) — Underneath Sign Out / Sign In */}
+                  <motion.div variants={itemVariants} className="w-full text-center pt-4 border-t border-card-border/40 mt-3">
+                    <div className="flex items-center justify-center gap-7 text-neutral-500 dark:text-zinc-400">
+                      <a
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-brand-green dark:hover:text-white transition-all duration-300 hover:scale-110"
+                        aria-label="Facebook"
+                      >
+                        <FacebookIcon size={20} />
+                      </a>
+                      <a
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-brand-green dark:hover:text-white transition-all duration-300 hover:scale-110"
+                        aria-label="Instagram"
+                      >
+                        <InstagramIcon size={20} />
+                      </a>
+                      <a
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-brand-green dark:hover:text-white transition-all duration-300 hover:scale-110"
+                        aria-label="TikTok"
+                      >
+                        <TiktokIcon size={20} />
+                      </a>
+                    </div>
+                  </motion.div>
                 </nav>
               </div>
-
-              {/* Bottom Section (Profile / Sign In + Footer) */}
-              <motion.div
-                variants={itemVariants}
-                className="relative z-10 border-t border-card-border pt-6 mt-auto space-y-4"
-              >
-                {customer ? (
-                  <div className="space-y-4">
-                    {/* User Profile Card */}
-                    <button
-                      onClick={() => {
-                        setIsProfileOpen(true);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-card-border/10 dark:bg-white/[0.02] border border-card-border/40 dark:border-white/[0.05] hover:border-brand-green/30 dark:hover:border-brand-green/30 hover:bg-brand-green/[0.02] transition-all duration-300 text-left group cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl border border-brand-green/20 bg-brand-green/5 flex items-center justify-center text-brand-green font-bold text-base shadow-[inset_0_1px_1px_rgba(46,90,68,0.1)] shrink-0">
-                          {(customer.username || customer.name).charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-[9px] uppercase tracking-[0.15em] font-sans font-bold text-brand-green/80">
-                            Reserve Member
-                          </span>
-                          <div className="text-sm font-semibold text-foreground truncate mt-0.5">
-                            {customer.username || customer.name}
-                          </div>
-                          <div className="text-[9px] text-zinc-400 dark:text-zinc-500 font-mono mt-0.5">
-                            {customer.id}
-                          </div>
-                        </div>
-                      </div>
-                      <ChevronRight size={14} className="text-zinc-500 group-hover:text-brand-green group-hover:translate-x-0.5 transition-all" />
-                    </button>
-
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={handleLogout}
-                        disabled={isLoggingOut}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-red-500/25 bg-red-500/5 text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:border-red-500/40 active:scale-[0.98] transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isLoggingOut ? (
-                          <Loader2 size={14} className="animate-spin text-zinc-400" />
-                        ) : (
-                          <LogOut size={14} />
-                        )}
-                        <span>{isLoggingOut ? "Signing Out..." : "Sign Out"}</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setIsLoginOpen(true);
-                    }}
-                    className={`flex items-center gap-2 type-nav text-sm transition-colors py-1 text-left w-full cursor-pointer ${isLoginOpen
-                        ? "text-brand-green bg-brand-green/10 font-bold border-l-2 border-brand-green shadow-[inset_1px_0_0_0_rgba(46,90,68,0.2)]"
-                        : "text-zinc-400 hover:text-foreground dark:hover:text-white"
-                      }`}
-                  >
-                    <LogIn size={16} />
-                    Sign In
-                  </button>
-                )}
-
-                {/* Mobile Footer */}
-                <div className="border-t border-card-border pt-4 text-center">
-                  <p className="type-caption text-zinc-500 type-micro">
-                    Antonioni Grounds.
-                  </p>
-                </div>
-              </motion.div>
             </motion.div>
           </div>
         )}

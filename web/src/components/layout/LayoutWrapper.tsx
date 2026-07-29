@@ -20,6 +20,19 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
 
   useEffect(() => {
+    try {
+      if (
+        localStorage.theme === "dark" ||
+        (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => {
     const checkStatus = async () => {
       if (pathname?.startsWith("/admin")) return;
 

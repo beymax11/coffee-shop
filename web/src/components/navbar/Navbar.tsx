@@ -268,11 +268,10 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 flex items-center border-b border-card-border bg-background/80 backdrop-blur-md ${
-          isScrolled
-            ? "h-16 lg:h-20 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
-            : "h-20 lg:h-24 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.3)]"
-        }`}
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 flex items-center border-b ${isScrolled
+            ? "h-16 lg:h-20 border-card-border bg-background/80 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
+            : "h-20 lg:h-24 border-transparent lg:border-card-border bg-transparent lg:bg-background/80 backdrop-blur-none lg:backdrop-blur-md shadow-none lg:shadow-[0_4px_20px_rgba(0,0,0,0.03)] lg:dark:shadow-[0_4px_30px_rgba(0,0,0,0.3)]"
+          }`}
       >
         {/* ─── DESKTOP Layout (lg+) ─── */}
         <div className="hidden lg:flex mx-auto h-full w-full max-w-7xl items-center justify-between px-8">
@@ -293,11 +292,10 @@ export const Navbar: React.FC = () => {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`relative type-nav transition-colors ${
-                    isActive
+                  className={`relative type-nav transition-colors ${isActive
                       ? "text-foreground font-semibold"
                       : "text-neutral-500 hover:text-brand-green dark:hover:text-brand-green"
-                  }`}
+                    }`}
                 >
                   {link.name}
                   {isActive && (
@@ -359,11 +357,10 @@ export const Navbar: React.FC = () => {
               >
                 <div className="absolute inset-0 -m-[1px] rounded-full bg-gradient-to-r from-brand-green to-brand-green/70 opacity-0 blur-[6px] transition-opacity duration-500 group-hover:opacity-100" />
                 <div
-                  className={`relative flex items-center gap-2 px-5 py-2 rounded-full border text-[10px] font-sans font-bold tracking-[0.15em] uppercase transition-all duration-300 group-hover:scale-[1.02] active:scale-[0.98] ${
-                    isLoginOpen
+                  className={`relative flex items-center gap-2 px-5 py-2 rounded-full border text-[10px] font-sans font-bold tracking-[0.15em] uppercase transition-all duration-300 group-hover:scale-[1.02] active:scale-[0.98] ${isLoginOpen
                       ? "bg-brand-green border-brand-green text-white shadow-[0_0_15px_rgba(46,90,68,0.3)]"
                       : "bg-card/90 border-brand-green/30 text-neutral-500 dark:text-zinc-300 group-hover:border-brand-green group-hover:text-white group-hover:bg-brand-green shadow-[0_0_15px_rgba(46,90,68,0.03)]"
-                  }`}
+                    }`}
                 >
                   <LogIn size={11} className="transition-transform duration-300 group-hover:translate-x-0.5" />
                   <span>Sign In</span>
@@ -394,7 +391,7 @@ export const Navbar: React.FC = () => {
           {/* LEFT: Burger icon */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="relative z-10 w-10 h-10 flex items-center justify-center text-foreground dark:text-white hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer"
+            className="relative z-10 w-10 h-10 flex items-center justify-center text-foreground dark:text-white hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer drop-shadow-md"
             aria-label="Toggle Menu"
           >
             <Menu size={24} />
@@ -406,7 +403,7 @@ export const Navbar: React.FC = () => {
               <img
                 src="/logo.png"
                 alt="ANTONIONI GROUNDS"
-                className="h-8 sm:h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105 invert dark:invert-0"
+                className="h-8 sm:h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105 invert dark:invert-0 drop-shadow-md"
               />
             </Link>
           </div>
@@ -414,13 +411,11 @@ export const Navbar: React.FC = () => {
           {/* RIGHT: Notification icon & User icon */}
           <div className="relative z-10 ml-auto flex items-center gap-1">
             {customer && (
-              <div className="transition-all duration-300 [&_button]:text-foreground dark:[&_button]:text-white hover:[&_button]:text-brand-green dark:hover:[&_button]:text-emerald-400">
-                <NotificationDropdown
-                  notifications={notifications}
-                  onMarkAsRead={handleMarkAsRead}
-                  onMarkAllAsRead={handleMarkAllAsRead}
-                />
-              </div>
+              <NotificationDropdown
+                notifications={notifications}
+                onMarkAsRead={handleMarkAsRead}
+                onMarkAllAsRead={handleMarkAllAsRead}
+              />
             )}
 
             <button
@@ -431,7 +426,7 @@ export const Navbar: React.FC = () => {
                   setIsLoginOpen(true);
                 }
               }}
-              className="w-10 h-10 flex items-center justify-center text-foreground dark:text-white hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer"
+              className="w-10 h-10 flex items-center justify-center text-foreground dark:text-white hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer drop-shadow-md"
               aria-label={customer ? "Profile" : "Sign In"}
             >
               <UserRound size={24} />
@@ -500,11 +495,10 @@ export const Navbar: React.FC = () => {
                         <Link
                           href={link.href}
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className={`inline-flex items-center justify-center text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 ${
-                            isActive
+                          className={`inline-flex items-center justify-center text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 ${isActive
                               ? "text-brand-green font-bold bg-brand-green/10 dark:bg-brand-green/20"
                               : "text-foreground/80 dark:text-zinc-300 hover:text-brand-green dark:hover:text-emerald-400 hover:scale-105"
-                          }`}
+                            }`}
                         >
                           <span>{link.name}</span>
                         </Link>
@@ -559,7 +553,7 @@ export const Navbar: React.FC = () => {
                   <motion.div variants={itemVariants} className="w-full text-center pt-4 border-t border-card-border/40 mt-3">
                     <div className="flex items-center justify-center gap-7 text-neutral-500 dark:text-zinc-400">
                       <a
-                        href="#"
+                        href="https://www.facebook.com/share/1KExdzaSt5/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-brand-green dark:hover:text-white transition-all duration-300 hover:scale-110"
@@ -568,7 +562,7 @@ export const Navbar: React.FC = () => {
                         <FacebookIcon size={20} />
                       </a>
                       <a
-                        href="#"
+                        href="https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg=="
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-brand-green dark:hover:text-white transition-all duration-300 hover:scale-110"
@@ -577,7 +571,7 @@ export const Navbar: React.FC = () => {
                         <InstagramIcon size={20} />
                       </a>
                       <a
-                        href="#"
+                        href="https://www.tiktok.com/@antonioni.grounds?_r=1&_t=ZS-98UmTZeZYwi"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-brand-green dark:hover:text-white transition-all duration-300 hover:scale-110"

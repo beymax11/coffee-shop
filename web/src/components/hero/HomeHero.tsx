@@ -71,7 +71,7 @@ export const HomeHero: React.FC = () => {
   const displayConfig = heroConfig || DEFAULT_HERO_CONFIG;
 
   return (
-    <section className="relative -mt-[72px] lg:mt-0 min-h-[80vh] sm:min-h-screen lg:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] pt-[64px] sm:pt-[72px] lg:pt-0 pb-8 sm:pb-0">
+    <section className="relative -mt-[72px] lg:mt-0 min-h-[100dvh] h-[100dvh] lg:h-auto lg:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] pt-[72px] lg:pt-0 pb-6 sm:pb-0">
       {/* Background with slow Ken Burns */}
       <div className="absolute inset-0 opacity-100 dark:opacity-80 transition-opacity duration-500">
         <motion.div
@@ -196,7 +196,7 @@ export const HomeHero: React.FC = () => {
 
       {/* Scroll hint */}
       <motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none hidden sm:flex"
+        className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 sm:gap-2 pointer-events-none flex"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 0.55, y: 0 }}
         transition={{ delay: 1.2, duration: 0.8, ease: EASE }}

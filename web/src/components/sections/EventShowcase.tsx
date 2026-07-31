@@ -204,7 +204,7 @@ export const EventShowcase: React.FC = () => {
           <motion.div
             layout
             transition={{ type: "spring", stiffness: 90, damping: 20, mass: 1.2 }}
-            className="w-full lg:w-[480px] shrink-0 relative"
+            className="hidden lg:block w-full lg:w-[480px] shrink-0 relative"
           >
             <div className="absolute -inset-2 bg-[#2E5A44]/5 rounded-2xl filter blur-md pointer-events-none" />
             

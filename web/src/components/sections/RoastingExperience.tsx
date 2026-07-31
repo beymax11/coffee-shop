@@ -83,10 +83,10 @@ export const RoastingExperience: React.FC = () => {
   const activeStep = STEPS[activeStepIndex];
 
   return (
-    <section className="py-12 md:py-20 bg-background text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">
+    <section className="py-12 md:py-20 bg-background dark:bg-black text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">
       {/* Background visual accents */}
-      <div className="absolute top-1/4 left-10 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-10 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none dark:hidden" />
+      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none dark:hidden" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
@@ -94,7 +94,7 @@ export const RoastingExperience: React.FC = () => {
           {/* Left Col: Cinematic Image and Glass Card */}
           <div className="hidden lg:block relative">
             {/* Glowing background container */}
-            <div className="absolute -inset-4 bg-[#2E5A44]/5 rounded-3xl filter blur-xl opacity-75 pointer-events-none" />
+            <div className="absolute -inset-4 bg-[#2E5A44]/5 rounded-3xl filter blur-xl opacity-75 pointer-events-none dark:hidden" />
 
             <FadeUp className="relative h-[540px] md:h-[600px] rounded-2xl overflow-hidden border border-card-border shadow-2xl group bg-neutral-900">
               <AnimatePresence mode="wait">

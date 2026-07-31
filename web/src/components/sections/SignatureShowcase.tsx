@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Eye, Film, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Eye, Film, Sparkles } from "lucide-react";
 import { StaggerContainer, StaggerItem } from "@/components/animations";
 import { db } from "@/utils/db";
 import { MenuItem } from "@/types";
@@ -15,7 +15,20 @@ interface SignatureShowcaseProps {
 
 export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickView }) => {
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      const maxScroll = scrollWidth - clientWidth;
+      if (maxScroll > 0) {
+        setScrollProgress((scrollLeft / maxScroll) * 100);
+      } else {
+        setScrollProgress(0);
+      }
+    }
+  };
 
   const fetchMenuItems = async () => {
     try {
@@ -76,15 +89,10 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
   });
 
   return (
-    <section className="py-12 md:py-20 bg-background-alt dark:bg-[#0a0a0a] text-foreground dark:text-white relative border-y border-card-border dark:border-zinc-900 transition-colors duration-500 overflow-hidden">
+    <section className="py-12 md:py-20 bg-background dark:bg-black text-foreground dark:text-white relative border-y border-card-border dark:border-zinc-900 transition-colors duration-500 overflow-hidden">
       {/* Cinematic Ambient Glows */}
-      <div className="absolute top-1/4 left-1/4 w-[450px] h-[450px] bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
-
-      {/* Large Backdrop Watermark Text */}
-      <div className="absolute -bottom-10 left-10 text-[10rem] font-serif font-black text-zinc-300/10 dark:text-zinc-900/10 pointer-events-none select-none tracking-wider hidden lg:block uppercase">
-        Antonioni
-      </div>
+      <div className="absolute top-1/4 left-1/4 w-[450px] h-[450px] bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none dark:hidden" />
+      <div className="absolute bottom-1/4 right-1/4 w-[450px] h-[450px] bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none dark:hidden" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
 
@@ -105,26 +113,7 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
-            {signatures.length > 3 && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => scroll("left")}
-                  className="p-2.5 rounded-full border border-card-border dark:border-zinc-800 bg-card/60 dark:bg-zinc-900/60 hover:bg-background dark:hover:bg-zinc-900 text-zinc-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white transition-all duration-300 cursor-pointer flex items-center justify-center"
-                  aria-label="Scroll Left"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button
-                  onClick={() => scroll("right")}
-                  className="p-2.5 rounded-full border border-card-border dark:border-zinc-800 bg-card/60 dark:bg-zinc-900/60 hover:bg-background dark:hover:bg-zinc-900 text-zinc-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white transition-all duration-300 cursor-pointer flex items-center justify-center"
-                  aria-label="Scroll Right"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            )}
-
+          <div>
             <Link
               href="/menu"
               className="group flex items-center gap-2 rounded-full border border-card-border dark:border-zinc-800 bg-card/50 dark:bg-zinc-900/50 hover:bg-background dark:hover:bg-zinc-900 px-6 py-3 text-xs font-bold tracking-wider uppercase text-zinc-700 dark:text-zinc-200 hover:border-emerald-500/50 transition-all duration-300"
@@ -138,7 +127,8 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
         {/* Cards Grid / Carousel */}
         <div
           ref={scrollContainerRef}
-          className="overflow-x-auto pb-8 scrollbar-none scroll-smooth snap-x snap-mandatory"
+          onScroll={handleScroll}
+          className="overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory scrollbar-none [&::-webkit-scrollbar]:hidden"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           <StaggerContainer className="flex gap-6 w-full">
@@ -146,14 +136,14 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
               return (
                 <StaggerItem
                   key={item.id}
-                  className="w-[85%] md:w-[calc((100%-3rem)/3)] snap-start flex-shrink-0 flex flex-col"
+                  className="w-[85%] sm:w-[calc((100%-1.5rem)/2)] md:w-[calc((100%-3rem)/3)] lg:w-[calc((100%-4.5rem)/4)] snap-start flex-shrink-0 flex flex-col"
                 >
                   <div
                     onClick={() => onQuickView(item)}
-                    className="group relative flex flex-col justify-between rounded-2xl border border-card-border dark:border-zinc-900 bg-card dark:bg-zinc-950/40 p-3.5 sm:p-5 md:p-6 transition-all duration-500 hover:border-emerald-500/35 hover:bg-card/90 dark:hover:bg-zinc-900/30 hover:shadow-[0_0_35px_rgba(46,90,68,0.06)] dark:hover:shadow-[0_0_40px_rgba(46,90,68,0.08)] cursor-pointer h-full"
+                    className="group relative flex flex-col justify-between rounded-2xl border border-card-border dark:border-zinc-900 bg-card dark:bg-zinc-950/40 overflow-hidden transition-all duration-500 hover:border-emerald-500/35 hover:bg-card/90 dark:hover:bg-zinc-900/30 hover:shadow-[0_0_35px_rgba(46,90,68,0.06)] dark:hover:shadow-[0_0_40px_rgba(46,90,68,0.08)] cursor-pointer h-full"
                   >
                     {/* Widescreen Photo Area */}
-                    <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl bg-zinc-900 dark:bg-zinc-950 mb-3 sm:mb-5 border border-card-border dark:border-zinc-900">
+                    <div className="relative aspect-square w-full overflow-hidden bg-zinc-900 dark:bg-zinc-950 border-b border-card-border dark:border-zinc-900">
                       <img
                         src={item.image}
                         alt={item.name}
@@ -179,49 +169,30 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
                     </div>
 
                     {/* Details Container */}
-                    <div className="flex-1 flex flex-col justify-between">
+                    <div className="flex-1 flex flex-col justify-between p-3.5 sm:p-5 md:p-6">
                       <div>
-                        {/* Category Row */}
-                        <div className="flex items-center justify-between">
+                        {/* Drink Title */}
+                        <h3 className="text-xs sm:text-base font-sans font-extrabold tracking-tight text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 line-clamp-1 sm:line-clamp-2">
+                          {item.name}
+                        </h3>
+
+                        {/* Category */}
+                        <div className="mt-1">
                           <span className="text-[8px] sm:text-[9px] font-sans font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase">
                             {item.category}
                           </span>
                         </div>
 
-                        {/* Drink Title */}
-                        <h3 className="text-xs sm:text-base font-sans font-extrabold tracking-tight text-foreground mt-1 sm:mt-2.5 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 line-clamp-1 sm:line-clamp-none">
-                          {item.name}
-                        </h3>
-
-                        {/* Tags block */}
-                        {item.tags && item.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {item.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="text-[7px] sm:text-[8px] font-sans font-bold tracking-wider uppercase px-1.5 py-0.5 rounded bg-emerald-500/5 border border-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
                         {/* Description */}
-                        <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 sm:mt-3 line-clamp-2 leading-relaxed">
+                        <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 line-clamp-2 leading-relaxed">
                           {item.description}
                         </p>
                       </div>
 
                       {/* Price & Action Row */}
-                      <div className="flex items-center justify-between border-t border-card-border dark:border-zinc-900 pt-2.5 mt-3 sm:pt-4 sm:mt-5">
+                      <div className="flex items-center justify-between border-t border-card-border dark:border-zinc-900 pt-2.5 mt-3 sm:pt-4 sm:mt-4">
                         <span className="text-xs sm:text-base font-sans font-extrabold text-[#2E5A44] dark:text-emerald-400">
                           ₱{item.price.toFixed(2)}
-                        </span>
-
-                        <span className="text-[8px] sm:text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400 group-hover:text-foreground dark:group-hover:text-white flex items-center gap-1 transition-colors duration-300">
-                          View
-                          <ArrowRight size={10} className="text-emerald-500 transition-transform duration-300 group-hover:translate-x-1" />
                         </span>
                       </div>
                     </div>
@@ -231,6 +202,35 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
             })}
           </StaggerContainer>
         </div>
+
+        {/* Sleek Horizontal Scroll Progress Indicator Bar */}
+        {signatures.length > 4 && (
+          <div className="mt-6 flex flex-col items-center justify-center gap-2">
+            <div
+              onClick={(e) => {
+                if (scrollContainerRef.current) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clickX = e.clientX - rect.left;
+                  const percentage = clickX / rect.width;
+                  const { scrollWidth, clientWidth } = scrollContainerRef.current;
+                  scrollContainerRef.current.scrollTo({
+                    left: percentage * (scrollWidth - clientWidth),
+                    behavior: "smooth"
+                  });
+                }
+              }}
+              className="relative h-2 w-48 sm:w-64 bg-emerald-500/10 dark:bg-zinc-800/80 rounded-full overflow-hidden cursor-pointer backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all duration-300 shadow-inner group"
+            >
+              <div
+                className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-[#2E5A44] via-emerald-500 to-[#489871] rounded-full transition-all duration-150 shadow-[0_0_12px_rgba(46,90,68,0.6)]"
+                style={{ width: `${Math.max(25, scrollProgress)}%` }}
+              />
+            </div>
+            <span className="text-[9px] font-sans font-bold tracking-widest text-zinc-400 dark:text-zinc-500 uppercase">
+              Scroll to explore
+            </span>
+          </div>
+        )}
 
       </div>
     </section>

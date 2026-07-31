@@ -111,14 +111,20 @@ export const AdminView: React.FC = () => {
 
   useEffect(() => {
     const root = document.documentElement;
-    const savedTheme = localStorage.getItem("theme");
-    const isDark = savedTheme ? savedTheme === "dark" : root.classList.contains("dark");
-    setTheme(isDark ? "dark" : "light");
-    if (isDark) {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    const checkTheme = () => {
+      const savedTheme = localStorage.getItem("theme");
+      const isDark = savedTheme ? savedTheme === "dark" : root.classList.contains("dark");
+      setTheme(isDark ? "dark" : "light");
+      if (isDark) {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+    };
+
+    checkTheme();
+    window.addEventListener("storage", checkTheme);
+    return () => window.removeEventListener("storage", checkTheme);
   }, []);
 
   const changeTheme = (newTheme: "light" | "dark") => {
@@ -130,6 +136,7 @@ export const AdminView: React.FC = () => {
     } else {
       root.classList.remove("dark");
     }
+    window.dispatchEvent(new Event("storage"));
   };
 
   useEffect(() => {
@@ -987,7 +994,7 @@ export const AdminView: React.FC = () => {
       db.saveMenuItem(newItem);
     }
 
-    loadAllData();
+    await loadAllData();
     setShowAddMenuModal(false);
     setEditingMenuItem(null);
 
@@ -1046,7 +1053,7 @@ export const AdminView: React.FC = () => {
           db.deleteMenuItem(id);
         }
 
-        loadAllData();
+        await loadAllData();
         auditLogger.log({
           action: "DELETE",
           category: "menu",

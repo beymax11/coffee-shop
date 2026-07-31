@@ -61,12 +61,13 @@ const EXPERIENCES: CoffeeExperience[] = [
 export const EventShowcase: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeExp = EXPERIENCES[activeIndex];
+  const isCart = activeExp.id === "cart";
 
   return (
-    <section className="py-12 md:py-20 bg-background relative transition-colors duration-500 overflow-hidden">
+    <section className="py-12 md:py-20 bg-background dark:bg-black relative transition-colors duration-500 overflow-hidden">
       {/* Decorative ambient gold glows */}
-      <div className="absolute top-1/3 -left-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/3 -right-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/3 -left-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none dark:hidden" />
+      <div className="absolute bottom-1/3 -right-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none dark:hidden" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8">
         
@@ -110,20 +111,33 @@ export const EventShowcase: React.FC = () => {
           </div>
         </div>
 
-        {/* Showcase Container */}
-        <div className="rounded-2xl border border-card-border bg-card p-8 md:p-12 relative overflow-hidden flex flex-col lg:flex-row items-center gap-12 glassmorphism-green shadow-2xl">
+        {/* Showcase Container with Layout Animation */}
+        <motion.div
+          layout
+          transition={{ type: "spring", stiffness: 90, damping: 20, mass: 1.2 }}
+          className={`rounded-2xl border border-card-border bg-card p-8 md:p-12 relative overflow-hidden flex flex-col ${
+            isCart ? "lg:flex-row-reverse" : "lg:flex-row"
+          } items-center gap-12 glassmorphism-green shadow-2xl`}
+        >
           {/* Internal background glowing ball */}
-          <div className="absolute -top-1/4 -right-1/4 w-[350px] h-[350px] bg-[#2E5A44]/5 blur-[100px] rounded-full pointer-events-none" />
+          <motion.div 
+            layout
+            className={`absolute -top-1/4 ${isCart ? "-left-1/4" : "-right-1/4"} w-[350px] h-[350px] bg-[#2E5A44]/10 blur-[100px] rounded-full pointer-events-none transition-all duration-1000`} 
+          />
 
-          {/* Left Content Column */}
-          <div className="flex-1 space-y-6 w-full">
+          {/* Content Column */}
+          <motion.div
+            layout
+            transition={{ type: "spring", stiffness: 90, damping: 20, mass: 1.2 }}
+            className="flex-1 space-y-6 w-full"
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeExp.id}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: isCart ? 40 : -40 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                exit={{ opacity: 0, x: isCart ? -40 : 40 }}
+                transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
                 className="space-y-6"
               >
                 <div>
@@ -170,7 +184,7 @@ export const EventShowcase: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="pt-4 flex justify-end lg:justify-start">
+                <div className={`pt-4 flex ${isCart ? "justify-end" : "justify-start"}`}>
                   <Link
                     href={`/reservations?type=${activeExp.id}`}
                     className="type-ui group relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-3.5 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] active:scale-95 cursor-pointer"
@@ -184,13 +198,17 @@ export const EventShowcase: React.FC = () => {
                 </div>
               </motion.div>
             </AnimatePresence>
-          </div>
+          </motion.div>
 
-          {/* Right Image Column */}
-          <div className="hidden lg:block w-full lg:w-[450px] shrink-0 relative">
+          {/* Image Column */}
+          <motion.div
+            layout
+            transition={{ type: "spring", stiffness: 90, damping: 20, mass: 1.2 }}
+            className="w-full lg:w-[480px] shrink-0 relative"
+          >
             <div className="absolute -inset-2 bg-[#2E5A44]/5 rounded-2xl filter blur-md pointer-events-none" />
             
-            <div className="relative h-[340px] md:h-[400px] w-full rounded-xl overflow-hidden border border-card-border bg-neutral-900 shadow-lg">
+            <div className="relative h-[360px] sm:h-[440px] lg:h-[520px] w-full rounded-xl overflow-hidden border border-card-border bg-neutral-900 shadow-lg">
               <AnimatePresence mode="wait">
                 <motion.img
                   key={activeExp.id}
@@ -199,7 +217,7 @@ export const EventShowcase: React.FC = () => {
                   initial={{ opacity: 0, scale: 1.05 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                   className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                 />
               </AnimatePresence>
@@ -207,9 +225,9 @@ export const EventShowcase: React.FC = () => {
               {/* Dark overlay and subtle gold lighting */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
             </div>
-          </div>
+          </motion.div>
 
-        </div>
+        </motion.div>
 
       </div>
     </section>

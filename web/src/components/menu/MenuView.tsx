@@ -263,15 +263,14 @@ export function MenuView() {
                 /* Items Grid */
                 <StaggerContainer className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
                   {filteredItems.map((item) => {
-                    const isSignature = item.category === "Signature Drinks" || item.tags?.includes("Exclusive");
                     return (
                       <StaggerItem key={item.id}>
                         <div
                           onClick={() => handleQuickView(item)}
-                          className="group relative flex flex-col justify-between rounded-2xl border border-card-border dark:border-zinc-900 bg-card dark:bg-zinc-950/40 p-3.5 sm:p-5 md:p-6 transition-all duration-500 hover:border-emerald-500/35 hover:bg-card/90 dark:hover:bg-zinc-900/30 hover:shadow-[0_0_35px_rgba(46,90,68,0.06)] dark:hover:shadow-[0_0_40px_rgba(46,90,68,0.08)] cursor-pointer h-full"
+                          className="group relative flex flex-col justify-between rounded-2xl border border-card-border dark:border-zinc-900 bg-card dark:bg-zinc-950/40 overflow-hidden transition-all duration-500 hover:border-emerald-500/35 hover:bg-card/90 dark:hover:bg-zinc-900/30 hover:shadow-[0_0_35px_rgba(46,90,68,0.06)] dark:hover:shadow-[0_0_40px_rgba(46,90,68,0.08)] cursor-pointer h-full"
                         >
                           {/* Premium Image Container */}
-                          <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl bg-zinc-900 dark:bg-zinc-950 mb-3 sm:mb-5 border border-card-border dark:border-zinc-900">
+                          <div className="relative aspect-square w-full overflow-hidden bg-zinc-900 dark:bg-zinc-950 border-b border-card-border dark:border-zinc-900">
                             <img
                               src={item.image}
                               alt={item.name}
@@ -297,52 +296,30 @@ export function MenuView() {
                           </div>
 
                           {/* Content details */}
-                          <div className="flex-1 flex flex-col justify-between">
+                          <div className="flex-1 flex flex-col justify-between p-3.5 sm:p-5 md:p-6">
                             <div>
+                              {/* Item Name */}
+                              <h3 className="text-xs sm:text-base font-sans font-extrabold tracking-tight text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 line-clamp-1 sm:line-clamp-2">
+                                {item.name}
+                              </h3>
 
-                              {/* Category Row */}
-                              <div className="flex items-center justify-between">
+                              {/* Category */}
+                              <div className="mt-1">
                                 <span className="text-[8px] sm:text-[9px] font-sans font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase">
                                   {item.category}
                                 </span>
                               </div>
 
-                              {/* Item Name */}
-                              <h3 className="text-xs sm:text-base font-sans font-extrabold tracking-tight text-foreground mt-1 sm:mt-2.5 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 line-clamp-1 sm:line-clamp-none">
-                                {item.name}
-                              </h3>
-
-                              {/* Tags block */}
-                              {item.tags && item.tags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {item.tags.map((tag) => (
-                                    <span
-                                      key={tag}
-                                      className="text-[7px] sm:text-[8px] font-sans font-bold tracking-wider uppercase px-1.5 py-0.5 rounded bg-emerald-500/5 border border-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-
                               {/* Description */}
-                              <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 sm:mt-3 line-clamp-2 leading-relaxed">
+                              <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 line-clamp-2 leading-relaxed">
                                 {item.description}
                               </p>
                             </div>
 
-                            {/* Price & Action Footer */}
-                            <div className="flex items-center justify-between border-t border-card-border dark:border-zinc-900 pt-2.5 mt-3 sm:pt-4 sm:mt-5">
+                            {/* Price */}
+                            <div className="flex items-center justify-between border-t border-card-border dark:border-zinc-900 pt-2.5 mt-3 sm:pt-4 sm:mt-4">
                               <span className="text-xs sm:text-base font-sans font-extrabold text-[#2E5A44] dark:text-emerald-400">
                                 ₱{item.price.toFixed(2)}
-                              </span>
-
-                              <span
-                                className="text-[8px] sm:text-[10px] font-sans font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400 group-hover:text-foreground dark:group-hover:text-white flex items-center gap-1 transition-colors duration-300"
-                              >
-                                View
-                                <ArrowRight size={10} className="text-emerald-500 transition-transform duration-300 group-hover:translate-x-1" />
                               </span>
                             </div>
                           </div>

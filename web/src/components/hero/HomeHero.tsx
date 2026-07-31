@@ -71,7 +71,7 @@ export const HomeHero: React.FC = () => {
   const displayConfig = heroConfig || DEFAULT_HERO_CONFIG;
 
   return (
-    <section className="relative -mt-[72px] lg:mt-0 min-h-screen lg:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] pt-[72px] lg:pt-0 pb-12 sm:pb-0">
+    <section className="relative -mt-[72px] lg:mt-0 min-h-[80vh] sm:min-h-screen lg:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] pt-[64px] sm:pt-[72px] lg:pt-0 pb-8 sm:pb-0">
       {/* Background with slow Ken Burns */}
       <div className="absolute inset-0 opacity-100 dark:opacity-80 transition-opacity duration-500">
         <motion.div
@@ -118,7 +118,7 @@ export const HomeHero: React.FC = () => {
 
       {/* Content */}
       <motion.div
-        className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 lg:px-16 text-center md:text-left"
+        className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 lg:px-16 text-center md:text-left -mt-6 sm:mt-0"
         variants={heroStagger}
         initial="hidden"
         animate="show"
@@ -127,7 +127,7 @@ export const HomeHero: React.FC = () => {
           {/* Eyebrow badge */}
           <motion.div
             variants={heroItem}
-            className="mb-4 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#2E5A44]/10 px-3 py-1 sm:px-4 sm:py-1.5 backdrop-blur-md max-w-full"
+            className="mb-3 sm:mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#2E5A44]/10 px-3 py-1 sm:px-4 sm:py-1.5 backdrop-blur-md max-w-full"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             <span className="type-eyebrow tracking-[0.12em] sm:tracking-[0.25em] font-semibold text-emerald-400 text-[8.5px] sm:text-[10px]">
@@ -149,7 +149,7 @@ export const HomeHero: React.FC = () => {
           {/* Subcopy */}
           <motion.p
             variants={heroItem}
-            className="type-body mt-4 sm:mt-6 text-zinc-300/90 max-w-lg mx-auto md:mx-0 drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-sm sm:text-base md:text-[1.05rem]"
+            className="type-body mt-3 sm:mt-6 text-zinc-300/90 max-w-lg mx-auto md:mx-0 drop-shadow-[0_1px_12px_rgba(0,0,0,0.4)] leading-relaxed text-sm sm:text-base md:text-[1.05rem]"
           >
             {displayConfig.subcopy}
           </motion.p>
@@ -157,12 +157,12 @@ export const HomeHero: React.FC = () => {
           {/* CTAs */}
           <motion.div
             variants={heroItem}
-            className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-4 pt-6 sm:pt-9"
+            className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-2.5 sm:gap-4 pt-4 sm:pt-9"
           >
             <motion.div whileHover={ctaHover} whileTap={ctaTap}>
               <Link
                 href="/loyalty"
-                className="type-ui group relative flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-6 sm:px-8 py-3.5 sm:py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] text-xs"
+                className="type-ui group relative flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-6 sm:px-8 py-3 sm:py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] text-xs"
               >
                 <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
                 <span className="relative flex items-center gap-2">
@@ -175,7 +175,7 @@ export const HomeHero: React.FC = () => {
             <motion.div whileHover={ctaHover} whileTap={ctaTap}>
               <Link
                 href="/reservations"
-                className="type-ui group flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-6 sm:px-8 py-3.5 sm:py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)] text-xs"
+                className="type-ui group flex items-center justify-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-6 sm:px-8 py-3 sm:py-4 text-white backdrop-blur-md transition-all duration-300 hover:border-emerald-500/40 hover:bg-white/8 hover:shadow-[0_0_25px_rgba(255,255,255,0.03)] text-xs"
               >
                 <Calendar
                   size={14}

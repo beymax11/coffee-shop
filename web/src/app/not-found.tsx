@@ -12,21 +12,36 @@ export default function NotFound() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const isDark = root.classList.contains("dark");
-    setTheme(isDark ? "dark" : "light");
+    const checkTheme = () => {
+      const savedTheme = localStorage.getItem("theme");
+      const isDark = savedTheme ? savedTheme === "dark" : root.classList.contains("dark");
+      setTheme(isDark ? "dark" : "light");
+      if (isDark) {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+    };
+
+    checkTheme();
+    window.addEventListener("storage", checkTheme);
+    return () => window.removeEventListener("storage", checkTheme);
   }, []);
 
   const toggleTheme = () => {
     const root = document.documentElement;
-    if (theme === "light") {
+    const isCurrentlyDark = root.classList.contains("dark");
+    const nextTheme = isCurrentlyDark ? "light" : "dark";
+
+    if (nextTheme === "dark") {
       root.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setTheme("dark");
     } else {
       root.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      setTheme("light");
     }
+
+    localStorage.setItem("theme", nextTheme);
+    setTheme(nextTheme);
+    window.dispatchEvent(new Event("storage"));
   };
 
   const handleGoBack = () => {

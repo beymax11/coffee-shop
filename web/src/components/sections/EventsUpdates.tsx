@@ -7,7 +7,7 @@ import { StaggerContainer, StaggerItem } from "@/components/animations";
 import { EventItem } from "@/types";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
-import { getCachedData } from "@/utils/cache";
+import { getCachedData, invalidateCache } from "@/utils/cache";
 
 
 export const EventsUpdates: React.FC = () => {
@@ -22,7 +22,7 @@ export const EventsUpdates: React.FC = () => {
             .from("events_updates")
             .select("*")
             .order("created_at", { ascending: false });
-          if (!error && data) {
+          if (!error && data && data.length > 0) {
             return data.map((event: {
               id: string;
               category: string;
@@ -33,6 +33,7 @@ export const EventsUpdates: React.FC = () => {
               link: string;
               link_label?: string;
               linkLabel?: string;
+              icon?: string;
             }) => ({
               id: event.id,
               category: event.category,
@@ -41,10 +42,12 @@ export const EventsUpdates: React.FC = () => {
               highlight: event.highlight,
               image: event.image,
               link: event.link,
-              linkLabel: event.link_label || event.linkLabel || "Explore More"
+              linkLabel: event.link_label || event.linkLabel || "Explore More",
+              icon: event.icon || "Sparkles"
             }));
           } else if (error) {
-            console.error("Supabase select error for events updates section:", error);
+            const errorMsg = error.message || error.details || error.hint || (typeof error === "object" ? JSON.stringify(error) : String(error));
+            console.error("Supabase select error for events updates section:", errorMsg);
           }
         }
         return db.getEvents();
@@ -63,6 +66,7 @@ export const EventsUpdates: React.FC = () => {
     const handleStorageChange = (e: Event) => {
       const storageEvent = e as StorageEvent;
       if (storageEvent.key === undefined || storageEvent.key === "events_updates" || storageEvent.key === null) {
+        invalidateCache("events_updates");
         fetchEvents();
       }
     };
@@ -72,7 +76,7 @@ export const EventsUpdates: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="py-12 md:py-20 bg-background border-t border-card-border relative overflow-hidden min-h-[400px] flex items-center justify-center">
+      <section className="py-12 md:py-20 bg-background dark:bg-black border-t border-card-border relative overflow-hidden min-h-[400px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-green border-t-transparent" />
           <p className="text-xs text-neutral-500 font-sans tracking-widest uppercase">Loading happenings...</p>
@@ -81,15 +85,33 @@ export const EventsUpdates: React.FC = () => {
     );
   }
 
+  // When there are exactly 3 announcements, ensure menu-related announcement is placed first on the left side
+  let displayEvents = events;
+  if (events.length === 3) {
+    const menuIndex = events.findIndex(
+      (e) =>
+        e.category.toLowerCase().includes("menu") ||
+        e.category.toLowerCase().includes("seasonal") ||
+        e.link === "/menu" ||
+        e.title.toLowerCase().includes("menu")
+    );
+    if (menuIndex > 0) {
+      displayEvents = [
+        events[menuIndex],
+        ...events.filter((_, i) => i !== menuIndex),
+      ];
+    }
+  }
+
   if (events.length === 0) {
     return null; // Don't render anything if there are no events
   }
 
   return (
-    <section className="py-12 md:py-20 bg-background border-t border-card-border relative transition-colors duration-500 overflow-hidden">
+    <section className="py-12 md:py-20 bg-background dark:bg-black border-t border-card-border relative transition-colors duration-500 overflow-hidden">
       {/* Decorative ambient gold glows */}
-      <div className="absolute top-1/4 -right-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 -left-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 -right-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none dark:hidden" />
+      <div className="absolute bottom-1/4 -left-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none dark:hidden" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         
@@ -105,65 +127,176 @@ export const EventsUpdates: React.FC = () => {
         </div>
 
         {/* Staggered Grid of Events */}
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
-          {events.map((event) => {
-            return (
-              <StaggerItem key={event.id}>
-                <div className="group rounded-2xl border border-card-border bg-card overflow-hidden glassmorphism shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col sm:flex-row h-full gold-glow-hover">
-                  
-                  {/* Image Column */}
-                  <div className="w-full sm:w-[200px] h-[220px] sm:h-auto shrink-0 relative overflow-hidden bg-neutral-900 border-b sm:border-b-0 sm:border-r border-card-border">
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent sm:bg-gradient-to-r pointer-events-none" />
-                    
-                  </div>
-
-                  {/* Content Column */}
-                  <div className="flex-1 p-6 md:p-8 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] tracking-[0.25em] font-sans font-bold uppercase text-emerald-600 dark:text-emerald-400">
-                          {event.category}
-                        </span>
-                        <span className="h-1 w-1 rounded-full bg-neutral-300 dark:bg-zinc-700 hidden sm:inline" />
-                        <span className="text-[11px] font-sans text-neutral-400 dark:text-zinc-500">
-                          {event.highlight}
-                        </span>
-                      </div>
-                      
-                      <h3 className="type-h3 text-foreground font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">
-                        {event.title}
-                      </h3>
-                      
-                      <p className="type-body text-neutral-600 dark:text-zinc-400 line-clamp-3 leading-relaxed">
-                        {event.description}
-                      </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-card-border/50">
-                      <Link
-                        href={event.link}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-foreground hover:text-emerald-500 transition-colors duration-300 group/link"
-                      >
-                        {event.linkLabel}
-                        <ArrowUpRight
-                          size={14}
-                          className="transition-transform duration-300 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 text-emerald-500"
-                        />
-                      </Link>
-                    </div>
-                  </div>
-
+        {displayEvents.length === 3 ? (
+          <StaggerContainer className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-stretch">
+            {/* Left side: 1 portrait card (Menu announcement) */}
+            <StaggerItem className="h-full">
+              <div className="group rounded-2xl border border-card-border bg-card overflow-hidden glassmorphism shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col h-full gold-glow-hover">
+                {/* Image Column - Portrait image on top */}
+                <div className="w-full h-64 sm:h-72 lg:h-80 shrink-0 relative overflow-hidden bg-neutral-900 border-b border-card-border">
+                  <img
+                    src={displayEvents[0].image}
+                    alt={displayEvents[0].title}
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
                 </div>
-              </StaggerItem>
-            );
-          })}
-        </StaggerContainer>
+
+                {/* Content Column */}
+                <div className="flex-1 p-6 md:p-8 flex flex-col justify-between space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] tracking-[0.25em] font-sans font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                        {displayEvents[0].category}
+                      </span>
+                      <span className="h-1 w-1 rounded-full bg-neutral-300 dark:bg-zinc-700 hidden sm:inline" />
+                      <span className="text-[11px] font-sans text-neutral-400 dark:text-zinc-500">
+                        {displayEvents[0].highlight}
+                      </span>
+                    </div>
+                    
+                    <h3 className="type-h3 text-foreground font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">
+                      {displayEvents[0].title}
+                    </h3>
+                    
+                    <p className="type-body text-neutral-600 dark:text-zinc-400 leading-relaxed">
+                      {displayEvents[0].description}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t border-card-border/50">
+                    <Link
+                      href={displayEvents[0].link}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-foreground hover:text-emerald-500 transition-colors duration-300 group/link"
+                    >
+                      {displayEvents[0].linkLabel}
+                      <ArrowUpRight
+                        size={14}
+                        className="transition-transform duration-300 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 text-emerald-500"
+                      />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </StaggerItem>
+
+            {/* Right side: 2 stacked cards */}
+            <div className="flex flex-col gap-6 lg:gap-8 justify-between h-full">
+              {displayEvents.slice(1).map((event) => (
+                <StaggerItem key={event.id} className="flex-1">
+                  <div className="group rounded-2xl border border-card-border bg-card overflow-hidden glassmorphism shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col sm:flex-row h-full gold-glow-hover">
+                    {/* Image Column */}
+                    <div className="w-full sm:w-[200px] h-[200px] sm:h-auto shrink-0 relative overflow-hidden bg-neutral-900 border-b sm:border-b-0 sm:border-r border-card-border">
+                      <img
+                        src={event.image}
+                        alt={event.title}
+                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent sm:bg-gradient-to-r pointer-events-none" />
+                    </div>
+
+                    {/* Content Column */}
+                    <div className="flex-1 p-6 md:p-7 flex flex-col justify-between space-y-3">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] tracking-[0.25em] font-sans font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                            {event.category}
+                          </span>
+                          <span className="h-1 w-1 rounded-full bg-neutral-300 dark:bg-zinc-700 hidden sm:inline" />
+                          <span className="text-[11px] font-sans text-neutral-400 dark:text-zinc-500">
+                            {event.highlight}
+                          </span>
+                        </div>
+                        
+                        <h3 className="type-h3 text-foreground font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">
+                          {event.title}
+                        </h3>
+                        
+                        <p className="type-body text-neutral-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                          {event.description}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-card-border/50">
+                        <Link
+                          href={event.link}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-foreground hover:text-emerald-500 transition-colors duration-300 group/link"
+                        >
+                          {event.linkLabel}
+                          <ArrowUpRight
+                            size={14}
+                            className="transition-transform duration-300 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 text-emerald-500"
+                          />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </StaggerItem>
+              ))}
+            </div>
+          </StaggerContainer>
+        ) : (
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
+            {displayEvents.map((event) => {
+              return (
+                <StaggerItem key={event.id}>
+                  <div className="group rounded-2xl border border-card-border bg-card overflow-hidden glassmorphism shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col sm:flex-row h-full gold-glow-hover">
+                    
+                    {/* Image Column */}
+                    <div className="w-full sm:w-[200px] h-[220px] sm:h-auto shrink-0 relative overflow-hidden bg-neutral-900 border-b sm:border-b-0 sm:border-r border-card-border">
+                      <img
+                        src={event.image}
+                        alt={event.title}
+                        className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent sm:bg-gradient-to-r pointer-events-none" />
+                    </div>
+
+                    {/* Content Column */}
+                    <div className="flex-1 p-6 md:p-8 flex flex-col justify-between space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] tracking-[0.25em] font-sans font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                            {event.category}
+                          </span>
+                          <span className="h-1 w-1 rounded-full bg-neutral-300 dark:bg-zinc-700 hidden sm:inline" />
+                          <span className="text-[11px] font-sans text-neutral-400 dark:text-zinc-500">
+                            {event.highlight}
+                          </span>
+                        </div>
+                        
+                        <h3 className="type-h3 text-foreground font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300">
+                          {event.title}
+                        </h3>
+                        
+                        <p className="type-body text-neutral-600 dark:text-zinc-400 line-clamp-3 leading-relaxed">
+                          {event.description}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-card-border/50">
+                        <Link
+                          href={event.link}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-foreground hover:text-emerald-500 transition-colors duration-300 group/link"
+                        >
+                          {event.linkLabel}
+                          <ArrowUpRight
+                            size={14}
+                            className="transition-transform duration-300 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 text-emerald-500"
+                          />
+                        </Link>
+                      </div>
+                    </div>
+
+                  </div>
+                </StaggerItem>
+              );
+            })}
+          </StaggerContainer>
+        )}
 
       </div>
     </section>

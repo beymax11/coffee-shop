@@ -5,14 +5,14 @@ import { FadeUp } from "@/components/animations";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
 import { getCachedData } from "@/utils/cache";
-import { 
-  Heart, 
-  MessageCircle, 
-  Share2, 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
-  Check, 
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Check,
   ExternalLink,
   Eye
 } from "lucide-react";
@@ -105,16 +105,16 @@ export const LifestyleGrid: React.FC = () => {
               comments:lifestyle_comments(*),
               likes_list:lifestyle_likes(*)
             `)
-            .eq("status", "posted")
             .order("created_at", { ascending: false });
 
           if (!error && data) {
-            return data;
+            return data.filter((p: any) => p.status !== "unposted");
           } else if (error) {
-            console.error("Error fetching lifestyle posts from Supabase:", error);
+            const errorMsg = error.message || error.details || error.hint || (typeof error === "object" ? JSON.stringify(error) : String(error));
+            console.error("Error fetching lifestyle posts from Supabase:", errorMsg);
           }
         }
-        return (db.getLifestylePosts() as unknown as Post[]).filter(p => !p.status || p.status === "posted");
+        return (db.getLifestylePosts() as unknown as Post[]).filter(p => p.status !== "unposted");
       }, { ttl: 15000 });
 
       // Process likes based on current email
@@ -168,8 +168,8 @@ export const LifestyleGrid: React.FC = () => {
   const selectedPost = selectedPostIndex !== null ? LIFESTYLE_POSTS[selectedPostIndex] : null;
   const caption = selectedPost ? selectedPost.caption : "";
   const isLong = caption.length > 75;
-  const displayCaption = isCaptionExpanded || !isLong 
-    ? caption 
+  const displayCaption = isCaptionExpanded || !isLong
+    ? caption
     : caption.slice(0, 75) + "...";
 
   // Keyboard navigation for Lightbox modal
@@ -212,13 +212,13 @@ export const LifestyleGrid: React.FC = () => {
           toast.error("Please login to like this post.");
           return;
         }
-        
+
         const user = session.user;
         const email = user.email!;
         const name = user.user_metadata?.name || email.split("@")[0];
-        
+
         const currentlyLiked = likedPosts[postId];
-        
+
         if (currentlyLiked) {
           // Unlike
           const { error } = await supabase
@@ -245,7 +245,7 @@ export const LifestyleGrid: React.FC = () => {
             return;
           }
         }
-        
+
         loadPosts();
         return;
       } catch (err: any) {
@@ -349,10 +349,10 @@ export const LifestyleGrid: React.FC = () => {
   if (posts.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-20 bg-background border-t border-card-border transition-colors duration-500 relative overflow-hidden">
+    <section className="py-12 md:py-20 bg-background dark:bg-black border-t border-card-border transition-colors duration-500 relative overflow-hidden">
       {/* Dynamic Background accents */}
-      <div className="absolute top-1/3 right-0 w-80 h-80 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/3 left-0 w-80 h-80 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 right-0 w-80 h-80 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none dark:hidden" />
+      <div className="absolute bottom-1/3 left-0 w-80 h-80 bg-[#2E5A44]/5 rounded-full filter blur-3xl pointer-events-none dark:hidden" />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         {/* Section Header */}
@@ -374,14 +374,13 @@ export const LifestyleGrid: React.FC = () => {
             const displayLikes = post.likes + (supabase ? 0 : (likedPosts[post.id] ? 1 : 0));
 
             return (
-              <FadeUp 
-                key={post.id} 
-                delay={idx * 0.08} 
-                className={`${
-                  isLarge 
-                    ? "col-span-2 row-span-2 h-[350px] md:h-full min-h-[350px] md:min-h-[528px]" 
+              <FadeUp
+                key={post.id}
+                delay={idx * 0.08}
+                className={`${isLarge
+                    ? "col-span-2 row-span-2 h-[350px] md:h-full min-h-[350px] md:min-h-[528px]"
                     : "col-span-1 h-44 md:h-[252px]"
-                } relative rounded-2xl overflow-hidden group border border-card-border shadow-md hover:shadow-xl transition-all duration-500 bg-neutral-900 cursor-pointer`}
+                  } relative rounded-2xl overflow-hidden group border border-card-border shadow-md hover:shadow-xl transition-all duration-500 bg-neutral-900 cursor-pointer`}
               >
                 <div className="w-full h-full" onClick={() => setSelectedPostIndex(idx)}>
                   <img
@@ -389,7 +388,7 @@ export const LifestyleGrid: React.FC = () => {
                     alt={`Instagram Showcase ${idx + 1}`}
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   />
-                  
+
                   {/* Premium Instagram-Style Hover Overlay */}
                   <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-[2px] flex flex-col justify-between p-4 z-10">
                     {/* Header */}
@@ -417,7 +416,7 @@ export const LifestyleGrid: React.FC = () => {
                       <p className="text-[11px] text-zinc-200 line-clamp-2 leading-relaxed font-sans font-medium">
                         {post.caption}
                       </p>
-                      
+
                       <div className="flex items-center justify-between border-t border-white/10 pt-2 text-zinc-300">
                         <div className="flex items-center gap-3.5 text-[11px]">
                           <span className="flex items-center gap-1 font-semibold">
@@ -448,10 +447,10 @@ export const LifestyleGrid: React.FC = () => {
               <p className="text-sm font-bold text-foreground font-serif">Join our digital café community</p>
               <p className="text-xs text-neutral-500 dark:text-zinc-500 font-sans">Share your coffee moments and stay in the loop.</p>
             </div>
-            <a 
-              href="https://instagram.com" 
-              target="_blank" 
-              rel="noreferrer" 
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#2E5A44] to-[#234533] hover:from-[#234533] hover:to-[#2E5A44] text-white font-sans text-xs font-bold tracking-wider uppercase rounded-lg shadow-md hover:shadow-emerald-500/10 transition-all duration-300 shrink-0 cursor-pointer"
             >
               <InstagramIcon size={14} /> Follow @antonioni_grounds
@@ -463,7 +462,7 @@ export const LifestyleGrid: React.FC = () => {
       {/* Lightbox Modal Component */}
       <AnimatePresence>
         {selectedPostIndex !== null && LIFESTYLE_POSTS[selectedPostIndex] && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -471,7 +470,7 @@ export const LifestyleGrid: React.FC = () => {
             onClick={() => setSelectedPostIndex(null)}
           >
             {/* Modal Box */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -480,14 +479,14 @@ export const LifestyleGrid: React.FC = () => {
               onClick={(e) => e.stopPropagation()}
             >
               {/* Previous / Next Arrows for Desktop */}
-              <button 
+              <button
                 onClick={handlePrevPost}
                 className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center hover:bg-black/75 hover:border-emerald-500 transition-all z-20 cursor-pointer hidden md:flex"
                 aria-label="Previous Post"
               >
                 <ChevronLeft size={20} />
               </button>
-              <button 
+              <button
                 onClick={handleNextPost}
                 className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center hover:bg-black/75 hover:border-emerald-500 transition-all z-20 cursor-pointer hidden md:flex"
                 aria-label="Next Post"
@@ -497,7 +496,7 @@ export const LifestyleGrid: React.FC = () => {
 
               {/* Close Button */}
               <div className="absolute top-4 right-4 z-20">
-                <button 
+                <button
                   onClick={() => setSelectedPostIndex(null)}
                   className="w-8 h-8 rounded-full bg-black/50 border border-white/10 text-white flex items-center justify-center hover:bg-black/70 hover:text-emerald-500 transition-all cursor-pointer"
                   aria-label="Close modal"
@@ -508,8 +507,8 @@ export const LifestyleGrid: React.FC = () => {
 
               {/* Left Column: Post Image (60% width on Desktop) */}
               <div className="relative w-full md:w-3/5 h-[40%] md:h-full bg-neutral-950 flex items-center justify-center select-none overflow-hidden">
-                <img 
-                  src={LIFESTYLE_POSTS[selectedPostIndex].imageUrl} 
+                <img
+                  src={LIFESTYLE_POSTS[selectedPostIndex].imageUrl}
                   alt={`Antonioni Grounds Showcase detail`}
                   className="w-full h-full object-cover"
                 />
@@ -520,7 +519,7 @@ export const LifestyleGrid: React.FC = () => {
 
               {/* Right Column: Post Details & Conversation (40% width on Desktop) */}
               <div className="w-full md:w-2/5 h-[60%] md:h-full flex flex-col justify-between bg-card text-foreground">
-                
+
                 {/* User Header */}
                 <div className="p-4 border-b border-card-border flex items-start gap-3 shrink-0">
                   <div className="w-9 h-9 rounded-full bg-[#2E5A44]/15 border border-[#2E5A44]/20 flex items-center justify-center text-sm font-bold text-[#2E5A44] dark:text-emerald-400 uppercase font-sans shrink-0 mt-0.5">
@@ -538,7 +537,7 @@ export const LifestyleGrid: React.FC = () => {
                         <span>{LIFESTYLE_POSTS[selectedPostIndex].date}</span>
                       </div>
                     </div>
-                    
+
                     {/* Caption inline with Username */}
                     <p className="text-[11.5px] leading-relaxed text-zinc-300 font-sans font-medium mt-1 select-text">
                       {renderCaptionWithHashtags(displayCaption)}
@@ -584,20 +583,20 @@ export const LifestyleGrid: React.FC = () => {
                   {/* Actions */}
                   <div className="px-4 py-3 flex items-center justify-between border-b border-card-border">
                     <div className="flex items-center gap-4 text-foreground">
-                      <button 
+                      <button
                         onClick={() => handleLikeToggle(LIFESTYLE_POSTS[selectedPostIndex!].id)}
                         className="hover:text-red-500 transition-colors cursor-pointer"
                         aria-label="Like post"
                       >
-                        <Heart 
-                          size={19} 
-                          className={likedPosts[LIFESTYLE_POSTS[selectedPostIndex].id] ? "fill-red-500 text-red-500" : ""} 
+                        <Heart
+                          size={19}
+                          className={likedPosts[LIFESTYLE_POSTS[selectedPostIndex].id] ? "fill-red-500 text-red-500" : ""}
                         />
                       </button>
                       <button className="hover:text-emerald-500 transition-colors" aria-label="Comment on post">
                         <MessageCircle size={19} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleShare(LIFESTYLE_POSTS[selectedPostIndex!])}
                         className="hover:text-emerald-500 transition-colors relative cursor-pointer"
                         aria-label="Share post"
@@ -609,7 +608,7 @@ export const LifestyleGrid: React.FC = () => {
                         )}
                         <AnimatePresence>
                           {copiedPostId === LIFESTYLE_POSTS[selectedPostIndex].id && (
-                            <motion.span 
+                            <motion.span
                               initial={{ opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: 5 }}
@@ -630,21 +629,21 @@ export const LifestyleGrid: React.FC = () => {
                   </div>
 
                   {/* Comment Input */}
-                  <form 
+                  <form
                     onSubmit={(e) => {
                       e.preventDefault();
                       handleAddComment(LIFESTYLE_POSTS[selectedPostIndex!].id);
                     }}
                     className="p-3 flex items-center gap-2"
                   >
-                    <input 
+                    <input
                       type="text"
                       placeholder="Add a comment..."
                       value={commentInput}
                       onChange={(e) => setCommentInput(e.target.value)}
                       className="flex-1 bg-transparent border-0 outline-none text-xs text-foreground placeholder-neutral-400 py-1.5 px-2 font-sans"
                     />
-                    <button 
+                    <button
                       type="submit"
                       disabled={!commentInput.trim()}
                       className="text-xs font-bold text-emerald-600 dark:text-emerald-400 disabled:opacity-40 hover:text-emerald-500 transition-colors px-2 cursor-pointer font-sans"

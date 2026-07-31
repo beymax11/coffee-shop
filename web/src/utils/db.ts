@@ -1,5 +1,6 @@
 import { MenuItem, Reservation, LifestylePost, EventItem } from "@/types";
 import { menuItems as defaultMenuItems } from "@/data/menu";
+import { invalidateCache } from "./cache";
 
 export interface LoyaltyMember {
   id: string;
@@ -531,7 +532,10 @@ export const db = {
       events.push(event);
     }
     setLocalStorageItem("events_updates", events);
-    if (isBrowser) window.dispatchEvent(new Event("storage"));
+    if (isBrowser) {
+      invalidateCache("events_updates");
+      window.dispatchEvent(new Event("storage"));
+    }
 
     // Sync to Supabase in background
     if (isBrowser) {
@@ -548,10 +552,12 @@ export const db = {
               image: event.image,
               link: event.link,
               link_label: event.linkLabel,
+              icon: event.icon || "Sparkles",
             })
             .then(({ error }) => {
               if (error) {
-                console.error("Error syncing event update to Supabase:", error);
+                const errorMsg = error.message || error.details || error.hint || (typeof error === "object" ? JSON.stringify(error) : String(error));
+                console.error("Error syncing event update to Supabase:", errorMsg, error);
               }
             });
         }
@@ -563,7 +569,10 @@ export const db = {
     const events = this.getEvents();
     const filtered = events.filter((e) => e.id !== id);
     setLocalStorageItem("events_updates", filtered);
-    if (isBrowser) window.dispatchEvent(new Event("storage"));
+    if (isBrowser) {
+      invalidateCache("events_updates");
+      window.dispatchEvent(new Event("storage"));
+    }
 
     // Sync deletion to Supabase
     if (isBrowser) {
@@ -575,7 +584,8 @@ export const db = {
             .eq("id", id)
             .then(({ error }) => {
               if (error) {
-                console.error("Error syncing event deletion to Supabase:", error);
+                const errorMsg = error.message || error.details || error.hint || (typeof error === "object" ? JSON.stringify(error) : String(error));
+                console.error("Error syncing event deletion to Supabase:", errorMsg, error);
               }
             });
         }

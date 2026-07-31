@@ -65,9 +65,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         className="w-10 h-10 lg:w-8 lg:h-8 rounded-full lg:border lg:border-card-border lg:bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-green hover:border-brand-green/30 dark:hover:text-emerald-400 dark:hover:border-emerald-500/30 transition-all duration-300 cursor-pointer relative"
         aria-label="Notifications"
       >
-        <Bell className={`transition-all ${unreadCount > 0 ? "animate-pulse" : ""} w-5 h-5 lg:w-3.5 lg:h-3.5`} />
+        <Bell className={`transition-all ${unreadCount > 0 ? "animate-pulse" : ""} w-6 h-6 lg:w-3.5 lg:h-3.5`} />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 lg:top-1 lg:right-1 w-2.5 h-2.5 lg:w-2 lg:h-2 bg-brand-green dark:bg-emerald-400 rounded-full ring-2 ring-background animate-pulse shadow-[0_0_8px_#2e5a44] dark:shadow-[0_0_8px_#34d399]" />
+          <span className="absolute top-1 right-1 lg:top-1 lg:right-1 w-2.5 h-2.5 lg:w-2 lg:h-2 bg-brand-green dark:bg-emerald-400 rounded-full ring-2 ring-background animate-pulse shadow-[0_0_8px_#2e5a44] dark:shadow-[0_0_8px_#34d399]" />
         )}
       </button>
 

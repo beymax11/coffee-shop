@@ -7,5 +7,6 @@ export interface EventItem {
   image: string;
   link: string;
   linkLabel: string;
+  icon?: string;
   created_at?: string;
 }

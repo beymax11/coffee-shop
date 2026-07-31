@@ -72,17 +72,35 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
   const [showClearModal, setShowClearModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadLogs = async () => {
-    const data = await auditLogger.fetchFromSupabase();
+  const loadLogs = async (forceReSeed = false) => {
+    let data = await auditLogger.fetchFromSupabase();
+    if (data.length === 0 || forceReSeed) {
+      data = auditLogger.syncWithRealSystemData(
+        { reservations, menuItems, loyaltyMembers, users },
+        forceReSeed
+      );
+      if (data.length > 0) {
+        auditLogger.saveGeneratedLogsToSupabase(data);
+      }
+    }
     setLogs(data);
   };
 
   const handleRefreshLogs = async () => {
     setIsRefreshing(true);
     try {
-      const data = await auditLogger.fetchFromSupabase();
+      let data = await auditLogger.fetchFromSupabase();
+      if (data.length === 0) {
+        data = auditLogger.syncWithRealSystemData(
+          { reservations, menuItems, loyaltyMembers, users },
+          true
+        );
+        if (data.length > 0) {
+          auditLogger.saveGeneratedLogsToSupabase(data);
+        }
+      }
       setLogs(data);
-      toast.success("Refreshed latest audit logs from database.");
+      toast.success("Refreshed latest audit logs.");
     } catch (err) {
       console.error("Failed to refresh audit logs:", err);
       toast.error("Failed to refresh audit logs.");
@@ -95,11 +113,16 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
     loadLogs();
     const handleStorageChange = async () => {
       const data = await auditLogger.fetchFromSupabase();
-      setLogs(data);
+      if (data.length > 0) {
+        setLogs(data);
+      } else {
+        const synced = auditLogger.syncWithRealSystemData({ reservations, menuItems, loyaltyMembers, users });
+        setLogs(synced);
+      }
     };
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  }, [reservations, menuItems, loyaltyMembers, users]);
 
   // Reset all filters function
   const resetAllFilters = () => {

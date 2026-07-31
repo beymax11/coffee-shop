@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Coffee, Gift, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { FadeUp } from "@/components/animations";
 import { db } from "@/utils/db";
 
@@ -57,13 +57,13 @@ export function LoyaltyPreviewSection() {
   }, []);
 
   return (
-    <section className="py-10 md:py-16 bg-background text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">
+    <section className="py-10 md:py-16 bg-background dark:bg-black text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">
       {/* Subtle Background Glows */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#2E5A44]/5 rounded-full filter blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#2E5A44]/5 rounded-full filter blur-[100px] pointer-events-none dark:hidden" />
 
       {/* Grid overlay */}
       <div
-        className="absolute inset-0 opacity-10 pointer-events-none"
+        className="absolute inset-0 opacity-10 pointer-events-none dark:hidden"
         style={{
           backgroundImage: `linear-gradient(to right, var(--card-border) 1px, transparent 1px), linear-gradient(to bottom, var(--card-border) 1px, transparent 1px)`,
           backgroundSize: '45px 45px',
@@ -73,110 +73,111 @@ export function LoyaltyPreviewSection() {
       />
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-
-          {/* Left Column: Loyalty Details & Program Description */}
-          <div className="lg:col-span-7 space-y-6 text-left">
+        {isGuest ? (
+          /* Centered layout for guests (not logged in) */
+          <div className="max-w-3xl mx-auto text-center space-y-6">
             <div className="space-y-4">
               <FadeUp>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="h-[1px] w-8 bg-[#2E5A44]/30" />
                   <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Digital Membership</span>
                   <div className="h-[1px] w-8 bg-[#2E5A44]/30" />
                 </div>
                 <h2 className="type-h2 text-foreground mt-2 leading-snug">
                   The Antonioni Reserve Club
                 </h2>
-                <p className="type-body text-neutral-500 dark:text-zinc-400 leading-relaxed max-w-xl">
-                  {isGuest
-                    ? "Step into a world of curated coffee luxury. Sign up to receive your digital loyalty card, earn stamps on every pour, and unlock access to rare micro-lots and tasting masterclasses."
-                    : `Welcome back, ${memberName.split(' ')[0]}. Here is your current membership status. Scan your digital QR code at any of our flagship locations to claim and add your active stamps.`
-                  }
+                <p className="type-body text-neutral-500 dark:text-zinc-400 leading-relaxed max-w-xl mx-auto">
+                  Step into a world of curated coffee luxury. Sign up to receive your digital loyalty card, earn stamps on every pour, and unlock access to rare micro-lots and tasting masterclasses.
                 </p>
               </FadeUp>
             </div>
 
             {/* Loyalty CTAs */}
             <FadeUp delay={0.1} className="pt-4 border-t border-card-border">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                {isGuest ? (
-                  <>
-                    <Link
-                      href="/login"
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white px-6 py-3 font-semibold text-sm transition-all duration-300 active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(46,90,68,0.25)]"
-                    >
-                      Join Loyalty Club
-                      <ArrowRight size={14} />
-                    </Link>
-                    <Link
-                      href="/loyalty"
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-card-border bg-card hover:border-emerald-500/30 hover:bg-background text-foreground px-6 py-3 font-medium text-sm transition-all duration-300 active:scale-95 cursor-pointer"
-                    >
-                      Explore Rewards Program
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/loyalty"
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white px-6 py-3 font-semibold text-sm transition-all duration-300 active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(46,90,68,0.25)]"
-                    >
-                      Manage My Loyalty Card
-                      <ArrowRight size={14} />
-                    </Link>
-                  </>
-                )}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link
+                  href="/login?view=page"
+                  className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white px-6 py-3 font-semibold text-sm transition-all duration-300 active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(46,90,68,0.25)]"
+                >
+                  Join Loyalty Club
+                  <ArrowRight size={14} className="w-0 opacity-0 -translate-x-2 group-hover:w-3.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out shrink-0" />
+                </Link>
               </div>
             </FadeUp>
           </div>
-
-          {/* Right Column: Dynamic Status / Progress Widget */}
-          <div className="lg:col-span-5 w-full">
-            <FadeUp delay={0.05}>
-              <div className="p-6 rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/40 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 glassmorphism-green shadow-xl space-y-5">
-                <div className="flex justify-between items-center">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] text-zinc-500 tracking-wider uppercase">Active Progress</p>
-                    <p className="text-xl font-bold font-serif text-foreground">{stamps} / 10 Stamps</p>
+        ) : (
+          /* 2-column layout for logged in members */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+            {/* Left Column: Loyalty Details & Program Description */}
+            <div className="lg:col-span-7 space-y-6 text-left">
+              <div className="space-y-4">
+                <FadeUp>
+                  <div className="flex items-center gap-2">
+                    <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Digital Membership</span>
+                    <div className="h-[1px] w-8 bg-[#2E5A44]/30" />
                   </div>
-                </div>
-
-                {/* Micro Progress Bar */}
-                <div className="space-y-2">
-                  <div className="w-full bg-zinc-200 dark:bg-white/5 h-2.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-[#2E5A44] h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_#10B981]"
-                      style={{ width: `${(stamps / 10) * 100}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[10px] text-zinc-400">
-                    <span>{stamps} coffees purchased</span>
-                    <span>{10 - stamps} stamps left to Free Antonioni Blends Modest</span>
-                  </div>
-                </div>
-
-                {/* User Perks list */}
-                <div className="border-t border-card-border/80 pt-4 mt-2 space-y-3">
-                  <p className="text-[10px] text-zinc-500 tracking-wider uppercase">Current Privileges</p>
-                  <div className="space-y-2 text-xs text-neutral-600 dark:text-zinc-400">
-                    <div className="flex items-center gap-3">
-                      <Coffee size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>Free Antonioni Blends Modest at 10 stamps</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Sparkles size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>Freshly brewed coffee and handcrafted beverages made daily.</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Gift size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>Discover our signature drinks and seasonal specialties.</span>
-                    </div>
-                  </div>
-                </div>
+                  <h2 className="type-h2 text-foreground mt-2 leading-snug">
+                    The Antonioni Reserve Club
+                  </h2>
+                  <p className="type-body text-neutral-500 dark:text-zinc-400 leading-relaxed max-w-xl">
+                    Welcome back, {memberName.split(" ")[0]}. Here is your current membership status. Scan your digital QR code at any of our flagship locations to claim and add your active stamps.
+                  </p>
+                </FadeUp>
               </div>
-            </FadeUp>
-          </div>
 
-        </div>
+              {/* Loyalty CTAs */}
+              <FadeUp delay={0.1} className="pt-4 border-t border-card-border">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                  <Link
+                    href="/loyalty"
+                    className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white px-6 py-3 font-semibold text-sm transition-all duration-300 active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(46,90,68,0.25)]"
+                  >
+                    Manage My Loyalty Card
+                    <ArrowRight size={14} className="w-0 opacity-0 -translate-x-2 group-hover:w-3.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out shrink-0" />
+                  </Link>
+                </div>
+              </FadeUp>
+            </div>
+
+            {/* Right Column: Dynamic Status / Progress Widget */}
+            <div className="lg:col-span-5 w-full">
+              <FadeUp delay={0.05}>
+                <div className="p-6 rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/40 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 glassmorphism-green shadow-xl space-y-5">
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-zinc-500 tracking-wider uppercase">Active Progress</p>
+                      <p className="text-xl font-bold font-serif text-foreground">{stamps} / 10 Stamps</p>
+                    </div>
+                  </div>
+
+                  {/* Micro Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="w-full bg-zinc-200 dark:bg-white/5 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#2E5A44] h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_#10B981]"
+                        style={{ width: `${(stamps / 10) * 100}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-zinc-400">
+                      <span>{stamps} coffees purchased</span>
+                      <span>{10 - stamps} stamps left to Free Antonioni Blends Modest</span>
+                    </div>
+                  </div>
+
+                  {/* User Perks list */}
+                  <div className="border-t border-card-border/80 pt-4 mt-2 space-y-3">
+                    <p className="text-[10px] text-zinc-500 tracking-wider uppercase">Current Privileges</p>
+                    <div className="space-y-2 text-xs text-neutral-600 dark:text-zinc-400">
+                      <p>Free Antonioni Blends Modest at 10 stamps</p>
+                      <p>Freshly brewed coffee and handcrafted beverages made daily.</p>
+                      <p>Discover our signature drinks and seasonal specialties.</p>
+                    </div>
+                  </div>
+                </div>
+              </FadeUp>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

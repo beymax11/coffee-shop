@@ -81,24 +81,39 @@ export const Navbar: React.FC = () => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
-  // Read theme on mount
+  // Read theme on mount and listen to theme updates
   useEffect(() => {
     const root = document.documentElement;
-    const isDark = root.classList.contains("dark");
-    setTheme(isDark ? "dark" : "light");
+    const checkTheme = () => {
+      const savedTheme = localStorage.getItem("theme");
+      const isDark = savedTheme ? savedTheme === "dark" : root.classList.contains("dark");
+      setTheme(isDark ? "dark" : "light");
+      if (isDark) {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+    };
+
+    checkTheme();
+    window.addEventListener("storage", checkTheme);
+    return () => window.removeEventListener("storage", checkTheme);
   }, []);
 
   const toggleTheme = () => {
     const root = document.documentElement;
-    if (theme === "light") {
+    const isCurrentlyDark = root.classList.contains("dark");
+    const nextTheme = isCurrentlyDark ? "light" : "dark";
+
+    if (nextTheme === "dark") {
       root.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setTheme("dark");
     } else {
       root.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      setTheme("light");
     }
+
+    localStorage.setItem("theme", nextTheme);
+    setTheme(nextTheme);
+    window.dispatchEvent(new Event("storage"));
   };
 
   // Monitor scroll height with our custom hook
@@ -253,10 +268,10 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 flex items-center ${
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 flex items-center border-b border-card-border bg-background/80 backdrop-blur-md ${
           isScrolled
-            ? "border-b border-card-border bg-background/80 backdrop-blur-md h-16 lg:h-20 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
-            : "bg-transparent lg:bg-background/80 lg:backdrop-blur-md lg:border-b lg:border-card-border h-20 lg:h-24 lg:shadow-[0_4px_20px_rgba(0,0,0,0.05)] lg:dark:shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
+            ? "h-16 lg:h-20 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
+            : "h-20 lg:h-24 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.3)]"
         }`}
       >
         {/* ─── DESKTOP Layout (lg+) ─── */}
@@ -320,7 +335,7 @@ export const Navbar: React.FC = () => {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="w-8 h-8 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-green hover:border-brand-green/30 transition-all duration-300 cursor-pointer"
+              className="w-8 h-8 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-neutral-600 dark:text-zinc-400 hover:text-brand-green hover:border-brand-green/30 transition-all duration-300 cursor-pointer"
               aria-label="Toggle Theme"
             >
               {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
@@ -374,16 +389,12 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
 
-        {/* ─── MOBILE Layout (below lg) — 3-column: Burger | Logo (center) | Notification ─── */}
+        {/* ─── MOBILE Layout (below lg) — 3-column: Burger | Logo (center) | Notification/User ─── */}
         <div className="lg:hidden relative flex items-center w-full h-full px-4">
           {/* LEFT: Burger icon */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer ${
-              isScrolled
-                ? "border border-card-border bg-card/50 text-zinc-500 hover:text-brand-green hover:border-brand-green/30"
-                : "text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)] hover:opacity-75"
-            }`}
+            className="relative z-10 w-10 h-10 flex items-center justify-center text-foreground dark:text-white hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer"
             aria-label="Toggle Menu"
           >
             <Menu size={24} />
@@ -395,35 +406,36 @@ export const Navbar: React.FC = () => {
               <img
                 src="/logo.png"
                 alt="ANTONIONI GROUNDS"
-                className={`h-8 sm:h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105 ${
-                  isScrolled
-                    ? "invert dark:invert-0"
-                    : "brightness-0 invert drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]"
-                }`}
+                className="h-8 sm:h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105 invert dark:invert-0"
               />
             </Link>
           </div>
 
-          {/* RIGHT: Notification icon (if logged in) or empty spacer */}
-          <div className="relative z-10 ml-auto">
-            {customer ? (
-              <div
-                className={`transition-all duration-300 ${
-                  !isScrolled
-                    ? "[&_button]:text-white [&_button]:drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]"
-                    : ""
-                }`}
-              >
+          {/* RIGHT: Notification icon & User icon */}
+          <div className="relative z-10 ml-auto flex items-center gap-1">
+            {customer && (
+              <div className="transition-all duration-300 [&_button]:text-foreground dark:[&_button]:text-white hover:[&_button]:text-brand-green dark:hover:[&_button]:text-emerald-400">
                 <NotificationDropdown
                   notifications={notifications}
                   onMarkAsRead={handleMarkAsRead}
                   onMarkAllAsRead={handleMarkAllAsRead}
                 />
               </div>
-            ) : (
-              /* Spacer to keep logo centered when no notification */
-              <div className="w-10 h-10" />
             )}
+
+            <button
+              onClick={() => {
+                if (customer) {
+                  setIsProfileOpen(true);
+                } else {
+                  setIsLoginOpen(true);
+                }
+              }}
+              className="w-10 h-10 flex items-center justify-center text-foreground dark:text-white hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer"
+              aria-label={customer ? "Profile" : "Sign In"}
+            >
+              <UserRound size={24} />
+            </button>
           </div>
         </div>
       </header>
@@ -456,7 +468,7 @@ export const Navbar: React.FC = () => {
                   whileTap={{ scale: 0.9 }}
                   whileHover={{ rotate: 90 }}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="relative z-10 w-10 h-10 rounded-full border border-card-border bg-card/40 flex items-center justify-center text-zinc-500 hover:text-brand-green hover:border-brand-green/30 transition-all duration-300 cursor-pointer"
+                  className="relative z-10 w-10 h-10 rounded-full border border-card-border bg-card/60 flex items-center justify-center text-foreground dark:text-zinc-400 hover:text-brand-green dark:hover:text-emerald-400 hover:border-brand-green/30 transition-all duration-300 cursor-pointer"
                   aria-label="Close Menu"
                 >
                   <X size={20} />
@@ -490,8 +502,8 @@ export const Navbar: React.FC = () => {
                           onClick={() => setIsMobileMenuOpen(false)}
                           className={`inline-flex items-center justify-center text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 ${
                             isActive
-                              ? "text-brand-green font-bold"
-                              : "text-neutral-600 dark:text-zinc-300 hover:text-brand-green hover:scale-105"
+                              ? "text-brand-green font-bold bg-brand-green/10 dark:bg-brand-green/20"
+                              : "text-foreground/80 dark:text-zinc-300 hover:text-brand-green dark:hover:text-emerald-400 hover:scale-105"
                           }`}
                         >
                           <span>{link.name}</span>
@@ -504,7 +516,7 @@ export const Navbar: React.FC = () => {
                   <motion.div variants={itemVariants} className="w-full text-center pt-2">
                     <button
                       onClick={toggleTheme}
-                      className="inline-flex items-center justify-center gap-2.5 text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 text-neutral-600 dark:text-zinc-300 hover:text-brand-green hover:scale-105 cursor-pointer"
+                      className="inline-flex items-center justify-center gap-2.5 text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 text-foreground/80 dark:text-zinc-300 hover:text-brand-green dark:hover:text-emerald-400 hover:scale-105 cursor-pointer"
                       aria-label="Toggle Theme"
                     >
                       {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -512,37 +524,22 @@ export const Navbar: React.FC = () => {
                     </button>
                   </motion.div>
 
-                  {/* User Profile / Sign In / Sign Out — Styled like navigation links */}
+                  {/* Sign In / Sign Out — Styled like navigation links */}
                   {customer ? (
-                    <>
-                      <motion.div variants={itemVariants} className="w-full text-center">
-                        <button
-                          onClick={() => {
-                            setIsProfileOpen(true);
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="inline-flex items-center justify-center gap-2.5 text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 text-neutral-600 dark:text-zinc-300 hover:text-brand-green hover:scale-105 cursor-pointer"
-                        >
-                          <UserRound size={18} />
-                          <span>Profile ({customer.username || customer.name.split(" ")[0]})</span>
-                        </button>
-                      </motion.div>
-
-                      <motion.div variants={itemVariants} className="w-full text-center">
-                        <button
-                          onClick={handleLogout}
-                          disabled={isLoggingOut}
-                          className="inline-flex items-center justify-center gap-2.5 text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 text-red-500 hover:text-red-400 hover:scale-105 cursor-pointer disabled:opacity-50"
-                        >
-                          {isLoggingOut ? (
-                            <Loader2 size={18} className="animate-spin" />
-                          ) : (
-                            <LogOut size={18} />
-                          )}
-                          <span>{isLoggingOut ? "Signing Out..." : "Sign Out"}</span>
-                        </button>
-                      </motion.div>
-                    </>
+                    <motion.div variants={itemVariants} className="w-full text-center">
+                      <button
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="inline-flex items-center justify-center gap-2.5 text-base sm:text-lg tracking-wider uppercase type-nav py-1.5 px-6 rounded-2xl transition-all duration-300 text-red-500 hover:text-red-400 hover:scale-105 cursor-pointer disabled:opacity-50"
+                      >
+                        {isLoggingOut ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <LogOut size={18} />
+                        )}
+                        <span>{isLoggingOut ? "Signing Out..." : "Sign Out"}</span>
+                      </button>
+                    </motion.div>
                   ) : (
                     <motion.div variants={itemVariants} className="w-full text-center">
                       <button

@@ -66,7 +66,7 @@ export const EventsTab: React.FC = () => {
           .from("events_updates")
           .select("*")
           .order("created_at", { ascending: false });
-        if (!error && data) {
+        if (!error && data && data.length > 0) {
           const mapped = data.map((event: {
             id: string;
             category: string;
@@ -77,6 +77,7 @@ export const EventsTab: React.FC = () => {
             link: string;
             link_label?: string;
             linkLabel?: string;
+            icon?: string;
             created_at?: string;
           }) => ({
             id: event.id,
@@ -87,6 +88,7 @@ export const EventsTab: React.FC = () => {
             image: event.image,
             link: event.link,
             linkLabel: event.link_label || event.linkLabel || "Explore More",
+            icon: event.icon || "Sparkles",
             created_at: event.created_at,
           }));
           setEvents(mapped);
@@ -527,7 +529,7 @@ export const EventsTab: React.FC = () => {
               </button>
 
               <div className="flex items-center gap-2 mb-4">
-                <AlertTriangle className="text-rose-500 animate-pulse" size={18} />
+                <AlertTriangle className="text-[#e05252] animate-pulse" size={18} />
                 <h3 className="type-h3 text-foreground font-serif font-bold tracking-tight">
                   Delete Announcement?
                 </h3>
@@ -550,7 +552,7 @@ export const EventsTab: React.FC = () => {
                   type="button"
                   disabled={isDeleting}
                   onClick={confirmDeleteEvent}
-                  className="px-4 py-2.5 text-xs tracking-wider uppercase bg-rose-500 hover:bg-rose-600 text-white transition-colors rounded-lg shadow-md cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2.5 text-xs tracking-wider uppercase bg-[#e05252] hover:bg-rose-600 text-white transition-colors rounded-lg shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {isDeleting ? "Deleting..." : "Delete"}
                 </button>

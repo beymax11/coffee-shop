@@ -334,7 +334,7 @@ export function LoyaltyView() {
               if (!active) return;
               const newStamps = payload.new?.stamps;
               const newPoints = payload.new?.points;
-              
+
               if (newStamps !== undefined) {
                 setStamps((prevStamps) => {
                   if (newStamps > prevStamps) {
@@ -536,7 +536,7 @@ export function LoyaltyView() {
               </div>
               <h2 className="type-h3 text-foreground">Membership Access Required</h2>
               <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-2 mb-8 max-w-xs">
-                To view your stamps, tiers, and scan history, please log in with your Antonioni Grounds reserve credentials.
+                To view your stamps, please log in with your Antonioni Grounds reserve credentials.
               </p>
               <div className="mt-8 w-full space-y-3">
                 <Link
@@ -641,10 +641,10 @@ export function LoyaltyView() {
                                 <div
                                   key={idx}
                                   className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-300 ${isStamped
-                                      ? "bg-transparent border-emerald-500/40"
-                                      : isRewardSlot
-                                        ? "bg-zinc-100 border-emerald-500/40 text-zinc-500 dark:bg-[#181818] dark:border-emerald-500/30 dark:text-zinc-600 cursor-pointer"
-                                        : "bg-zinc-100 border-zinc-200/80 dark:bg-[#181818] dark:border-white/5"
+                                    ? "bg-transparent border-emerald-500/40"
+                                    : isRewardSlot
+                                      ? "bg-zinc-100 border-emerald-500/40 text-zinc-500 dark:bg-[#181818] dark:border-emerald-500/30 dark:text-zinc-600 cursor-pointer"
+                                      : "bg-zinc-100 border-zinc-200/80 dark:bg-[#181818] dark:border-white/5"
                                     } ${isRewardSlot && stamps >= 10 ? "bg-emerald-50/70 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-lg gold-glow cursor-pointer" : ""} ${isRewardSlot ? "group" : ""}`}
                                 >
                                   {isStamped ? (

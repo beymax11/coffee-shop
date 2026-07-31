@@ -123,17 +123,23 @@ export const auditLogger = {
     try {
       const { supabase } = await import("./supabase");
       if (supabase) {
-        const { data, error } = await supabase
+        const queryPromise = supabase
           .from("audit_logs")
           .select("*")
           .order("timestamp", { ascending: false });
+
+        const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: { message: "Supabase fetch timeout" } }), 1500)
+        );
+
+        const { data, error } = (await Promise.race([queryPromise, timeoutPromise])) as any;
 
         if (error) {
           console.warn("Supabase audit_logs fetch warning:", error.message);
           return this.getAuditLogs();
         }
 
-        if (data) {
+        if (data && data.length > 0) {
           const mapped: AuditLogEntry[] = data.map((row: any) => ({
             id: row.id,
             timestamp: row.timestamp || row.created_at,

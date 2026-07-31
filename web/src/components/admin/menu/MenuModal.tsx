@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { X, Sparkles, UploadCloud, Trash2, Image as ImageIcon } from "lucide-react";
+import { X, Sparkles, UploadCloud, Trash2, Image as ImageIcon, Loader2 } from "lucide-react";
 import { MenuItem } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
+
 interface MenuModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,7 +29,8 @@ interface MenuModalProps {
       imageFile?: File | null;
     }>
   >;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => void | Promise<void>;
+  isLoading?: boolean;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -40,11 +42,34 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   menuForm,
   setMenuForm,
   onSubmit,
+  isLoading: externalIsLoading,
 }) => {
   const [customCategory, setCustomCategory] = React.useState("");
   const [isAddingNew, setIsAddingNew] = React.useState(false);
   const [isDragActive, setIsDragActive] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
+  const loading = externalIsLoading || isSubmitting;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
+    try {
+      setIsSubmitting(true);
+      await onSubmit(e);
+    } catch (err) {
+      console.error("MenuModal submit error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const defaultCategories = React.useMemo(() => [
     "Hot Coffee",
@@ -76,11 +101,11 @@ export const MenuModal: React.FC<MenuModalProps> = ({
       alert("Please enter a category name.");
       return;
     }
-    
+
     if (!categories.includes(trimmed)) {
       setCategories(prev => [...prev, trimmed]);
     }
-    
+
     setMenuForm(prev => ({ ...prev, category: trimmed }));
     setIsAddingNew(false);
     setCustomCategory("");
@@ -127,15 +152,16 @@ export const MenuModal: React.FC<MenuModalProps> = ({
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) {
-        setMenuForm((prev) => ({ 
-          ...prev, 
+        setMenuForm((prev) => ({
+          ...prev,
           image: e.target!.result as string,
-          imageFile: file 
+          imageFile: file
         }));
       }
     };
     reader.readAsDataURL(file);
   };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -145,7 +171,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={loading ? undefined : onClose}
             className="absolute inset-0 bg-background/80 dark:bg-black/80 backdrop-blur-md"
           />
 
@@ -163,95 +189,103 @@ export const MenuModal: React.FC<MenuModalProps> = ({
 
             <button
               onClick={onClose}
-              className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors duration-300 p-1.5 rounded-full cursor-pointer"
+              disabled={loading}
+              className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors duration-300 p-1.5 rounded-full cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <X size={16} />
             </button>
 
             <div className="flex items-center gap-2 mb-6">
-              <Sparkles size={16} className="text-brand-green animate-pulse" />
+
               <h3 className="type-h3 text-foreground font-serif font-bold tracking-tight">
                 {editingMenuItem ? "Edit Menu Creation" : "Add Menu Creation"}
               </h3>
             </div>
 
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">COFFEE NAME</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Saffron Gold Brew"
+                  disabled={loading}
+                  placeholder="e.g. Spanish Latté"
                   value={menuForm.name}
                   onChange={(e) => setMenuForm({ ...menuForm, name: e.target.value })}
-                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">PRICE (₱ PHP)</label>
+                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">PRICE (₱)</label>
                   <input
                     type="number"
                     step="0.01"
                     required
-                    placeholder="250.00"
+                    disabled={loading}
+                    placeholder="180.00"
                     value={menuForm.price || ""}
-                    onChange={(e) => setMenuForm({ ...menuForm, price: Number(e.target.value) })}
-                    className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
+                    onChange={(e) => setMenuForm({ ...menuForm, price: parseFloat(e.target.value) || 0 })}
+                    className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50"
                   />
-                </div>                <div className={`space-y-1.5 ${isAddingNew ? "col-span-full" : ""}`}>
-                  {isAddingNew ? (
-                    <>
-                      <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">NEW CATEGORY NAME</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. Seasonal Brews"
-                          value={customCategory}
-                          onChange={(e) => setCustomCategory(e.target.value)}
-                          className="flex-1 rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleSaveCategory}
-                          className="px-4 py-2.5 rounded-xl bg-brand-green hover:bg-brand-green-hover text-white text-xs font-bold transition-all duration-300 shadow-md shadow-brand-green/10 flex items-center justify-center cursor-pointer shrink-0"
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelAddCategory}
-                          className="px-4 py-2.5 rounded-xl bg-foreground/[0.05] border border-card-border hover:bg-foreground/[0.08] text-neutral-500 dark:text-zinc-400 hover:text-foreground dark:hover:text-white text-xs font-bold transition-all duration-300 flex items-center justify-center cursor-pointer shrink-0"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">CATEGORY</label>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">CATEGORY</label>
+
+                  {!isAddingNew ? (
+                    <div className="flex gap-2">
                       <select
                         value={menuForm.category}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "new") {
-                            setIsAddingNew(true);
-                          } else {
-                            setMenuForm((prev) => ({ ...prev, category: val }));
-                          }
-                        }}
-                        className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs cursor-pointer"
+                        disabled={loading}
+                        onChange={(e) => setMenuForm({ ...menuForm, category: e.target.value })}
+                        className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-3 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50 cursor-pointer"
                       >
                         {categories.map((cat) => (
-                          <option key={cat} value={cat}>
+                          <option key={cat} value={cat} className="bg-card text-foreground">
                             {cat}
                           </option>
                         ))}
-                        <option value="new">+ Add New Category</option>
                       </select>
-                    </>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => setIsAddingNew(true)}
+                        className="rounded-xl border border-card-border bg-background/50 px-3 py-3 text-neutral-500 hover:text-brand-green hover:border-brand-green/50 transition-all duration-300 shrink-0 cursor-pointer disabled:opacity-40"
+                        title="Add custom category"
+                      >
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        autoFocus
+                        disabled={loading}
+                        placeholder="New category..."
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        className="w-full rounded-xl border border-brand-green/60 bg-background/50 py-3 px-3 type-field text-foreground outline-none text-xs"
+                      />
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={handleSaveCategory}
+                        className="rounded-xl bg-brand-green text-white px-2.5 py-3 text-[10px] font-bold shrink-0 hover:bg-brand-green-hover transition-colors cursor-pointer"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={handleCancelAddCategory}
+                        className="rounded-xl border border-card-border bg-background/50 text-neutral-500 px-2 py-3 text-xs shrink-0 hover:text-foreground transition-colors cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -261,57 +295,53 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                 <textarea
                   rows={2}
                   required
-                  placeholder="Infused with premium cardamom, hints of raw honey, and gold flakes..."
+                  disabled={loading}
+                  placeholder="Rich dark espresso layered with velvety microfoam..."
                   value={menuForm.description}
                   onChange={(e) => setMenuForm({ ...menuForm, description: e.target.value })}
-                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 resize-none text-xs"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs resize-none disabled:opacity-50"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">IMAGE UPLOAD</label>
+                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">MENU ITEM IMAGE</label>
                 {menuForm.image ? (
-                  <div className="relative rounded-xl overflow-hidden border border-card-border group h-40 flex items-center justify-center bg-background/30">
-                    <img
-                      src={menuForm.image}
-                      alt="Preview"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-black/65 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                  <div className="relative rounded-xl overflow-hidden border border-card-border h-32 group bg-neutral-900/50">
+                    <img src={menuForm.image} alt="Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
                       <button
                         type="button"
+                        disabled={loading}
                         onClick={() => fileInputRef.current?.click()}
-                        className="rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md px-3.5 py-1.5 text-xs text-white transition-all font-bold flex items-center gap-1.5 cursor-pointer border border-white/25"
+                        className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-40"
                       >
-                        <UploadCloud size={14} /> Replace
+                        <ImageIcon size={12} /> Change
                       </button>
-                       <button
+                      <button
                         type="button"
+                        disabled={loading}
                         onClick={() => setMenuForm((prev) => ({ ...prev, image: "", imageFile: null }))}
-                        className="rounded-full bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md px-3.5 py-1.5 text-xs text-red-300 border border-red-500/30 transition-all font-bold flex items-center gap-1.5 cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg bg-rose-500/80 hover:bg-rose-500 text-white text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-40"
                       >
-                        <Trash2 size={14} /> Remove
+                        <Trash2 size={12} /> Remove
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div
-                    onDragEnter={handleDrag}
                     onDragOver={handleDrag}
                     onDragLeave={handleDrag}
                     onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`w-full rounded-xl border-2 border-dashed py-8 px-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 ${
-                      isDragActive
-                        ? "border-brand-green bg-brand-green/5 scale-[0.99]"
-                        : "border-card-border bg-background/30 hover:border-brand-green/50 hover:bg-background/50"
-                    }`}
+                    onClick={() => !loading && fileInputRef.current?.click()}
+                    className={`w-full rounded-xl border-2 border-dashed py-8 px-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 ${isDragActive
+                      ? "border-brand-green bg-brand-green/5 scale-[0.99]"
+                      : "border-card-border bg-background/30 hover:border-brand-green/50 hover:bg-background/50"
+                      } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <UploadCloud
                       size={28}
-                      className={`mb-3 transition-colors duration-300 ${
-                        isDragActive ? "text-brand-green" : "text-neutral-500 dark:text-zinc-500"
-                      }`}
+                      className={`mb-3 transition-colors duration-300 ${isDragActive ? "text-brand-green" : "text-neutral-500 dark:text-zinc-500"
+                        }`}
                     />
                     <p className="type-ui text-xs font-bold text-foreground">
                       Drag & drop image here
@@ -326,6 +356,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                   ref={fileInputRef}
                   onChange={handleFileInput}
                   accept="image/*"
+                  disabled={loading}
                   className="hidden"
                 />
               </div>
@@ -334,18 +365,30 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                 <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">TAGS (Comma-separated)</label>
                 <input
                   type="text"
+                  disabled={loading}
                   placeholder="Signature, Award Winner, Seasonal"
                   value={menuForm.tags}
                   onChange={(e) => setMenuForm({ ...menuForm, tags: e.target.value })}
-                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs"
+                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full rounded-full bg-brand-green py-3.5 type-ui text-xs text-white hover:bg-brand-green-hover transition-all duration-300 font-bold shadow-lg shadow-brand-green/15 mt-2 cursor-pointer green-glow hover:shadow-brand-green-hover/20"
+                disabled={loading}
+                className={`w-full rounded-full bg-brand-green py-3.5 type-ui text-xs text-white hover:bg-brand-green-hover transition-all duration-300 font-bold shadow-lg shadow-brand-green/15 mt-2 flex items-center justify-center gap-2 ${loading ? "opacity-75 cursor-not-allowed" : "cursor-pointer green-glow hover:shadow-brand-green-hover/20"
+                  }`}
               >
-                {editingMenuItem ? "Apply Showcase Changes" : "Create Menu Offering"}
+                {loading && <Loader2 size={15} className="animate-spin shrink-0" />}
+                <span>
+                  {loading
+                    ? editingMenuItem
+                      ? "Saving Changes..."
+                      : "Adding Menu..."
+                    : editingMenuItem
+                      ? "Apply Changes"
+                      : "Add Menu"}
+                </span>
               </button>
             </form>
           </motion.div>

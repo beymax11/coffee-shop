@@ -77,12 +77,12 @@ export const clearCache = (): void => {
   });
 };
 
-// Automatically invalidate the cache if storage changes in another tab
+// Automatically invalidate the cache if storage changes
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
     if (e.key) {
       invalidateCache(e.key);
-    } else if (e.key === null) {
+    } else {
       clearCache();
     }
   });

@@ -21,9 +21,10 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   useEffect(() => {
     try {
+      const savedTheme = localStorage.getItem("theme");
       if (
-        localStorage.theme === "dark" ||
-        (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
+        savedTheme === "dark" ||
+        (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)
       ) {
         document.documentElement.classList.add("dark");
       } else {

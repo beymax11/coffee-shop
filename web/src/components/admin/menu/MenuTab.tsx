@@ -528,8 +528,8 @@ export const MenuTab: React.FC<MenuTabProps> = ({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 40, scale: 0.95 }}
               transition={{ duration: 0.35, ease: EASE }}
-              className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card overflow-hidden shadow-2xl relative z-10 flex flex-col max-h-[92vh] overflow-y-auto"
-              style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+              className="w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card overflow-hidden shadow-2xl relative z-10 grid grid-cols-1 md:grid-cols-2 max-h-[90vh] overflow-y-auto"
+              style={{ paddingBottom: "max(0rem, env(safe-area-inset-bottom))" }}
             >
               {/* Glow Accent */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/10 blur-[25px] rounded-full pointer-events-none" />
@@ -537,94 +537,88 @@ export const MenuTab: React.FC<MenuTabProps> = ({
               {/* Close Overlay Button */}
               <button
                 onClick={() => setViewingItem(null)}
-                className="absolute top-4 right-4 z-20 text-white bg-black/50 hover:bg-black/70 transition-colors duration-200 p-2 rounded-full cursor-pointer backdrop-blur-sm"
+                className="absolute top-4 right-4 z-20 text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-white/10 transition-colors duration-200 p-2 rounded-full cursor-pointer backdrop-blur-sm"
               >
-                <X size={14} />
+                <X size={16} />
               </button>
 
-              {/* Image Banner */}
-              <div className="relative h-56 w-full bg-neutral-100 dark:bg-background-alt shrink-0">
+              {/* Left Column: Image Banner */}
+              <div className="relative h-64 md:h-full w-full bg-neutral-100 dark:bg-background-alt shrink-0 min-h-[240px]">
                 <img
                   src={viewingItem.image}
                   alt={viewingItem.name}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:bg-gradient-to-t md:from-black/40 md:via-transparent md:to-transparent" />
                 
                 {/* Category Badge */}
-                <div className="absolute bottom-4 left-6">
+                <div className="absolute bottom-4 left-4 md:top-4 md:bottom-auto">
                   <span className="rounded-xl bg-brand-green px-3 py-1 text-[10px] uppercase font-mono font-bold tracking-wider text-white shadow-lg shadow-brand-green/20 border border-white/20">
                     {viewingItem.category}
                   </span>
                 </div>
               </div>
 
-              {/* Modal Content */}
-              <div className="p-6 space-y-5">
-                <div>
-                  <h3 className="text-foreground font-serif font-bold text-2xl tracking-tight leading-tight">
-                    {viewingItem.name}
-                  </h3>
-                  
-                  {/* Rating Stars */}
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <div className="flex items-center text-amber-500">
-                      {Array.from({ length: 5 }).map((_, i) => {
-                        const currentRating = viewingItem.rating ?? 5.0;
-                        return (
-                          <Star
-                            key={i}
-                            size={13}
-                            fill={i < Math.round(currentRating) ? "currentColor" : "none"}
-                            className={i < Math.round(currentRating) ? "text-amber-500" : "text-neutral-300 dark:text-neutral-600"}
-                          />
-                        );
-                      })}
-                    </div>
-                    <span className="text-xs text-neutral-500 dark:text-neutral-400 font-semibold">
-                      {(viewingItem.rating ?? 5.0).toFixed(1)} / 5.0
+              {/* Right Column: Modal Details */}
+              <div className="p-6 md:p-7 flex flex-col justify-between space-y-5">
+                <div className="space-y-4 pr-4">
+                  <div>
+                    <span className="text-[10px] font-bold tracking-wider text-neutral-400 dark:text-neutral-500 uppercase font-mono">
+                      Menu Item Details
+                    </span>
+                    <h3 className="text-foreground font-serif font-bold text-2xl tracking-tight leading-tight mt-1">
+                      {viewingItem.name}
+                    </h3>
+                  </div>
+
+                  {/* Price Display */}
+                  <div className="flex justify-between items-center rounded-xl bg-neutral-50 dark:bg-background-alt border border-neutral-200 dark:border-card-border p-3.5 shadow-sm">
+                    <span className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
+                      Price
+                    </span>
+                    <span className="font-serif text-brand-green dark:text-emerald-400 text-2xl font-bold">
+                      ₱{viewingItem.price.toFixed(2)}
                     </span>
                   </div>
-                </div>
 
-                {/* Price Display */}
-                <div className="flex justify-between items-center rounded-xl bg-neutral-50 dark:bg-background-alt border border-neutral-200 dark:border-card-border p-4 shadow-sm">
-                  <span className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
-                    Price
-                  </span>
-                  <span className="font-serif text-brand-green dark:text-emerald-400 text-2xl font-bold">
-                    ₱{viewingItem.price.toFixed(2)}
-                  </span>
-                </div>
-
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <h4 className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
-                    Description
-                  </h4>
-                  <p className="text-xs leading-relaxed text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-background-alt/60 rounded-xl p-3.5 border border-neutral-200/70 dark:border-card-border/50">
-                    {viewingItem.description}
-                  </p>
-                </div>
-
-                {/* Tags */}
-                {viewingItem.tags && viewingItem.tags.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase flex items-center gap-1">
-                      <Tag size={12} /> Tags
+                  {/* Description */}
+                  <div className="space-y-1.5">
+                    <h4 className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
+                      Description
                     </h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      {viewingItem.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-lg bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border px-2.5 py-1 text-[10px] font-medium text-neutral-600 dark:text-neutral-300"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
+                    <p className="text-xs leading-relaxed text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-background-alt/60 rounded-xl p-3.5 border border-neutral-200/70 dark:border-card-border/50">
+                      {viewingItem.description}
+                    </p>
                   </div>
-                )}
+
+                  {/* Tags */}
+                  {viewingItem.tags && viewingItem.tags.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase flex items-center gap-1">
+                        <Tag size={12} /> Tags
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {viewingItem.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-lg bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border px-2.5 py-1 text-[10px] font-medium text-neutral-600 dark:text-neutral-300"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-neutral-100 dark:border-card-border/60 flex justify-end">
+                  <button
+                    onClick={() => setViewingItem(null)}
+                    className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-neutral-500 hover:text-foreground dark:text-neutral-400 dark:hover:text-white transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

@@ -17,6 +17,7 @@ export interface NotificationDropdownProps {
   notifications: NotificationItem[];
   onMarkAsRead: (id: string) => void;
   onMarkAllAsRead: () => void;
+  isScrolled?: boolean;
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -45,6 +46,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   notifications,
   onMarkAsRead,
   onMarkAllAsRead,
+  isScrolled = true,
 }) => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -240,7 +242,9 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       {/* Trigger Button — Bell transforms into Close (X) icon with Framer Motion morph */}
       <button
         onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-        className="w-10 h-10 lg:w-8 lg:h-8 rounded-full lg:border lg:border-card-border lg:bg-card/40 flex items-center justify-center text-foreground dark:text-white hover:text-brand-green dark:hover:text-emerald-400 transition-all duration-300 cursor-pointer relative z-50 drop-shadow-md"
+        className={`w-10 h-10 lg:w-8 lg:h-8 rounded-full lg:border lg:border-card-border lg:bg-card/40 flex items-center justify-center ${
+          isScrolled ? "text-foreground dark:text-white" : "text-white lg:text-foreground lg:dark:text-white"
+        } hover:text-brand-green dark:hover:text-emerald-400 transition-all duration-300 cursor-pointer relative z-50 drop-shadow-md`}
         aria-label={isNotificationsOpen ? "Close Notifications" : "Notifications"}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -252,7 +256,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
               exit={{ rotate: 90, opacity: 0, scale: 0.7 }}
               transition={{ duration: 0.22, ease: EASE }}
             >
-              <X className="w-6 h-6 lg:w-4 lg:h-4 text-foreground dark:text-white" />
+              <X className={`w-6 h-6 lg:w-4 lg:h-4 ${isScrolled ? "text-foreground dark:text-white" : "text-white lg:text-foreground lg:dark:text-white"}`} />
             </motion.div>
           ) : (
             <motion.div

@@ -13,7 +13,7 @@ interface SuccessDocketProps {
   updateField: (field: keyof FormData, value: any) => void;
   labelAccent: string;
   ticketId: string;
-  reservationStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Cancellation Requested";
+  reservationStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested";
   isPaid: boolean;
   showPaymentForm: boolean;
   setShowPaymentForm: (show: boolean) => void;
@@ -171,13 +171,33 @@ export function SuccessDocket({
 
               <div className="space-y-2 print:hidden">
                 <h3 className="text-3xl font-serif text-foreground tracking-wide font-semibold">
-                  {reservationStatus === "Cancelled" ? "Booking Cancelled" : reservationStatus === "Approved" ? "Booking Secured" : hasCancellationRequested || reservationStatus === "Cancellation Requested" ? "Cancellation Requested" : isPaid ? "Payment Pending Verification" : "Reservation Confirmed"}
+                  {reservationStatus === "Cancelled"
+                    ? "Booking Cancelled"
+                    : reservationStatus === "Completed"
+                    ? (formData.eventType === "Table Reservation" ? "Reservation Completed" : "Event Completed")
+                    : reservationStatus === "Approved"
+                    ? "Booking Secured"
+                    : hasCancellationRequested || reservationStatus === "Cancellation Requested"
+                    ? "Cancellation Requested"
+                    : isPaid
+                    ? "Payment Pending Verification"
+                    : "Reservation Confirmed"}
                 </h3>
                 <p className="font-sans text-sm text-zinc-600 dark:text-zinc-400 font-light leading-relaxed max-w-md mx-auto">
                   {reservationStatus === "Cancelled" ? (
                     <>
                       We regret to inform you that your booking request has been <strong className="text-red-500">cancelled</strong>. Please contact support if you believe this was an error.
                     </>
+                  ) : reservationStatus === "Completed" ? (
+                    formData.eventType === "Table Reservation" ? (
+                      <>
+                        Thank you for visiting Antonioni Grounds! Your table reservation has been <strong className="text-blue-500">successfully completed</strong>. We hope you had a wonderful coffee and dining experience!
+                      </>
+                    ) : (
+                      <>
+                        Thank you for choosing Antonioni Grounds! Your event has been <strong className="text-blue-500">successfully completed</strong>. We hope you and your guests enjoyed your coffee experience!
+                      </>
+                    )
                   ) : reservationStatus === "Approved" && !hasCancellationRequested ? (
                     <>
                       Your downpayment has been received. Your booking with Antonioni Grounds is now <strong className="text-emerald-500">fully secured and approved</strong>. We look forward to hosting you!
@@ -217,6 +237,11 @@ export function SuccessDocket({
                     <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30 px-2.5 py-1 rounded font-bold shadow-[0_0_10px_rgba(239,68,68,0.1)] print:text-black print:bg-zinc-100 print:border-zinc-300 print:shadow-none">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-600 dark:bg-red-400 print:bg-zinc-500" />
                       CANCELLED
+                    </span>
+                  ) : reservationStatus === "Completed" ? (
+                    <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2.5 py-1 rounded font-bold shadow-[0_0_10px_rgba(59,130,246,0.1)] print:text-black print:bg-zinc-100 print:border-zinc-300 print:shadow-none">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 print:bg-zinc-500" />
+                      COMPLETED
                     </span>
                   ) : reservationStatus === "Approved" && !hasCancellationRequested ? (
                     <span className="flex items-center gap-1.5 font-sans text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-[#2E5A44]/10 border border-[#2E5A44]/30 px-2.5 py-1 rounded font-bold shadow-[0_0_10px_rgba(16,185,129,0.1)] print:text-black print:bg-zinc-100 print:border-zinc-300 print:shadow-none">
@@ -277,6 +302,11 @@ export function SuccessDocket({
                     <div className="flex items-center gap-1.5 rounded-full bg-red-500/10 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-red-600 dark:text-red-400 border border-red-500/20">
                       <X size={14} className="stroke-[2.5]" />
                       Cancelled
+                    </div>
+                  ) : reservationStatus === "Completed" ? (
+                    <div className="flex items-center gap-1.5 rounded-full bg-blue-500/10 px-6 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                      <Check size={14} className="stroke-[2.5]" />
+                      Completed
                     </div>
                   ) : isPaid || reservationStatus === "Approved" ? (
                     <div className="flex items-center gap-2 flex-wrap justify-center">

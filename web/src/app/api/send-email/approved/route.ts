@@ -2,14 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApprovedEmailHtml } from "@/lib/emails/reservation-templates";
 import { sendEmail } from "@/lib/resend";
 
-function getDownpaymentAmount(eventType: string, guestCount: number, transpoFee: number = 0): { amount: string; balance: string; totalLabel: string } {
+function getDownpaymentAmount(
+  eventType: string,
+  guestCount: number,
+  transpoFee: number = 0,
+  discountAmount: number = 0,
+  isFreeTranspo: boolean = false,
+  customDp: number | null = null
+): { amount: string; balance: string; totalLabel: string } {
+  const fee = isFreeTranspo ? 0 : transpoFee;
+
   if (eventType === "Table Reservation") {
+    const basePackage = 3500;
+    const total = Math.max(0, basePackage - discountAmount);
+    const dp = customDp !== null && customDp !== undefined ? customDp : Math.min(1000, total);
+    const balance = total - dp;
+
+    let label = `₱${total.toLocaleString()} total`;
+    if (discountAmount > 0) label += ` (includes ₱${discountAmount.toLocaleString()} discount)`;
+
     return {
-      amount: "₱1,000",
-      balance: "₱2,500",
-      totalLabel: "₱3,500 (fully consumable)",
+      amount: `₱${dp.toLocaleString()}`,
+      balance: `₱${balance.toLocaleString()}`,
+      totalLabel: label,
     };
   }
+
   // Coffee Cart
   const paxPackages: Record<number, { total: number }> = {
     50: { total: 5500 },
@@ -18,14 +36,23 @@ function getDownpaymentAmount(eventType: string, guestCount: number, transpoFee:
     200: { total: 22000 },
   };
   const pkg = paxPackages[guestCount] || { total: 5500 };
-  const baseDp = Math.round(pkg.total * 0.1);
-  const total = pkg.total + (transpoFee || 0);
-  const dp = baseDp + (transpoFee || 0);
+  const discountedBase = Math.max(0, pkg.total - discountAmount);
+  const baseDp = Math.round(discountedBase * 0.1);
+  const total = discountedBase + fee;
+  const dp = customDp !== null && customDp !== undefined ? customDp : (baseDp + fee);
   const balance = total - dp;
+
+  let feeLabel = "";
+  if (isFreeTranspo) feeLabel = " • FREE Transpo Fee";
+  else if (fee > 0) feeLabel = ` (includes ₱${fee.toLocaleString()} Transpo Fee)`;
+
+  let discountLabel = "";
+  if (discountAmount > 0) discountLabel = ` • ₱${discountAmount.toLocaleString()} Discount Applied`;
+
   return {
     amount: `₱${dp.toLocaleString()}`,
     balance: `₱${balance.toLocaleString()}`,
-    totalLabel: `₱${total.toLocaleString()} total${transpoFee > 0 ? ` (includes ₱${transpoFee.toLocaleString()} Transpo Fee)` : ''}`,
+    totalLabel: `₱${total.toLocaleString()} total${feeLabel}${discountLabel}`,
   };
 }
 
@@ -47,6 +74,12 @@ export async function POST(req: NextRequest) {
         transpo_fee?: number;
         distanceKm?: number;
         distance_km?: number;
+        discountAmount?: number;
+        discount_amount?: number;
+        isFreeTranspoFee?: boolean;
+        is_free_transpo_fee?: boolean;
+        customDownpayment?: number;
+        custom_downpayment?: number;
       };
     };
 
@@ -55,9 +88,20 @@ export async function POST(req: NextRequest) {
     }
 
     const fee = Number(reservation.transpoFee ?? reservation.transpo_fee ?? 0);
+    const discount = Number(reservation.discountAmount ?? reservation.discount_amount ?? 0);
+    const isFreeTranspo = Boolean(reservation.isFreeTranspoFee ?? reservation.is_free_transpo_fee ?? false);
+    const customDp = reservation.customDownpayment ?? reservation.custom_downpayment ?? null;
+
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://antonionigrounds.vercel.app";
     const reservationLink = `${baseUrl}/reservations/${reservation.id}`;
-    const { amount, balance, totalLabel } = getDownpaymentAmount(reservation.eventType, reservation.guestCount, fee);
+    const { amount, balance, totalLabel } = getDownpaymentAmount(
+      reservation.eventType,
+      reservation.guestCount,
+      fee,
+      discount,
+      isFreeTranspo,
+      customDp
+    );
 
     const htmlEmail = getApprovedEmailHtml({
       reservation,

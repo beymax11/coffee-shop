@@ -69,6 +69,8 @@ export function ReservationsView() {
   });
   const [isAddressExpanded, setIsAddressExpanded] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  const [hasAgreedPolicy, setHasAgreedPolicy] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddressFieldChange = (field: keyof typeof addressDetails, value: string) => {
@@ -164,6 +166,58 @@ export function ReservationsView() {
     return () => window.removeEventListener("storage", updateSession);
   }, []);
 
+  const resolveEffectiveTrackedReservation = (apiRes?: any, searchId?: string) => {
+    const targetId = (apiRes?.id || searchId || "").trim();
+
+    const savedStatuses = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("admin_reservation_statuses") || "{}");
+      } catch {
+        return {};
+      }
+    })();
+
+    let localMatch: any = null;
+    if (typeof window !== "undefined") {
+      try {
+        const localList = db.getReservations();
+        localMatch = localList.find((r: any) => r.id && targetId && r.id.toLowerCase() === targetId.toLowerCase());
+      } catch { /* ignore */ }
+    }
+
+    if (!apiRes && !localMatch) return null;
+
+    const normalizedApi = apiRes ? {
+      ...apiRes,
+      fullName: apiRes.fullName || apiRes.full_name,
+      eventType: apiRes.eventType || apiRes.event_type,
+      guestCount: apiRes.guestCount || apiRes.guest_count,
+      transpoFee: apiRes.transpoFee ?? apiRes.transpo_fee ?? 0,
+      distanceKm: apiRes.distanceKm ?? apiRes.distance_km ?? 0,
+      discountAmount: apiRes.discountAmount ?? apiRes.discount_amount ?? 0,
+      discountReason: apiRes.discountReason ?? apiRes.discount_reason ?? "",
+      isFreeTranspoFee: apiRes.isFreeTranspoFee ?? apiRes.is_free_transpo_fee ?? false,
+      customDownpayment: apiRes.customDownpayment ?? apiRes.custom_downpayment,
+      paymentMethod: apiRes.paymentMethod || apiRes.payment_method,
+      referenceNumber: apiRes.referenceNumber || apiRes.reference_number,
+      proofOfPayment: apiRes.proofOfPayment || apiRes.proof_of_payment,
+    } : null;
+
+    const merged = {
+      ...(localMatch || {}),
+      ...(normalizedApi || {}),
+    };
+
+    const keyName = merged.fullName || merged.full_name;
+    const key = `${keyName}-${merged.date}-${merged.time}`;
+    const effectiveStatus = (merged.id && savedStatuses[merged.id]) || savedStatuses[key] || merged.status || "Pending";
+
+    return {
+      ...merged,
+      status: effectiveStatus,
+    };
+  };
+
   const handleTrackSearch = async (idToSearch: string) => {
     const trimmedId = idToSearch.trim();
     if (!trimmedId) return;
@@ -173,30 +227,23 @@ export function ReservationsView() {
     setTrackedReservation(null);
 
     try {
+      let fetchedRes: any = null;
       const response = await fetch(`/api/reservations/${trimmedId}`);
-      if (!response.ok) {
-        // Fallback to local storage in case db is not synced or offline
-        const localMerged = db.getReservations();
-        const foundLocal = localMerged.find((r: any) => r.id?.toLowerCase() === trimmedId.toLowerCase());
-        if (foundLocal) {
-          setTrackedReservation(foundLocal);
-          setIsTrackingLoading(false);
-          return;
-        }
+      if (response.ok) {
+        const data = await response.json();
+        fetchedRes = data?.reservation || null;
+      }
+
+      const finalRes = resolveEffectiveTrackedReservation(fetchedRes, trimmedId);
+      if (finalRes) {
+        setTrackedReservation(finalRes);
+      } else {
         throw new Error("Reservation not found. Please check your ID.");
       }
-      const data = await response.json();
-      if (data && data.reservation) {
-        setTrackedReservation(data.reservation);
-      } else {
-        throw new Error("No reservation details returned.");
-      }
     } catch (err: any) {
-      // Local storage fallback lookup
-      const localMerged = db.getReservations();
-      const foundLocal = localMerged.find((r: any) => r.id?.toLowerCase() === trimmedId.toLowerCase());
-      if (foundLocal) {
-        setTrackedReservation(foundLocal);
+      const finalRes = resolveEffectiveTrackedReservation(null, trimmedId);
+      if (finalRes) {
+        setTrackedReservation(finalRes);
       } else {
         setTrackingError(err.message || "Failed to retrieve status. Please try again.");
       }
@@ -204,6 +251,26 @@ export function ReservationsView() {
       setIsTrackingLoading(false);
     }
   };
+
+  // Real-time auto sync for tracked reservation modal
+  useEffect(() => {
+    if (!isTrackModalOpen || !searchTicketId.trim()) return;
+
+    const syncTracked = () => {
+      setTrackedReservation((current: any) => {
+        if (!current) return current;
+        return resolveEffectiveTrackedReservation(current, searchTicketId) || current;
+      });
+    };
+
+    window.addEventListener("storage", syncTracked);
+    const interval = setInterval(syncTracked, 2000);
+
+    return () => {
+      window.removeEventListener("storage", syncTracked);
+      clearInterval(interval);
+    };
+  }, [isTrackModalOpen, searchTicketId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -444,7 +511,7 @@ export function ReservationsView() {
 
   // Removed customer_session autofill to keep input fields completely empty by default
 
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData | "policy", string>>>({});
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
 
   const eventTypes: {
@@ -539,6 +606,9 @@ export function ReservationsView() {
         newErrors.email = "Please enter a valid email address";
       }
       if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+      if (!hasAgreedPolicy) {
+        newErrors.policy = "Please check the box to agree to the Reservation Policy & Terms before confirming.";
+      }
     }
 
     setErrors(newErrors);
@@ -1686,13 +1756,6 @@ export function ReservationsView() {
                             </div>
                           )}
 
-                          {/* Policy Info Card */}
-                          {formData.eventType === "Table Reservation" ? (
-                            <TableReservationPolicy />
-                          ) : (
-                            <CartReservationPolicy />
-                          )}
-
                           {/* Summary Block */}
                           <div className="rounded-xl border border-card-border bg-card p-6 space-y-4 mt-8 relative overflow-hidden">
                             {/* Inner emerald decorative line */}
@@ -1748,7 +1811,48 @@ export function ReservationsView() {
                             {getPricingDetails().notes}
                           </div>
 
-                          <div className="flex justify-between pt-6 border-t border-zinc-200 dark:border-white/5 mt-8">
+                          {/* Interactive Policy Agreement Notice (Required) */}
+                          <div className={`mt-6 p-4 rounded-xl border transition-all flex flex-col gap-2 ${
+                            errors.policy 
+                              ? "border-red-500/50 bg-red-500/5" 
+                              : hasAgreedPolicy
+                                ? "border-emerald-500/30 bg-emerald-500/10"
+                                : "border-card-border bg-background-alt/40 hover:border-emerald-500/30"
+                          }`}>
+                            <div className="flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                id="agreePolicy"
+                                required
+                                checked={hasAgreedPolicy}
+                                onChange={(e) => {
+                                  setHasAgreedPolicy(e.target.checked);
+                                  if (e.target.checked && errors.policy) {
+                                    setErrors((prev) => ({ ...prev, policy: undefined }));
+                                  }
+                                }}
+                                className="mt-0.5 rounded border-emerald-500/30 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer w-4 h-4"
+                              />
+                              <label htmlFor="agreePolicy" className="text-xs text-zinc-600 dark:text-zinc-300 font-sans leading-relaxed cursor-pointer select-none">
+                                I have read and agree to Antonioni Grounds'{" "}
+                                <button
+                                  type="button"
+                                  onClick={() => setIsPolicyModalOpen(true)}
+                                  className="text-emerald-600 dark:text-emerald-400 font-semibold underline hover:text-emerald-500 transition-colors cursor-pointer"
+                                >
+                                  {formData.eventType === "Table Reservation" ? "Lounge Table Reservation Policy" : "Brew Buggy Cart Reservation Policy"}
+                                </button>{" "}
+                                and Terms of Service. <span className="text-red-500 font-bold">*</span>
+                              </label>
+                            </div>
+                            {errors.policy && (
+                              <span className="text-[11px] text-red-500 font-sans font-medium pl-7">
+                                {errors.policy}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex justify-between pt-6 border-t border-zinc-200 dark:border-white/5 mt-6">
                             <button
                               type="button"
                               onClick={handleBack}
@@ -1759,8 +1863,8 @@ export function ReservationsView() {
                             </button>
                             <button
                               type="submit"
-                              disabled={isSubmitting}
-                              className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] disabled:opacity-60 disabled:cursor-not-allowed px-8 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.3)] hover:shadow-[0_0_25px_rgba(46,90,68,0.5)] active:scale-95 cursor-pointer"
+                              disabled={isSubmitting || !hasAgreedPolicy}
+                              className="flex items-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] disabled:opacity-50 disabled:cursor-not-allowed px-8 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.3)] hover:shadow-[0_0_25px_rgba(46,90,68,0.5)] active:scale-95 cursor-pointer"
                             >
                               {isSubmitting ? (
                                 <>
@@ -1969,6 +2073,14 @@ export function ReservationsView() {
                                 </span>
                               );
                             }
+                            if (status === "Completed") {
+                              return (
+                                <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded font-bold">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                                  COMPLETED
+                                </span>
+                              );
+                            }
                             if (status === "Approved") {
                               return (
                                 <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-bold">
@@ -2080,15 +2192,19 @@ export function ReservationsView() {
                                 },
                                 {
                                   label: "Downpayment Submission",
-                                  desc: isPaid ? "Downpayment received & pending verification." : "Submit downpayment reference to lock your slot.",
-                                  isDone: status === "Approved",
-                                  isCurrent: (status === "Pre-Approved" || isPaid) && status !== "Approved",
+                                  desc: (status === "Approved" || status === "Completed")
+                                    ? "Downpayment verified & completed."
+                                    : isPaid
+                                      ? "Downpayment received & pending verification."
+                                      : "Submit downpayment reference to lock your slot.",
+                                  isDone: status === "Approved" || status === "Completed",
+                                  isCurrent: (status === "Pre-Approved" || isPaid) && status !== "Approved" && status !== "Completed",
                                 },
                                 {
-                                  label: "Reservation Fully Confirmed",
-                                  desc: "Downpayment verified. Your slot is officially secured!",
+                                  label: status === "Completed" ? "Reservation Completed" : "Reservation Fully Confirmed",
+                                  desc: status === "Completed" ? "Thank you for visiting Antonioni Grounds!" : "Downpayment verified. Your slot is officially secured!",
                                   isDone: status === "Approved" || status === "Completed",
-                                  isCurrent: status === "Approved",
+                                  isCurrent: status === "Approved" || status === "Completed",
                                 }
                               ];
 
@@ -2189,6 +2305,49 @@ export function ReservationsView() {
             }));
           }}
         />
+
+        {/* Dedicated Reservation Policy Modal */}
+        {isPolicyModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+            <div className="bg-card border border-card-border rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+              <div className="p-6 border-b border-card-border flex items-center justify-between bg-background-alt/50">
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-600 dark:text-emerald-400 block font-sans">
+                    Antonioni Grounds Policy
+                  </span>
+                  <h3 className="text-lg font-serif font-semibold text-foreground mt-0.5">
+                    {formData.eventType === "Table Reservation" ? "Lounge Table Reservation Policy" : "Brew Buggy Cart Sourcing Policy"}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPolicyModalOpen(false)}
+                  className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-white/10 text-zinc-500 hover:text-foreground transition-all cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto space-y-4 text-xs font-sans leading-relaxed text-zinc-600 dark:text-zinc-300">
+                {formData.eventType === "Table Reservation" ? (
+                  <TableReservationPolicy />
+                ) : (
+                  <CartReservationPolicy />
+                )}
+              </div>
+
+              <div className="p-4 border-t border-card-border bg-background-alt/50 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsPolicyModalOpen(false)}
+                  className="px-6 py-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  I Understand
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
     </PageTransition>

@@ -25,22 +25,44 @@ interface ReservationData {
   cancellationReason?: string;
   transpoFee?: number;
   distanceKm?: number;
+  discountAmount?: number;
+  discountReason?: string;
+  isFreeTranspoFee?: boolean;
+  customDownpayment?: number;
   created_at?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getPaymentInfo(eventType: string, guestCount: number, transpoFee: number = 0) {
+function getPaymentInfo(
+  eventType: string,
+  guestCount: number,
+  transpoFee: number = 0,
+  discountAmount: number = 0,
+  isFreeTranspo: boolean = false,
+  customDp?: number
+) {
+  const fee = isFreeTranspo ? 0 : (transpoFee || 0);
+  const discount = Math.max(0, discountAmount || 0);
+
   if (eventType === "Table Reservation") {
-    return { basePackage: 3500, transpoFee: 0, total: 3500, downpayment: 1000, balance: 2500 };
+    const basePackage = 3500;
+    const total = Math.max(0, basePackage - discount);
+    const defaultDp = Math.min(1000, total);
+    const downpayment = customDp !== undefined && customDp !== null ? customDp : defaultDp;
+    const balance = total - downpayment;
+    return { basePackage, discount, transpoFee: 0, isFreeTranspo: false, total, downpayment, balance };
   }
+
   const packages: Record<number, number> = { 50: 5500, 100: 11000, 150: 16500, 200: 22000 };
   const basePackage = packages[guestCount] || 5500;
-  const baseDp = Math.round(basePackage * 0.1);
-  const fee = transpoFee || 0;
-  const total = basePackage + fee;
-  const downpayment = baseDp + fee;
-  return { basePackage, transpoFee: fee, total, downpayment, balance: total - downpayment };
+  const discountedBase = Math.max(0, basePackage - discount);
+  const baseDp = Math.round(discountedBase * 0.1);
+  const total = discountedBase + fee;
+  const defaultDp = baseDp + fee;
+  const downpayment = customDp !== undefined && customDp !== null ? customDp : defaultDp;
+  const balance = total - downpayment;
+  return { basePackage, discount, transpoFee: fee, isFreeTranspo, total, downpayment, balance };
 }
 
 function getEndTime(timeStr: string) {
@@ -358,17 +380,70 @@ export default function ReservationDetailView({ reservationId }: { reservationId
 
   const fetchReservation = useCallback(async () => {
     try {
-      const res = await fetch(`/api/reservations/${reservationId}`);
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Reservation not found");
+      let r: ReservationData | null = null;
+
+      try {
+        const res = await fetch(`/api/reservations/${reservationId}`);
+        if (res.ok) {
+          const data = await res.json();
+          r = data.reservation as ReservationData;
+        }
+      } catch (e) {
+        console.warn("API fetch failed, falling back to local storage:", e);
       }
-      const data = await res.json();
-      const r = data.reservation as ReservationData;
-      setReservation(r);
-      if (r.referenceNumber || r.proofOfPayment) {
+
+      // Merge with admin_reservation_statuses & localStorage reservations
+      const savedStatuses = (() => {
+        try { return JSON.parse(localStorage.getItem("admin_reservation_statuses") || "{}"); }
+        catch { return {}; }
+      })();
+
+      let localMatch: any = null;
+      if (typeof window !== "undefined") {
+        try {
+          const localList = JSON.parse(localStorage.getItem("reservations") || "[]");
+          localMatch = localList.find((item: any) => item.id === reservationId);
+        } catch { /* ignore */ }
+      }
+
+      if (!r && !localMatch) {
+        throw new Error("Reservation not found");
+      }
+
+      const normalizedApi = r ? {
+        ...r,
+        fullName: (r as any).fullName || (r as any).full_name,
+        eventType: (r as any).eventType || (r as any).event_type,
+        guestCount: (r as any).guestCount || (r as any).guest_count,
+        transpoFee: (r as any).transpoFee ?? (r as any).transpo_fee ?? 0,
+        distanceKm: (r as any).distanceKm ?? (r as any).distance_km ?? 0,
+        discountAmount: (r as any).discountAmount ?? (r as any).discount_amount ?? 0,
+        discountReason: (r as any).discountReason ?? (r as any).discount_reason ?? "",
+        isFreeTranspoFee: (r as any).isFreeTranspoFee ?? (r as any).is_free_transpo_fee ?? false,
+        customDownpayment: (r as any).customDownpayment ?? (r as any).custom_downpayment,
+        paymentMethod: (r as any).paymentMethod || (r as any).payment_method,
+        referenceNumber: (r as any).referenceNumber || (r as any).reference_number,
+        proofOfPayment: (r as any).proofOfPayment || (r as any).proof_of_payment,
+      } : null;
+
+      const merged = {
+        ...(localMatch || {}),
+        ...(normalizedApi || {}),
+      } as ReservationData;
+
+      const keyName = merged.fullName || (merged as any).full_name;
+      const key = `${keyName}-${merged.date}-${merged.time}`;
+      const effectiveStatus = (merged.id && savedStatuses[merged.id]) || savedStatuses[key] || merged.status || "Pending";
+
+      const finalReservation: ReservationData = {
+        ...merged,
+        status: effectiveStatus as ReservationData["status"],
+      };
+
+      setReservation(finalReservation);
+      if (finalReservation.referenceNumber || finalReservation.proofOfPayment) {
         setIsPaid(true);
-        setPaidData({ paymentMethod: r.paymentMethod ?? "", referenceNumber: r.referenceNumber ?? "" });
+        setPaidData({ paymentMethod: finalReservation.paymentMethod ?? "", referenceNumber: finalReservation.referenceNumber ?? "" });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load reservation");
@@ -381,8 +456,15 @@ export default function ReservationDetailView({ reservationId }: { reservationId
     fetchReservation();
     const interval = setInterval(() => {
       fetchReservation();
-    }, 3000);
-    return () => clearInterval(interval);
+    }, 2000);
+
+    const handleStorage = () => fetchReservation();
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, [fetchReservation]);
 
   const handleSubmitCancellation = async () => {
@@ -458,7 +540,16 @@ export default function ReservationDetailView({ reservationId }: { reservationId
     );
   }
 
-  const pricing = getPaymentInfo(reservation.eventType, reservation.guestCount, reservation.transpoFee);
+  const isFinalizedStatus = reservation.status === "Pre-Approved" || reservation.status === "Approved" || reservation.status === "Completed";
+
+  const pricing = getPaymentInfo(
+    reservation.eventType,
+    reservation.guestCount,
+    reservation.transpoFee,
+    isFinalizedStatus ? (reservation.discountAmount || 0) : 0,
+    isFinalizedStatus ? (reservation.isFreeTranspoFee || false) : false,
+    isFinalizedStatus ? reservation.customDownpayment : undefined
+  );
   const endTime = getEndTime(reservation.time);
   const canPay = (reservation.status === "Pre-Approved" || reservation.status === "Approved") && !isPaid;
 
@@ -523,11 +614,27 @@ export default function ReservationDetailView({ reservationId }: { reservationId
               <CheckCircle2 size={36} className="stroke-[1.5]" />
             </div>
             <h1 className="text-3xl font-serif text-foreground tracking-tight font-semibold">
-              {reservation.status === "Cancelled" ? "Booking Cancelled" : reservation.status === "Approved" ? "Booking Secured" : reservation.status === "Cancellation Requested" ? "Cancellation Requested" : isPaid ? "Payment Pending Verification" : "Reservation Confirmed"}
+              {reservation.status === "Cancelled"
+                ? "Booking Cancelled"
+                : reservation.status === "Completed"
+                ? (reservation.eventType === "Table Reservation" ? "Reservation Completed" : "Event Completed")
+                : reservation.status === "Approved"
+                ? "Booking Secured"
+                : reservation.status === "Cancellation Requested"
+                ? "Cancellation Requested"
+                : isPaid
+                ? "Payment Pending Verification"
+                : "Reservation Confirmed"}
             </h1>
             <p className="text-sm text-zinc-500 font-light mt-2 leading-relaxed max-w-sm mx-auto">
               {reservation.status === "Cancelled" ? (
                 <>Your booking has been <strong className="text-red-500">cancelled</strong>. Contact us if you think this is an error.</>
+              ) : reservation.status === "Completed" ? (
+                reservation.eventType === "Table Reservation" ? (
+                  <>Thank you for visiting Antonioni Grounds! Your table reservation has been <strong className="text-blue-500">successfully completed</strong>. We hope you had a wonderful coffee and dining experience!</>
+                ) : (
+                  <>Thank you for choosing Antonioni Grounds! Your event has been <strong className="text-blue-500">successfully completed</strong>. We hope you and your guests enjoyed your coffee experience!</>
+                )
               ) : reservation.status === "Approved" ? (
                 <>Your downpayment has been received. Your booking is now <strong className="text-emerald-500">fully secured</strong>. We look forward to hosting you!</>
               ) : reservation.status === "Cancellation Requested" ? (
@@ -536,8 +643,6 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                 <>Your payment information has been submitted successfully. We are now <strong className="text-amber-500">verifying your downpayment receipt</strong>. We will notify you once approved.</>
               ) : canPay ? (
                 <>Your booking is <strong className="text-amber-500">pre-approved</strong>! Click <strong className="text-foreground">Pay Now</strong> below to submit your downpayment and fully secure your slot.</>
-              ) : reservation.status === "Completed" ? (
-                <>Thank you for visiting Antonioni Grounds! We hope you had a wonderful experience.</>
               ) : (
                 <>Your booking has been received and is <strong>pending review</strong>. You'll receive an email once pre-approved.</>
               )}
@@ -610,7 +715,21 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                       <>
                         <div>
                           <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Package Price</span>
-                          <span className="text-foreground font-semibold">₱{pricing.total.toLocaleString()}</span>
+                          <span className="text-foreground font-semibold">
+                            {pricing.discount > 0 ? (
+                              <>
+                                <span className="line-through text-zinc-400 text-xs mr-1.5">₱{pricing.basePackage.toLocaleString()}</span>
+                                <span>₱{pricing.total.toLocaleString()}</span>
+                              </>
+                            ) : (
+                              `₱${pricing.total.toLocaleString()}`
+                            )}
+                          </span>
+                          {pricing.discount > 0 && (
+                            <span className="text-[10px] text-emerald-500 font-bold block">
+                              -₱{pricing.discount.toLocaleString()} Discount{reservation.discountReason ? ` (${reservation.discountReason})` : ""}
+                            </span>
+                          )}
                         </div>
                         <div>
                           <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Downpayment (Required)</span>
@@ -630,11 +749,23 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                         <div>
                           <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Transportation Fee</span>
                           <span className="text-emerald-500 font-bold">
-                            {(reservation.transpoFee || 0) === 0
+                            {pricing.isFreeTranspo
+                              ? "FREE (Waived by Admin)"
+                              : (reservation.transpoFee || 0) === 0
                               ? "FREE"
                               : `₱${(reservation.transpoFee || 0).toLocaleString()}${reservation.distanceKm ? ` (${reservation.distanceKm} km)` : ""}`}
                           </span>
                         </div>
+                        {pricing.discount > 0 && (
+                          <div className="col-span-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 flex items-center justify-between">
+                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                              🏷️ Discount Applied{reservation.discountReason ? ` (${reservation.discountReason})` : ""}
+                            </span>
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                              - ₱{pricing.discount.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
                         <div>
                           <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-bold block mb-0.5">Total Reservation Cost</span>
                           <span className="text-foreground font-bold">₱{pricing.total.toLocaleString()}</span>
@@ -730,7 +861,7 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                         Paid & Secured
                       </div>
                       
-                      {reservation.status !== "Cancellation Requested" && (
+                      {reservation.status !== "Cancellation Requested" && reservation.status !== "Completed" && (
                         <button
                           type="button"
                           onClick={() => setShowCancelModal(true)}

@@ -23,4 +23,8 @@ export interface Reservation {
   cancellationReason?: string;
   transpoFee?: number;
   distanceKm?: number;
+  discountAmount?: number;
+  discountReason?: string;
+  isFreeTranspoFee?: boolean;
+  customDownpayment?: number;
 }

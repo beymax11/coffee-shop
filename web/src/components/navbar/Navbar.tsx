@@ -118,6 +118,8 @@ export const Navbar: React.FC = () => {
 
   // Monitor scroll height with our custom hook
   const isScrolled = useScroll(50);
+  const isHomePage = pathname === "/";
+  const isHeroOverlay = !isScrolled && isHomePage;
 
   useEffect(() => {
     const checkSession = () => {
@@ -391,7 +393,9 @@ export const Navbar: React.FC = () => {
           {/* LEFT: Burger icon */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="relative z-10 w-10 h-10 flex items-center justify-center text-foreground dark:text-white hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer drop-shadow-md"
+            className={`relative z-10 w-10 h-10 flex items-center justify-center ${
+              isHeroOverlay ? "text-white" : "text-foreground dark:text-white"
+            } hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer drop-shadow-md`}
             aria-label="Toggle Menu"
           >
             <Menu size={24} />
@@ -403,7 +407,9 @@ export const Navbar: React.FC = () => {
               <img
                 src="/logo.png"
                 alt="ANTONIONI GROUNDS"
-                className="h-8 sm:h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105 invert dark:invert-0 drop-shadow-md"
+                className={`h-8 sm:h-9 w-auto object-contain transition-all duration-300 group-hover:scale-105 ${
+                  isHeroOverlay ? "invert-0" : "invert dark:invert-0"
+                } drop-shadow-md`}
               />
             </Link>
           </div>
@@ -415,6 +421,7 @@ export const Navbar: React.FC = () => {
                 notifications={notifications}
                 onMarkAsRead={handleMarkAsRead}
                 onMarkAllAsRead={handleMarkAllAsRead}
+                isScrolled={!isHeroOverlay}
               />
             )}
 
@@ -426,7 +433,9 @@ export const Navbar: React.FC = () => {
                   setIsLoginOpen(true);
                 }
               }}
-              className="w-10 h-10 flex items-center justify-center text-foreground dark:text-white hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer drop-shadow-md"
+              className={`w-10 h-10 flex items-center justify-center ${
+                isHeroOverlay ? "text-white" : "text-foreground dark:text-white"
+              } hover:text-brand-green dark:hover:text-emerald-400 transition-colors duration-300 cursor-pointer drop-shadow-md`}
               aria-label={customer ? "Profile" : "Sign In"}
             >
               <UserRound size={24} />

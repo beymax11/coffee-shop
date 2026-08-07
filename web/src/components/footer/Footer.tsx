@@ -1,5 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import { PrivacyPolicyModal } from "./PrivacyPolicyModal";
+import { TermsOfServiceModal } from "./TermsOfServiceModal";
+import { ReservationPolicyModal } from "./ReservationPolicyModal";
+import { AccessibilityModal } from "./AccessibilityModal";
 
 const InstagramIcon = ({ size = 18 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
@@ -14,6 +18,8 @@ const TikTokIcon = ({ size = 18 }: { size?: number }) => (
 );
 
 export const Footer: React.FC = () => {
+  const [activeModal, setActiveModal] = useState<"privacy" | "terms" | "reservation" | "accessibility" | null>(null);
+
   return (
     <footer className="relative mt-auto border-t border-card-border bg-card text-foreground overflow-hidden">
       {/* Background soft gold glow */}
@@ -119,10 +125,31 @@ export const Footer: React.FC = () => {
         {/* Legal Footer */}
         <div className="flex flex-col md:flex-row items-center justify-between py-8 type-caption text-zinc-500 gap-4">
           <p>© {new Date().getFullYear()} Antonioni Grounds. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <a href="#" className="hover:underline">Privacy Policy</a>
-            <a href="#" className="hover:underline">Terms of Service</a>
-            <a href="#" className="hover:underline">Accessibility</a>
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6 text-xs text-zinc-500">
+            <button
+              onClick={() => setActiveModal("privacy")}
+              className="hover:text-brand-gold hover:underline transition-colors cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <button
+              onClick={() => setActiveModal("terms")}
+              className="hover:text-brand-gold hover:underline transition-colors cursor-pointer"
+            >
+              Terms of Service
+            </button>
+            <button
+              onClick={() => setActiveModal("reservation")}
+              className="hover:text-brand-gold hover:underline transition-colors cursor-pointer"
+            >
+              Reservation Policy
+            </button>
+            <button
+              onClick={() => setActiveModal("accessibility")}
+              className="hover:text-brand-gold hover:underline transition-colors cursor-pointer"
+            >
+              Accessibility
+            </button>
           </div>
         </div>
 
@@ -135,6 +162,24 @@ export const Footer: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Dedicated Policy Modals */}
+      <PrivacyPolicyModal
+        isOpen={activeModal === "privacy"}
+        onClose={() => setActiveModal(null)}
+      />
+      <TermsOfServiceModal
+        isOpen={activeModal === "terms"}
+        onClose={() => setActiveModal(null)}
+      />
+      <ReservationPolicyModal
+        isOpen={activeModal === "reservation"}
+        onClose={() => setActiveModal(null)}
+      />
+      <AccessibilityModal
+        isOpen={activeModal === "accessibility"}
+        onClose={() => setActiveModal(null)}
+      />
     </footer>
   );
 };

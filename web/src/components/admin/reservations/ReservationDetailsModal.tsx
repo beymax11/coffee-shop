@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
-import { Check, X, Mail, Phone, Calendar, Users, MapPin, MessageSquare, Clock, CreditCard, FileText, RefreshCw, Eye } from "lucide-react";
+import { Check, X, Mail, Phone, Calendar, Users, MapPin, MessageSquare, Clock, CreditCard, FileText, RefreshCw, Eye, Tag, Percent, Gift, Truck, Edit2 } from "lucide-react";
 import { Reservation } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { ConfirmModal } from "../common/ConfirmModal";
+
+import { calculateAccurateDistance } from "@/utils/distance";
 
 interface ReservationDetailsModalProps {
   isOpen: boolean;
@@ -12,6 +14,7 @@ interface ReservationDetailsModalProps {
   reservation: Reservation | null;
   reservationStatuses: Record<string, "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested">;
   onUpdateStatus: (res: Reservation, newStatus: "Pending" | "Pre-Approved" | "Approved" | "Cancelled" | "Completed" | "Cancellation Requested") => void;
+  onReschedule?: (res: Reservation, newDate: string, newTime: string, reason?: string) => void;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -22,6 +25,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
   reservation,
   reservationStatuses,
   onUpdateStatus,
+  onReschedule,
 }) => {
   const [showProofPanel, setShowProofPanel] = React.useState(false);
   const [updatingStatus, setUpdatingStatus] = React.useState<"Completed" | "Cancelled" | "Approved" | null>(null);
@@ -29,6 +33,214 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
     type: "Complete" | "Cancel" | "ApproveCancellation" | "RejectCancellation";
     targetStatus: "Completed" | "Cancelled" | "Approved";
   } | null>(null);
+
+  const [transpoFeeInput, setTranspoFeeInput] = React.useState<number | "">(0);
+  const [discountAmountInput, setDiscountAmountInput] = React.useState<number | "">(0);
+  const [discountReasonInput, setDiscountReasonInput] = React.useState<string>("");
+  const [isFreeTranspoInput, setIsFreeTranspoInput] = React.useState<boolean>(false);
+  const [customDpInput, setCustomDpInput] = React.useState<number | "">("");
+  const [isSavingPricing, setIsSavingPricing] = React.useState(false);
+  const [isPreApproving, setIsPreApproving] = React.useState(false);
+  const [isEditingPricing, setIsEditingPricing] = React.useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = React.useState<string | null>(null);
+
+  // Reschedule state
+  const [isRescheduleOpen, setIsRescheduleOpen] = React.useState(false);
+  const [rescheduleDate, setRescheduleDate] = React.useState<string>("");
+  const [rescheduleTime, setRescheduleTime] = React.useState<string>("");
+  const [rescheduleReason, setRescheduleReason] = React.useState<string>("");
+  const [isSavingReschedule, setIsSavingReschedule] = React.useState(false);
+  const [rescheduleSuccessMsg, setRescheduleSuccessMsg] = React.useState<string | null>(null);
+  const [rescheduleErrorMsg, setRescheduleErrorMsg] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (reservation && isOpen) {
+      let fee = Number(reservation.transpoFee ?? (reservation as any).transpo_fee ?? 0);
+      if (fee === 0 && reservation.location && reservation.eventType === "Coffee Cart Booking") {
+        const calculated = calculateAccurateDistance("", "", reservation.location, "");
+        if (calculated.transpoFee > 0) {
+          fee = calculated.transpoFee;
+        }
+      }
+      setTranspoFeeInput(fee);
+      setDiscountAmountInput(reservation.discountAmount ?? 0);
+      setDiscountReasonInput(reservation.discountReason ?? "");
+      setIsFreeTranspoInput(reservation.isFreeTranspoFee ?? false);
+      setCustomDpInput(reservation.customDownpayment ?? "");
+      setIsEditingPricing(false);
+      setSaveSuccessMsg(null);
+
+      // Reset reschedule state
+      setRescheduleDate(reservation.date || "");
+      setRescheduleTime(reservation.time || "");
+      setRescheduleReason("");
+      setIsRescheduleOpen(false);
+      setRescheduleSuccessMsg(null);
+      setRescheduleErrorMsg(null);
+    }
+  }, [reservation, isOpen]);
+
+  const handleSaveReschedule = async () => {
+    if (!reservation || !rescheduleDate || !rescheduleTime) return;
+    setIsSavingReschedule(true);
+    setRescheduleErrorMsg(null);
+    setRescheduleSuccessMsg(null);
+
+    const payload = {
+      date: rescheduleDate,
+      time: rescheduleTime,
+    };
+
+    try {
+      if (reservation.id) {
+        const patchRes = await fetch(`/api/reservations/${reservation.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!patchRes.ok) {
+          const errData = await patchRes.json().catch(() => ({}));
+          throw new Error(errData.error || "Failed to update reservation date & time.");
+        }
+      }
+
+      const updatedRes: Reservation = {
+        ...reservation,
+        date: rescheduleDate,
+        time: rescheduleTime,
+      };
+
+      if (typeof window !== "undefined") {
+        try {
+          const reservations = JSON.parse(localStorage.getItem("reservations") || "[]");
+          const idx = reservations.findIndex((r: any) => (reservation.id && r.id === reservation.id) || (r.fullName === reservation.fullName && r.date === reservation.date));
+          if (idx >= 0) {
+            reservations[idx] = { ...reservations[idx], date: rescheduleDate, time: rescheduleTime };
+            localStorage.setItem("reservations", JSON.stringify(reservations));
+            window.dispatchEvent(new Event("storage"));
+          }
+        } catch { /* ignore fallback write errors */ }
+      }
+
+      setRescheduleSuccessMsg("Booking successfully rescheduled!");
+
+      if (onReschedule) {
+        onReschedule(updatedRes, rescheduleDate, rescheduleTime, rescheduleReason);
+      }
+
+      setTimeout(() => {
+        setIsRescheduleOpen(false);
+        setRescheduleSuccessMsg(null);
+      }, 1000);
+    } catch (err: any) {
+      console.error("Error saving reschedule:", err);
+      setRescheduleErrorMsg(err.message || "Failed to reschedule booking.");
+    } finally {
+      setIsSavingReschedule(false);
+    }
+  };
+
+  const calculatePricingBreakdown = () => {
+    if (!reservation) return { basePrice: 0, rawFee: 0, effectiveFee: 0, disc: 0, netTotal: 0, finalDp: 0 };
+    
+    let storedFee = Number(reservation.transpoFee ?? (reservation as any).transpo_fee ?? 0);
+    let calculatedFee = 0;
+    if (reservation.location && reservation.eventType === "Coffee Cart Booking") {
+      calculatedFee = calculateAccurateDistance("", "", reservation.location, "").transpoFee;
+    }
+
+    let rawFee = 0;
+    if (typeof transpoFeeInput === "number" && transpoFeeInput > 0) {
+      rawFee = transpoFeeInput;
+    } else {
+      rawFee = storedFee > 0 ? storedFee : calculatedFee;
+    }
+
+    const effectiveFee = isFreeTranspoInput ? 0 : rawFee;
+    const disc = typeof discountAmountInput === "number" ? Math.max(0, discountAmountInput) : 0;
+
+    let basePrice = 3500;
+    if (reservation.eventType === "Coffee Cart Booking") {
+      const pax = reservation.guestCount;
+      if (pax === 100) basePrice = 11000;
+      else if (pax === 150) basePrice = 16500;
+      else if (pax === 200) basePrice = 22000;
+      else basePrice = 5500;
+    }
+
+    const discountedBase = Math.max(0, basePrice - disc);
+    const netTotal = discountedBase + effectiveFee;
+
+    let defaultDp = 1000;
+    if (reservation.eventType === "Coffee Cart Booking") {
+      defaultDp = Math.round(discountedBase * 0.1) + effectiveFee;
+    } else {
+      defaultDp = Math.min(1000, netTotal);
+    }
+
+    const finalDp = customDpInput !== "" ? Number(customDpInput) : defaultDp;
+
+    return { basePrice, rawFee, effectiveFee, disc, discountedBase, netTotal, finalDp };
+  };
+
+  const handleSavePricing = async (andPreApprove: boolean = false) => {
+    if (!reservation?.id) return;
+    if (andPreApprove) {
+      setIsPreApproving(true);
+    } else {
+      setIsSavingPricing(true);
+    }
+    setSaveSuccessMsg(null);
+    const disc = typeof discountAmountInput === "number" ? discountAmountInput : 0;
+    const tFee = typeof transpoFeeInput === "number" ? transpoFeeInput : Number(reservation.transpoFee ?? (reservation as any).transpo_fee ?? 0);
+    const cDp = customDpInput === "" ? undefined : Number(customDpInput);
+
+    const payload = {
+      transpoFee: tFee,
+      discountAmount: disc,
+      discountReason: discountReasonInput,
+      isFreeTranspoFee: isFreeTranspoInput,
+      customDownpayment: cDp,
+    };
+
+    try {
+      await fetch(`/api/reservations/${reservation.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const updatedRes: Reservation = {
+        ...reservation,
+        ...payload,
+      };
+
+      if (typeof window !== "undefined") {
+        try {
+          const reservations = JSON.parse(localStorage.getItem("reservations") || "[]");
+          const idx = reservations.findIndex((r: any) => r.id === reservation.id);
+          if (idx >= 0) {
+            reservations[idx] = { ...reservations[idx], ...payload };
+            localStorage.setItem("reservations", JSON.stringify(reservations));
+            window.dispatchEvent(new Event("storage"));
+          }
+        } catch { /* ignore fallback write errors */ }
+      }
+
+      setSaveSuccessMsg("Pricing adjustments saved!");
+      setIsEditingPricing(false);
+
+      if (andPreApprove) {
+        await onUpdateStatus(updatedRes, "Pre-Approved");
+      }
+    } catch (err) {
+      console.error("Error saving pricing:", err);
+    } finally {
+      setIsSavingPricing(false);
+      setIsPreApproving(false);
+    }
+  };
 
   const handleConfirmAction = async () => {
     if (!confirmAction || !reservation) return;
@@ -116,19 +328,8 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
   const currentStatus = (reservation.id && reservationStatuses[reservation.id]) || reservationStatuses[compositeKey] || reservation.status || "Pending";
 
   const calculateAmount = () => {
-    const fee = Number((reservation as any).transpoFee ?? (reservation as any).transpo_fee ?? 0);
-    if (reservation.eventType === "Coffee Cart Booking") {
-      const pax = reservation.guestCount;
-      let base = 5500;
-      if (pax === 100) base = 11000;
-      if (pax === 150) base = 16500;
-      if (pax === 200) base = 22000;
-      const total = base + fee;
-      const dp = Math.round(base * 0.10) + fee;
-      return `₱${total.toLocaleString()}.00 (Downpayment = ₱${dp.toLocaleString()}.00${fee > 0 ? ` incl. ₱${fee.toLocaleString()} Transpo Fee` : ''})`;
-    } else {
-      return "₱3,500.00 (Consumable Table Fee)";
-    }
+    const { finalDp } = calculatePricingBreakdown();
+    return `₱${finalDp.toLocaleString()}.00`;
   };
 
   return (
@@ -145,14 +346,14 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
           />
 
           {/* Modal Container */}
-          <div className="max-w-lg w-full relative z-10 flex justify-center">
+          <div className="max-w-4xl w-full relative z-10 flex justify-center">
             {/* Modal Card */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.35, ease: EASE }}
-              className="w-full max-w-lg rounded-2xl border border-card-border bg-card p-6 sm:p-8 shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto font-sans"
+              className="w-full max-w-4xl rounded-2xl border border-card-border bg-card p-6 sm:p-8 shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto font-sans"
             >
               {/* Glow Background */}
               <div className={`absolute top-0 right-0 w-32 h-32 blur-[40px] rounded-full pointer-events-none opacity-20 transition-all duration-500 ${currentStatus === "Completed" ? "bg-blue-500" : currentStatus === "Approved" ? "bg-emerald-500" : currentStatus === "Pre-Approved" ? "bg-amber-500" : currentStatus === "Cancelled" ? "bg-red-500" : currentStatus === "Cancellation Requested" ? "bg-orange-500" : "bg-zinc-500"
@@ -217,347 +418,489 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                 )}
               </div>
 
-              {/* Details Section */}
-              <div className="space-y-5">
-                {/* Grid for Quick Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3 flex flex-col gap-1">
-                    <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase tracking-wider font-bold">Date & Time</span>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground mt-1">
-                      <Calendar size={13} className="text-brand-green shrink-0" />
-                      <span>{reservation.date}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground/80 font-mono mt-0.5">
-                      <Clock size={13} className="text-brand-green shrink-0" />
-                      <span>{reservation.time}</span>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3 flex flex-col gap-1">
-                    <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase tracking-wider font-bold">Guests</span>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground mt-2">
-                      <Users size={13} className="text-brand-green shrink-0" />
-                      <span className="font-semibold">{reservation.guestCount} Guest{reservation.guestCount > 1 ? "s" : ""}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contact Information */}
-                <div className="space-y-2.5">
-                  <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Contact Info</h4>
-                  <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3.5 space-y-2 text-xs text-foreground">
-                    <div className="flex items-center gap-3">
-                      <Mail size={13} className="text-neutral-500 dark:text-zinc-500 shrink-0" />
-                      <span className="select-all">{reservation.email}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Phone size={13} className="text-neutral-500 dark:text-zinc-500 shrink-0" />
-                      <span className="select-all">{reservation.phone}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Location / Address */}
-                {reservation.location && (
-                  <div className="space-y-2.5">
-                    <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Event Location</h4>
-                    <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3.5 flex items-start gap-2.5 text-xs text-foreground">
-                      <MapPin size={14} className="text-brand-green shrink-0 mt-0.5" />
-                      <span className="leading-relaxed">{reservation.location}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Notes / Special Instructions */}
-                {notes && (
-                  <div className="space-y-2.5">
-                    <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Customer Notes</h4>
-                    <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3.5 flex items-start gap-2.5 text-xs text-neutral-500 dark:text-zinc-400 italic">
-                      <MessageSquare size={13} className="text-brand-green shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">"{notes}"</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Selected Package Flavors */}
-                {(coffeeFlavor1 || nonCoffeeFlavor1) && (
-                  <div className="space-y-2.5">
-                    <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Selected Package Flavors</h4>
-                    <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3.5 grid grid-cols-2 gap-4 text-xs text-foreground">
-                      <div>
-                        <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Coffee Flavors</span>
-                        <span className="mt-1 block font-semibold">
-                          1. {coffeeFlavor1 || "—"}<br />
-                          2. {coffeeFlavor2 || "—"}
-                        </span>
+              {/* 2-Column Grid Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* LEFT COLUMN: Customer & Event Details */}
+                <div className="lg:col-span-7 space-y-4">
+                  {/* Grid for Quick Stats */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3 flex flex-col gap-1 relative group">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase tracking-wider font-bold">Date & Time</span>
+                        <button
+                          type="button"
+                          onClick={() => setIsRescheduleOpen(true)}
+                          className="text-[9px] text-amber-600 dark:text-amber-400 hover:underline font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Reschedule Booking"
+                        >
+                          <Edit2 size={10} /> Reschedule
+                        </button>
                       </div>
-                      <div>
-                        <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Non-Coffee Flavors</span>
-                        <span className="mt-1 block font-semibold">
-                          1. {nonCoffeeFlavor1 || "—"}<br />
-                          2. {nonCoffeeFlavor2 || "—"}
-                        </span>
+                      <div className="flex items-center gap-1.5 text-xs text-foreground mt-1">
+                        <Calendar size={13} className="text-brand-green shrink-0" />
+                        <span>{reservation.date}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-foreground/80 font-mono mt-0.5">
+                        <Clock size={13} className="text-brand-green shrink-0" />
+                        <span>{reservation.time}</span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3 flex flex-col gap-1">
+                      <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase tracking-wider font-bold">Guests</span>
+                      <div className="flex items-center gap-1.5 text-xs text-foreground mt-2">
+                        <Users size={13} className="text-brand-green shrink-0" />
+                        <span className="font-semibold">{reservation.guestCount} Guest{reservation.guestCount > 1 ? "s" : ""}</span>
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* Payment Box */}
-                {currentStatus !== "Pre-Approved" && (reservation.referenceNumber || reservation.proofOfPayment) && (
-                  <div className="space-y-2.5">
-                    <h4 className="text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold">Payment Verification</h4>
-                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.02] p-4 text-xs space-y-2">
-                      <div className="grid grid-cols-2 gap-3 text-xs">
+                  {/* Contact Information */}
+                  <div className="space-y-2">
+                    <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Contact Info</h4>
+                    <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3 space-y-2 text-xs text-foreground">
+                      <div className="flex items-center gap-3">
+                        <Mail size={13} className="text-neutral-500 dark:text-zinc-500 shrink-0" />
+                        <span className="select-all">{reservation.email}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Phone size={13} className="text-neutral-500 dark:text-zinc-500 shrink-0" />
+                        <span className="select-all">{reservation.phone}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Location / Address */}
+                  {reservation.location && (
+                    <div className="space-y-2">
+                      <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Event Location</h4>
+                      <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3 flex items-start gap-2.5 text-xs text-foreground">
+                        <MapPin size={14} className="text-brand-green shrink-0 mt-0.5" />
+                        <span className="leading-relaxed">{reservation.location}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notes / Special Instructions */}
+                  {notes && (
+                    <div className="space-y-2">
+                      <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Customer Notes</h4>
+                      <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3 flex items-start gap-2.5 text-xs text-neutral-500 dark:text-zinc-400 italic">
+                        <MessageSquare size={13} className="text-brand-green shrink-0 mt-0.5" />
+                        <p className="leading-relaxed">"{notes}"</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected Package Flavors */}
+                  {(coffeeFlavor1 || nonCoffeeFlavor1) && (
+                    <div className="space-y-2">
+                      <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Selected Package Flavors</h4>
+                      <div className="rounded-xl border border-card-border bg-foreground/[0.02] p-3 grid grid-cols-2 gap-3 text-xs text-foreground">
                         <div>
-                          <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Payment Method</span>
-                          <span className="text-foreground font-semibold flex items-center gap-1.5 mt-0.5">
-                            <CreditCard size={12} className="text-emerald-500" />
-                            {reservation.paymentMethod || "—"}
+                          <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Coffee Flavors</span>
+                          <span className="mt-1 block font-semibold">
+                            1. {coffeeFlavor1 || "—"}<br />
+                            2. {coffeeFlavor2 || "—"}
                           </span>
                         </div>
                         <div>
-                          <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Reference Number</span>
-                          <span className="text-foreground font-mono font-semibold block mt-0.5 select-all">
-                            {reservation.referenceNumber || "—"}
+                          <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Non-Coffee Flavors</span>
+                          <span className="mt-1 block font-semibold">
+                            1. {nonCoffeeFlavor1 || "—"}<br />
+                            2. {nonCoffeeFlavor2 || "—"}
                           </span>
                         </div>
                       </div>
-                      {reservation.proofOfPayment && (
-                        <div className="border-t border-emerald-500/10 pt-2 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <FileText size={13} className="text-emerald-500 shrink-0" />
-                            <div className="truncate flex-1 text-xs">
-                              <span className="text-[9px] text-neutral-500 dark:text-zinc-500 block font-bold">Proof Receipt File</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* RIGHT COLUMN: Price Adjustments & Manage Status */}
+                <div className="lg:col-span-5 space-y-4">
+                  {/* Admin Price Adjustments & Discounts (Shown only for Pending or Pre-Approved reservations before payment) */}
+                  {(currentStatus === "Pending" || currentStatus === "Pre-Approved") && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[9px] uppercase tracking-wider text-brand-green dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                          <Tag size={12} /> Price Adjustments & Discounts
+                        </h4>
+                        {saveSuccessMsg && (
+                          <span className="text-[10px] text-emerald-500 font-bold animate-pulse">
+                            ✓ {saveSuccessMsg}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-4 space-y-3 text-xs">
+                        <div className="grid grid-cols-1 gap-3">
+                          {/* Discount Amount */}
+                          <div>
+                            <label className="text-[9px] uppercase font-bold tracking-wider text-neutral-500 dark:text-zinc-400 block mb-1">
+                              Discount Amount (₱)
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-2.5 top-2 text-neutral-400 font-mono text-xs">₱</span>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                disabled={!isEditingPricing}
+                                value={discountAmountInput}
+                                onChange={(e) => setDiscountAmountInput(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="w-full pl-6 pr-3 py-1.5 rounded-lg border border-card-border bg-background text-xs font-mono font-bold text-foreground focus:outline-none focus:border-emerald-500 disabled:opacity-50 disabled:bg-neutral-100 dark:disabled:bg-zinc-800/60"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Transpo Fee Amount (Editable) & Free Transpo Fee Checkbox */}
+                          {reservation.eventType === "Coffee Cart Booking" && (
+                            <div>
+                              <label className="text-[9px] uppercase font-bold tracking-wider text-neutral-500 dark:text-zinc-400 mb-1 flex items-center justify-between">
+                                <span>Transpo Fee (₱)</span>
+                                {isFreeTranspoInput && <span className="text-[8px] text-emerald-500 font-bold uppercase">(Waived)</span>}
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-2 text-neutral-400 font-mono text-xs">₱</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  disabled={!isEditingPricing || isFreeTranspoInput}
+                                  value={transpoFeeInput}
+                                  onChange={(e) => setTranspoFeeInput(e.target.value === "" ? "" : Number(e.target.value))}
+                                  className="w-full pl-6 pr-3 py-1.5 rounded-lg border border-card-border bg-background text-xs font-mono font-bold text-foreground focus:outline-none focus:border-emerald-500 disabled:opacity-50 disabled:bg-neutral-100 dark:disabled:bg-zinc-800/60"
+                                />
+                              </div>
+                              <label className="flex items-center gap-1.5 mt-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  disabled={!isEditingPricing}
+                                  checked={isFreeTranspoInput}
+                                  onChange={(e) => setIsFreeTranspoInput(e.target.checked)}
+                                  className="w-3.5 h-3.5 rounded text-brand-green accent-emerald-500 cursor-pointer disabled:opacity-50"
+                                />
+                                <span className="text-[11px] font-semibold text-foreground flex items-center gap-1">
+                                  <Truck size={12} className="text-emerald-500" /> Free Transpo Fee
+                                </span>
+                              </label>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Live Calculation Preview */}
+                        {(() => {
+                          const { basePrice, rawFee, effectiveFee, disc, discountedBase, netTotal, finalDp } = calculatePricingBreakdown();
+                          const distKm = reservation.distanceKm ?? (reservation as any).distance_km ?? (
+                            reservation.location ? calculateAccurateDistance("", "", reservation.location, "").distanceKm : 0
+                          );
+                          const packageLabel = reservation.eventType === "Coffee Cart Booking"
+                            ? `Coffee Cart (${reservation.guestCount || 50} Pax)`
+                            : `Table (${reservation.guestCount || 2} Guests)`;
+
+                          return (
+                            <div className="rounded-xl bg-background/90 border border-card-border p-3 space-y-1.5 text-xs font-mono shadow-inner">
+                              <div className="flex justify-between items-center text-neutral-600 dark:text-zinc-300">
+                                <span className="font-sans font-medium text-[11px]">{packageLabel}:</span>
+                                <span className="font-bold text-foreground">₱{basePrice.toLocaleString()}</span>
+                              </div>
+
+                              {reservation.eventType === "Coffee Cart Booking" && (
+                                <div className="flex justify-between items-center text-neutral-600 dark:text-zinc-300">
+                                  <span className="font-sans font-medium text-[11px]">
+                                    Transpo Fee {distKm > 0 ? `(${distKm}km)` : ""}:
+                                  </span>
+                                  <span className={isFreeTranspoInput ? "text-emerald-500 font-bold" : "font-bold text-foreground"}>
+                                    {isFreeTranspoInput ? `FREE (₱0)` : `₱${rawFee.toLocaleString()}`}
+                                  </span>
+                                </div>
+                              )}
+
+                              {disc > 0 && (
+                                <div className="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-semibold">
+                                  <span className="font-sans text-[11px]">Discount:</span>
+                                  <span>- ₱{disc.toLocaleString()}</span>
+                                </div>
+                              )}
+
+                              <div className="flex justify-between items-center text-foreground font-extrabold border-t border-dashed border-card-border/80 pt-1.5 text-xs">
+                                <span className="font-sans uppercase text-[9px] tracking-wider text-neutral-500">Net Total:</span>
+                                <span className="text-sm font-mono text-emerald-600 dark:text-emerald-400">₱{netTotal.toLocaleString()}</span>
+                              </div>
+
+                              <div className="flex justify-between items-center text-amber-600 dark:text-amber-400 font-bold text-[11px] pt-0.5">
+                                <span className="font-sans uppercase text-[9px] tracking-wider text-neutral-400">Required Downpayment:</span>
+                                <span>₱{finalDp.toLocaleString()}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Save / Edit Button */}
+                        <div className="flex justify-end gap-2 pt-0.5">
+                          {!isEditingPricing ? (
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingPricing(true)}
+                              className="w-full justify-center py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Edit2 size={11} /> Edit Adjustments
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSavePricing(false)}
+                              disabled={isSavingPricing}
+                              className="w-full justify-center py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                              {isSavingPricing ? <RefreshCw size={11} className="animate-spin" /> : <Check size={11} />}
+                              Save Adjustments
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Payment Box */}
+                  {currentStatus !== "Pre-Approved" && (reservation.referenceNumber || reservation.proofOfPayment) && (
+                    <div className="space-y-2">
+                      <h4 className="text-[9px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold">Payment Verification</h4>
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.02] p-3 text-xs space-y-2">
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Payment Method</span>
+                            <span className="text-foreground font-semibold flex items-center gap-1.5 mt-0.5">
+                              <CreditCard size={12} className="text-emerald-500" />
+                              {reservation.paymentMethod || "—"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-neutral-500 dark:text-zinc-500 uppercase block font-bold">Reference Number</span>
+                            <span className="text-foreground font-mono font-semibold block mt-0.5 select-all">
+                              {reservation.referenceNumber || "—"}
+                            </span>
+                          </div>
+                        </div>
+                        {reservation.proofOfPayment && (
+                          <div className="border-t border-emerald-500/10 pt-2 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <FileText size={13} className="text-emerald-500 shrink-0" />
+                              <div className="truncate flex-1 text-xs">
+                                <span className="text-[9px] text-neutral-500 dark:text-zinc-500 block font-bold">Proof Receipt File</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setLightboxImage(reservation.proofOfPayment!)}
+                                  className="text-foreground/90 italic truncate block mt-0.5 text-left hover:text-emerald-500 hover:underline cursor-pointer outline-none"
+                                >
+                                  {reservation.proofOfPayment.startsWith("http")
+                                    ? reservation.proofOfPayment.split("/").pop()
+                                    : reservation.proofOfPayment}
+                                </button>
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => setLightboxImage(reservation.proofOfPayment!)}
-                                className="text-foreground/90 italic truncate block mt-0.5 text-left hover:text-emerald-500 hover:underline cursor-pointer outline-none"
+                                className="text-[10px] text-emerald-500 hover:text-emerald-400 font-bold underline shrink-0 cursor-pointer outline-none"
                               >
-                                {reservation.proofOfPayment.startsWith("http")
-                                  ? reservation.proofOfPayment.split("/").pop()
-                                  : reservation.proofOfPayment}
+                                View Receipt
                               </button>
                             </div>
                             <button
                               type="button"
                               onClick={() => setLightboxImage(reservation.proofOfPayment!)}
-                              className="text-[10px] text-emerald-500 hover:text-emerald-400 font-bold underline shrink-0 cursor-pointer outline-none"
+                              className="rounded-lg overflow-hidden border border-card-border/80 max-h-32 bg-black/20 flex items-center justify-center cursor-pointer w-full hover:border-emerald-500/30 transition-all outline-none"
                             >
-                              View Receipt
+                              {reservation.proofOfPayment.startsWith("http") ? (
+                                <img
+                                  src={reservation.proofOfPayment}
+                                  alt="Proof of payment receipt"
+                                  className="max-h-32 w-auto object-contain"
+                                />
+                              ) : (
+                                <div className="py-4 text-center text-[10px] text-neutral-500 font-light">
+                                  📄 Click to View Mock Receipt
+                                </div>
+                              )}
                             </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setLightboxImage(reservation.proofOfPayment!)}
-                            className="rounded-lg overflow-hidden border border-card-border/80 max-h-40 bg-black/20 flex items-center justify-center cursor-pointer w-full hover:border-emerald-500/30 transition-all outline-none"
-                          >
-                            {reservation.proofOfPayment.startsWith("http") ? (
-                              <img
-                                src={reservation.proofOfPayment}
-                                alt="Proof of payment receipt"
-                                className="max-h-40 w-auto object-contain"
-                              />
-                            ) : (
-                              <div className="py-6 text-center text-[10px] text-neutral-500 font-light">
-                                📄 Click to View Mock Receipt
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quick Action buttons / Manage Status */}
+                  <div className="border-t border-card-border/40 pt-4 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                    <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Manage Status</h4>
+
+                    {/* Cancellation Requested — Admin Review Panel */}
+                    {currentStatus === "Cancellation Requested" && (() => {
+                      const bookingDate = new Date(reservation.date);
+                      const now = new Date();
+                      const diffMs = bookingDate.getTime() - now.getTime();
+                      const diffHours = diffMs / (1000 * 60 * 60);
+                      const diffDays = diffHours / 24;
+                      const isTable = reservation.eventType === "Table Reservation";
+                      const isEligibleForRefund = isTable ? diffHours >= 24 : diffDays >= 7;
+                      const policyThreshold = isTable ? "24 hours" : "1 week";
+
+                      return (
+                        <div className="space-y-3">
+                          <div className="rounded-xl border border-orange-500/20 bg-orange-500/[0.03] p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded-full bg-orange-500/15 flex items-center justify-center">
+                                <span className="text-orange-500 text-[9px]">!</span>
+                              </div>
+                              <span className="text-[9px] uppercase tracking-wider font-bold text-orange-600 dark:text-orange-400">Cancellation Request</span>
+                            </div>
+
+                            {reservation.cancellationReason && (
+                              <div className="space-y-1">
+                                <span className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Reason</span>
+                                <p className="text-[11px] text-foreground/90 italic leading-relaxed rounded-lg bg-foreground/[0.03] border border-card-border/40 p-2.5">
+                                  "{reservation.cancellationReason}"
+                                </p>
                               </div>
                             )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
-                {/* Quick Action buttons */}
-                <div className="border-t border-card-border/40 pt-5 space-y-3" onClick={(e) => e.stopPropagation()}>
-                  <h4 className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Manage Status</h4>
-
-                  {/* Cancellation Requested — Admin Review Panel */}
-                  {currentStatus === "Cancellation Requested" && (() => {
-                    const bookingDate = new Date(reservation.date);
-                    const now = new Date();
-                    const diffMs = bookingDate.getTime() - now.getTime();
-                    const diffHours = diffMs / (1000 * 60 * 60);
-                    const diffDays = diffHours / 24;
-                    const isTable = reservation.eventType === "Table Reservation";
-                    // Table: full refund if >= 24h before; Cart: full refund if >= 7 days before
-                    const isEligibleForRefund = isTable ? diffHours >= 24 : diffDays >= 7;
-                    const policyThreshold = isTable ? "24 hours" : "1 week";
-
-                    return (
-                      <div className="space-y-3">
-                        {/* Cancellation Request Info */}
-                        <div className="rounded-xl border border-orange-500/20 bg-orange-500/[0.03] p-4 space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-full bg-orange-500/15 flex items-center justify-center">
-                              <span className="text-orange-500 text-[10px]">!</span>
-                            </div>
-                            <span className="text-[9px] uppercase tracking-wider font-bold text-orange-600 dark:text-orange-400">Cancellation Request</span>
-                          </div>
-
-                          {/* Customer Reason */}
-                          {reservation.cancellationReason && (
-                            <div className="space-y-1">
-                              <span className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-500 font-bold">Customer Reason</span>
-                              <p className="text-xs text-foreground/90 italic leading-relaxed rounded-lg bg-foreground/[0.03] border border-card-border/40 p-3">
-                                "{reservation.cancellationReason}"
+                            <div className={`rounded-lg p-2.5 border text-xs ${
+                              isEligibleForRefund
+                                ? "bg-emerald-500/[0.05] border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                                : "bg-red-500/[0.05] border-red-500/20 text-red-600 dark:text-red-400"
+                            }`}>
+                              <div className="flex items-center gap-1.5 font-bold text-[9px] uppercase tracking-wider mb-0.5">
+                                {isEligibleForRefund ? (
+                                  <><Check size={11} /> Full Refund Eligible</>
+                                ) : (
+                                  <><X size={11} /> Downpayment Non-Refundable</>
+                                )}
+                              </div>
+                              <p className="text-[9px] opacity-80 leading-relaxed">
+                                {isEligibleForRefund
+                                  ? `Booking is ${isTable ? `${Math.floor(diffHours)}h` : `${Math.floor(diffDays)}d`} away.`
+                                  : `Booking is ${isTable ? `${Math.max(0, Math.floor(diffHours))}h` : `${Math.max(0, Math.floor(diffDays))}d`} away.`
+                                }
                               </p>
                             </div>
-                          )}
+                          </div>
 
-                          {/* Refund Eligibility */}
-                          <div className={`rounded-lg p-3 border text-xs ${
-                            isEligibleForRefund
-                              ? "bg-emerald-500/[0.05] border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                              : "bg-red-500/[0.05] border-red-500/20 text-red-600 dark:text-red-400"
-                          }`}>
-                            <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-wider mb-1">
-                              {isEligibleForRefund ? (
-                                <><Check size={11} /> Full Refund Eligible</>
-                              ) : (
-                                <><X size={11} /> Downpayment Non-Refundable</>
-                              )}
-                            </div>
-                            <p className="text-[10px] opacity-80 leading-relaxed">
-                              {isEligibleForRefund
-                                ? `Booking is ${isTable ? `${Math.floor(diffHours)}h` : `${Math.floor(diffDays)}d`} away — qualifies for a full refund (threshold: ${policyThreshold}).`
-                                : `Booking is ${isTable ? `${Math.max(0, Math.floor(diffHours))}h` : `${Math.max(0, Math.floor(diffDays))}d`} away — downpayment is non-refundable (threshold: ${policyThreshold}).`
-                              }
-                            </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setConfirmAction({ type: "ApproveCancellation", targetStatus: "Cancelled" })}
+                              disabled={updatingStatus !== null}
+                              className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2 type-ui text-[10px] font-bold tracking-wider transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              {updatingStatus === "Cancelled" ? <RefreshCw size={11} className="animate-spin" /> : <X size={11} />} Approve Cancel
+                            </button>
+                            <button
+                              onClick={() => setConfirmAction({ type: "RejectCancellation", targetStatus: "Approved" })}
+                              disabled={updatingStatus !== null}
+                              className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2 type-ui text-[10px] font-bold tracking-wider transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              {updatingStatus === "Approved" ? <RefreshCw size={11} className="animate-spin" /> : <Check size={11} />} Reject Cancel
+                            </button>
                           </div>
                         </div>
+                      );
+                    })()}
 
-                        {/* Approve / Reject Buttons */}
-                        <div className="flex gap-3">
+                    <div className="flex gap-2">
+                      {currentStatus === "Pending" && (
+                        <>
                           <button
-                            onClick={() => setConfirmAction({ type: "ApproveCancellation", targetStatus: "Cancelled" })}
+                            onClick={() => handleSavePricing(true)}
+                            disabled={updatingStatus !== null || isSavingPricing || isPreApproving}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all hover:border-amber-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isPreApproving ? <RefreshCw size={12} className="animate-spin" /> : <Check size={12} />} Pre-Approve
+                          </button>
+                          <button
+                            onClick={() => setConfirmAction({ type: "Cancel", targetStatus: "Cancelled" })}
                             disabled={updatingStatus !== null}
-                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {updatingStatus === "Cancelled" ? (
                               <RefreshCw size={12} className="animate-spin" />
                             ) : (
                               <X size={12} />
                             )}
-                            {updatingStatus === "Cancelled" ? "Processing..." : "Approve Cancellation"}
+                            {updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
+                          </button>
+                        </>
+                      )}
+
+                      {currentStatus === "Pre-Approved" && (
+                        <>
+                          <button
+                            onClick={() => onUpdateStatus(reservation, "Approved")}
+                            disabled={updatingStatus !== null}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all hover:border-emerald-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Check size={12} /> Approve & Paid
                           </button>
                           <button
-                            onClick={() => setConfirmAction({ type: "RejectCancellation", targetStatus: "Approved" })}
+                            onClick={() => setConfirmAction({ type: "Cancel", targetStatus: "Cancelled" })}
                             disabled={updatingStatus !== null}
-                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-emerald-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {updatingStatus === "Approved" ? (
+                            {updatingStatus === "Cancelled" ? (
+                              <RefreshCw size={12} className="animate-spin" />
+                            ) : (
+                              <X size={12} />
+                            )}
+                            {updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
+                          </button>
+                        </>
+                      )}
+
+                      {currentStatus === "Approved" && (
+                        <>
+                          <button
+                            onClick={() => setIsRescheduleOpen(true)}
+                            disabled={updatingStatus !== null}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all hover:border-amber-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Calendar size={12} /> Reschedule
+                          </button>
+                          <button
+                            onClick={() => setConfirmAction({ type: "Complete", targetStatus: "Completed" })}
+                            disabled={updatingStatus !== null}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all hover:border-blue-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {updatingStatus === "Completed" ? (
                               <RefreshCw size={12} className="animate-spin" />
                             ) : (
                               <Check size={12} />
                             )}
-                            {updatingStatus === "Approved" ? "Processing..." : "Reject Cancellation"}
+                            {updatingStatus === "Completed" ? "Completing..." : "Complete"}
                           </button>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                        </>
+                      )}
 
-                  <div className="flex gap-3">
-                    {currentStatus === "Pending" && (
-                      <>
-                        <button
-                          onClick={() => onUpdateStatus(reservation, "Pre-Approved")}
-                          disabled={updatingStatus !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-amber-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Check size={12} /> Pre-Approve
-                        </button>
-                        <button
-                          onClick={() => setConfirmAction({ type: "Cancel", targetStatus: "Cancelled" })}
-                          disabled={updatingStatus !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {updatingStatus === "Cancelled" ? (
-                            <RefreshCw size={12} className="animate-spin" />
-                          ) : (
-                            <X size={12} />
-                          )}
-                          {updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
-                        </button>
-                      </>
-                    )}
-
-                    {currentStatus === "Pre-Approved" && (
-                      <>
+                      {currentStatus === "Completed" && (
                         <button
                           onClick={() => onUpdateStatus(reservation, "Approved")}
                           disabled={updatingStatus !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-emerald-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all hover:border-zinc-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Check size={12} /> Approve & Paid
+                          Restore to Active (Approved)
                         </button>
-                        <button
-                          onClick={() => setConfirmAction({ type: "Cancel", targetStatus: "Cancelled" })}
-                          disabled={updatingStatus !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {updatingStatus === "Cancelled" ? (
-                            <RefreshCw size={12} className="animate-spin" />
-                          ) : (
-                            <X size={12} />
-                          )}
-                          {updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
-                        </button>
-                      </>
-                    )}
+                      )}
 
-                    {currentStatus === "Approved" && (
-                      <>
+                      {currentStatus === "Cancelled" && (
                         <button
-                          onClick={() => setConfirmAction({ type: "Complete", targetStatus: "Completed" })}
+                          onClick={() => onUpdateStatus(reservation, "Pending")}
                           disabled={updatingStatus !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-blue-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all hover:border-zinc-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {updatingStatus === "Completed" ? (
-                            <RefreshCw size={12} className="animate-spin" />
-                          ) : (
-                            <Check size={12} />
-                          )}
-                          {updatingStatus === "Completed" ? "Completing..." : "Complete"}
+                          Restore to Pending
                         </button>
-                        <button
-                          onClick={() => setConfirmAction({ type: "Cancel", targetStatus: "Cancelled" })}
-                          disabled={updatingStatus !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-red-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {updatingStatus === "Cancelled" ? (
-                            <RefreshCw size={12} className="animate-spin" />
-                          ) : (
-                            <X size={12} />
-                          )}
-                          {updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
-                        </button>
-                      </>
-                    )}
-
-                    {currentStatus === "Completed" && (
-                      <button
-                        onClick={() => onUpdateStatus(reservation, "Approved")}
-                        disabled={updatingStatus !== null}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-zinc-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Restore to Active (Approved)
-                      </button>
-                    )}
-
-                    {currentStatus === "Cancelled" && (
-                      <button
-                        onClick={() => onUpdateStatus(reservation, "Pending")}
-                        disabled={updatingStatus !== null}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-full bg-zinc-500/10 hover:bg-zinc-500/20 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 py-2.5 type-ui text-[10px] font-bold tracking-wider transition-all duration-300 hover:border-zinc-500/40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Restore to Pending
-                      </button>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
+
               </div>
 
               {/* Proof Panel as absolute overlay inside Modal Card */}
@@ -710,6 +1053,138 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                         className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-foreground/[0.04] border border-card-border hover:bg-foreground/[0.08] text-neutral-500 hover:text-foreground py-2 type-ui text-[9px] font-bold tracking-wider transition-all duration-300 cursor-pointer"
                       >
                         Close
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Reschedule Panel Overlay */}
+              <AnimatePresence>
+                {isRescheduleOpen && (
+                  <motion.div
+                    initial={{ x: "100%", opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: "100%", opacity: 0 }}
+                    transition={{ duration: 0.35, ease: EASE }}
+                    className="absolute inset-0 bg-card p-6 sm:p-8 z-30 flex flex-col justify-between overflow-y-auto font-sans rounded-2xl border border-card-border"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-card-border/40 pb-3">
+                        <h4 className="text-[10px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
+                          <Calendar size={12} /> Reschedule Booking
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => setIsRescheduleOpen(false)}
+                          className="text-neutral-500 hover:text-foreground dark:text-zinc-500 dark:hover:text-white transition-colors duration-300 p-0.5 rounded-full cursor-pointer"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          Reschedule {reservation.fullName}'s Booking
+                        </p>
+                        <p className="text-xs text-neutral-500 dark:text-zinc-400">
+                          Current schedule: <span className="font-semibold text-foreground">{reservation.date}</span> at <span className="font-mono text-foreground">{reservation.time}</span> ({reservation.eventType})
+                        </p>
+                      </div>
+
+                      {rescheduleErrorMsg && (
+                        <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-500 font-medium">
+                          {rescheduleErrorMsg}
+                        </div>
+                      )}
+
+                      {rescheduleSuccessMsg && (
+                        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-500 font-medium">
+                          ✓ {rescheduleSuccessMsg}
+                        </div>
+                      )}
+
+                      <div className="space-y-4 pt-2">
+                        {/* New Date */}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-zinc-400 block">
+                            New Reservation Date
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="date"
+                              value={rescheduleDate}
+                              onChange={(e) => setRescheduleDate(e.target.value)}
+                              className="w-full rounded-xl border border-card-border bg-background-alt/60 px-3.5 py-2.5 text-xs text-foreground font-sans outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        {/* New Time Slot */}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-zinc-400 block">
+                            New Time Slot
+                          </label>
+                          <input
+                            type="text"
+                            value={rescheduleTime}
+                            onChange={(e) => setRescheduleTime(e.target.value)}
+                            placeholder="e.g. 10:00 AM - 01:00 PM or 02:00 PM"
+                            className="w-full rounded-xl border border-card-border bg-background-alt/60 px-3.5 py-2.5 text-xs text-foreground font-sans outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all"
+                          />
+                          {/* Presets for quick selection */}
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {["09:00 AM - 12:00 PM", "01:00 PM - 04:00 PM", "05:00 PM - 08:00 PM", "09:00 AM", "01:00 PM", "05:00 PM"].map((slot) => (
+                              <button
+                                key={slot}
+                                type="button"
+                                onClick={() => setRescheduleTime(slot)}
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-mono border transition-all ${rescheduleTime === slot ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 font-bold" : "bg-card hover:bg-foreground/5 text-neutral-600 dark:text-zinc-400 border-card-border"}`}
+                              >
+                                {slot}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Reason / Admin Note */}
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-zinc-400 block">
+                            Reschedule Reason / Admin Note (Optional)
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={rescheduleReason}
+                            onChange={(e) => setRescheduleReason(e.target.value)}
+                            placeholder="Reason for reschedule (e.g. Customer requested move due to schedule conflict)"
+                            className="w-full rounded-xl border border-card-border bg-background-alt/60 px-3.5 py-2.5 text-xs text-foreground font-sans outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-all resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Overlay Footer */}
+                    <div className="border-t border-card-border/40 pt-4 mt-6 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsRescheduleOpen(false)}
+                        disabled={isSavingReschedule}
+                        className="flex-1 py-2.5 rounded-full bg-foreground/[0.04] border border-card-border hover:bg-foreground/[0.08] text-neutral-600 dark:text-zinc-400 text-[10px] font-bold tracking-wider transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveReschedule}
+                        disabled={isSavingReschedule || !rescheduleDate || !rescheduleTime}
+                        className="flex-1 py-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-md cursor-pointer"
+                      >
+                        {isSavingReschedule ? (
+                          <RefreshCw size={12} className="animate-spin" />
+                        ) : (
+                          <Check size={12} />
+                        )}
+                        {isSavingReschedule ? "Saving Schedule..." : "Confirm Reschedule"}
                       </button>
                     </div>
                   </motion.div>

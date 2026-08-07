@@ -6,7 +6,6 @@ import {
   Plus,
   Edit3,
   Trash2,
-  Star,
   Eye,
   X,
   Filter,
@@ -97,7 +96,6 @@ export const MenuTab: React.FC<MenuTabProps> = ({
     result = [...result].sort((a, b) => {
       if (sortBy === "price-asc") return a.price - b.price;
       if (sortBy === "price-desc") return b.price - a.price;
-      if (sortBy === "rating") return (b.rating ?? 5.0) - (a.rating ?? 5.0);
       return a.name.localeCompare(b.name);
     });
 
@@ -247,7 +245,6 @@ export const MenuTab: React.FC<MenuTabProps> = ({
               <option value="name">Sort by Name (A-Z)</option>
               <option value="price-asc">Price: Low to High</option>
               <option value="price-desc">Price: High to Low</option>
-              <option value="rating">Highest Rated</option>
             </select>
           </div>
         </div>
@@ -276,7 +273,7 @@ export const MenuTab: React.FC<MenuTabProps> = ({
 
             {sortBy !== "name" && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] bg-brand-green/10 text-brand-green border border-brand-green/20">
-                Sorted: {sortBy === "price-asc" ? "Price ↑" : sortBy === "price-desc" ? "Price ↓" : "Rating"}
+                Sorted: {sortBy === "price-asc" ? "Price ↑" : "Price ↓"}
                 <button onClick={() => setSortBy("name")} className="hover:text-foreground font-bold ml-1 cursor-pointer">×</button>
               </span>
             )}
@@ -319,7 +316,6 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                 <tr>
                   <th className="py-3.5 px-4">Item Details</th>
                   <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Rating</th>
                   <th className="py-3.5 px-4 text-right">Price</th>
                   <th className="py-3.5 px-4 text-center w-32">Actions</th>
                 </tr>
@@ -353,14 +349,6 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                       <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20">
                         {item.category}
                       </span>
-                    </td>
-
-                    {/* Rating */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1 text-xs">
-                        <Star size={12} className="fill-amber-500 text-amber-500" />
-                        <span className="font-semibold text-foreground">{item.rating?.toFixed(1) ?? "5.0"}</span>
-                      </div>
                     </td>
 
                     {/* Price */}
@@ -432,13 +420,9 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                   </div>
                 </div>
                 <div
-                  className="p-3.5 pt-2 flex items-center justify-between border-t border-neutral-200/50 dark:border-card-border/50"
+                  className="p-3.5 pt-2 flex items-center justify-end border-t border-neutral-200/50 dark:border-card-border/50"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-center gap-1 text-xs">
-                    <Star size={13} className="fill-amber-500 text-amber-500" />
-                    <span className="font-semibold text-foreground text-xs">{item.rating?.toFixed(1) ?? "5.0"}</span>
-                  </div>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setViewingItem(item)}

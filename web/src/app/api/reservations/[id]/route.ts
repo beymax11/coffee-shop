@@ -116,6 +116,10 @@ export async function GET(
       cancellationReason: data.cancellation_reason,
       transpoFee: data.transpo_fee,
       distanceKm: data.distance_km,
+      discountAmount: data.discount_amount ?? data.discountAmount ?? 0,
+      discountReason: data.discount_reason ?? data.discountReason ?? "",
+      isFreeTranspoFee: data.is_free_transpo_fee ?? data.isFreeTranspoFee ?? false,
+      customDownpayment: data.custom_downpayment ?? data.customDownpayment ?? null,
       created_at: data.created_at,
     };
 
@@ -154,19 +158,41 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { status, paymentMethod, referenceNumber, proofOfPayment, cancellationReason } = body;
+    const {
+      status,
+      date,
+      time,
+      notes,
+      paymentMethod,
+      referenceNumber,
+      proofOfPayment,
+      cancellationReason,
+      discountAmount,
+      discountReason,
+      isFreeTranspoFee,
+      customDownpayment,
+      transpoFee,
+    } = body;
 
     const updatePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
 
     if (status !== undefined) updatePayload.status = status;
+    if (date !== undefined) updatePayload.date = date;
+    if (time !== undefined) updatePayload.time = time;
+    if (notes !== undefined) updatePayload.notes = notes;
     if (paymentMethod !== undefined) updatePayload.payment_method = paymentMethod;
     if (referenceNumber !== undefined) updatePayload.reference_number = referenceNumber;
     if (proofOfPayment !== undefined) updatePayload.proof_of_payment = proofOfPayment;
     if (cancellationReason !== undefined) updatePayload.cancellation_reason = cancellationReason;
+    if (discountAmount !== undefined) updatePayload.discount_amount = discountAmount;
+    if (discountReason !== undefined) updatePayload.discount_reason = discountReason;
+    if (isFreeTranspoFee !== undefined) updatePayload.is_free_transpo_fee = isFreeTranspoFee;
+    if (customDownpayment !== undefined) updatePayload.custom_downpayment = customDownpayment;
+    if (transpoFee !== undefined) updatePayload.transpo_fee = transpoFee;
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from("reservations")
       .update(updatePayload)
       .eq("id", id)
@@ -174,8 +200,31 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error("Supabase PATCH reservation error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.warn("Supabase PATCH attempt with discount columns failed, retrying with core columns:", error.message);
+      const corePayload: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (status !== undefined) corePayload.status = status;
+      if (date !== undefined) corePayload.date = date;
+      if (time !== undefined) corePayload.time = time;
+      if (notes !== undefined) corePayload.notes = notes;
+      if (paymentMethod !== undefined) corePayload.payment_method = paymentMethod;
+      if (referenceNumber !== undefined) corePayload.reference_number = referenceNumber;
+      if (proofOfPayment !== undefined) corePayload.proof_of_payment = proofOfPayment;
+      if (cancellationReason !== undefined) corePayload.cancellation_reason = cancellationReason;
+
+      const fallbackResult = await supabaseAdmin
+        .from("reservations")
+        .update(corePayload)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (fallbackResult.error) {
+        console.error("Supabase PATCH reservation error:", fallbackResult.error);
+        return NextResponse.json({ error: fallbackResult.error.message }, { status: 500 });
+      }
+      data = fallbackResult.data;
     }
 
     return NextResponse.json({ reservation: data });

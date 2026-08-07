@@ -260,24 +260,30 @@ export const AdminView: React.FC = () => {
         // Map snake_case DB columns back to camelCase
         const mapped = (data.reservations as any[]).map((r) => ({
           id: r.id,
-          fullName: r.full_name,
+          fullName: r.full_name || r.fullName,
           email: r.email,
           phone: r.phone,
-          eventType: r.event_type,
+          eventType: r.event_type || r.eventType,
           date: r.date,
           time: r.time,
-          guestCount: r.guest_count,
+          guestCount: r.guest_count || r.guestCount,
           location: r.location,
           notes: r.notes,
           status: r.status,
-          paymentMethod: r.payment_method,
-          referenceNumber: r.reference_number,
-          proofOfPayment: r.proof_of_payment,
-          coffeeFlavor1: r.coffee_flavor_1,
-          coffeeFlavor2: r.coffee_flavor_2,
-          nonCoffeeFlavor1: r.non_coffee_flavor_1,
-          nonCoffeeFlavor2: r.non_coffee_flavor_2,
-          cancellationReason: r.cancellation_reason,
+          paymentMethod: r.payment_method || r.paymentMethod,
+          referenceNumber: r.reference_number || r.referenceNumber,
+          proofOfPayment: r.proof_of_payment || r.proofOfPayment,
+          coffeeFlavor1: r.coffee_flavor_1 || r.coffeeFlavor1,
+          coffeeFlavor2: r.coffee_flavor_2 || r.coffeeFlavor2,
+          nonCoffeeFlavor1: r.non_coffee_flavor_1 || r.nonCoffeeFlavor1,
+          nonCoffeeFlavor2: r.non_coffee_flavor_2 || r.nonCoffeeFlavor2,
+          cancellationReason: r.cancellation_reason || r.cancellationReason,
+          transpoFee: r.transpo_fee ?? r.transpoFee ?? 0,
+          distanceKm: r.distance_km ?? r.distanceKm ?? 0,
+          discountAmount: r.discount_amount ?? r.discountAmount ?? 0,
+          discountReason: r.discount_reason ?? r.discountReason ?? "",
+          isFreeTranspoFee: r.is_free_transpo_fee ?? r.isFreeTranspoFee ?? false,
+          customDownpayment: r.custom_downpayment ?? r.customDownpayment,
           created_at: r.created_at,
         }));
 
@@ -597,6 +603,39 @@ export const AdminView: React.FC = () => {
       notifMsg = `Thank you for visiting Antonioni Grounds! Your reservation is marked as completed.`;
     }
     notificationsService.addNotification(res.email, notifTitle, notifMsg, "reservation");
+  };
+
+  const handleRescheduleReservation = (updatedRes: Reservation, newDate: string, newTime: string, reason?: string) => {
+    setReservations((prev) =>
+      prev.map((r) => {
+        if ((updatedRes.id && r.id === updatedRes.id) || (r.fullName === updatedRes.fullName && r.email === updatedRes.email)) {
+          return { ...r, date: newDate, time: newTime };
+        }
+        return r;
+      })
+    );
+
+    if (selectedReservation) {
+      setSelectedReservation((prev) => prev ? { ...prev, date: newDate, time: newTime } : null);
+    }
+
+    toast.success(`Reservation for ${updatedRes.fullName} rescheduled to ${newDate} at ${newTime}.`);
+
+    auditLogger.log({
+      action: "UPDATE",
+      category: "reservations",
+      target: `Reservation (${updatedRes.fullName})`,
+      details: `Rescheduled reservation for ${updatedRes.fullName} to ${newDate} at ${newTime}.${reason ? ` Reason: ${reason}` : ""}`,
+      severity: "info",
+      metadata: { reservationId: updatedRes.id, newDate, newTime, reason }
+    });
+
+    notificationsService.addNotification(
+      updatedRes.email,
+      "Reservation Rescheduled",
+      `Your reservation schedule has been updated to ${newDate} at ${newTime}.${reason ? ` Note: ${reason}` : ""}`,
+      "reservation"
+    );
   };
 
   const handleLogout = () => {
@@ -1472,6 +1511,7 @@ export const AdminView: React.FC = () => {
                   reservationSearch={reservationSearch}
                   setReservationSearch={setReservationSearch}
                   onOpenDetails={(res) => setSelectedReservation(res)}
+                  onRefresh={fetchReservations}
                 />
               )}
 
@@ -1563,6 +1603,7 @@ export const AdminView: React.FC = () => {
         reservation={selectedReservation}
         reservationStatuses={reservationStatuses}
         onUpdateStatus={updateReservationStatus}
+        onReschedule={handleRescheduleReservation}
       />
     </div>
   );

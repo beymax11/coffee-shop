@@ -142,12 +142,18 @@ html {
   overflow-x: hidden;
 }
 
-/* Custom Utilities */
+/* Custom Utilities & GPU Acceleration */
+.gpu-accelerate {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
 .glassmorphism {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(45, 31, 24, 0.08);
+  transform: translateZ(0);
 }
 
 .dark .glassmorphism {
@@ -160,6 +166,7 @@ html {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(197, 168, 128, 0.25);
+  transform: translateZ(0);
 }
 
 .dark .glassmorphism-gold {
@@ -172,11 +179,21 @@ html {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(46, 90, 68, 0.25);
+  transform: translateZ(0);
 }
 
 .dark .glassmorphism-green {
   background: rgba(22, 22, 22, 0.85);
   border: 1px solid rgba(46, 90, 68, 0.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Cinematic film grain — SVG feTurbulence noise, no binary asset */

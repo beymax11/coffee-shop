@@ -94,14 +94,14 @@ export const HomeHero: React.FC = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B]/80 via-transparent to-black/10" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_20%_45%,rgba(0,0,0,0.4)_0%,transparent_65%)]" />
 
-      {/* Ambient gold glow — anchored near left content */}
+      {/* Ambient green glow — anchored near left content (desktop only for high performance) */}
       <motion.div
-        className="absolute top-[18%] left-[8%] w-[280px] h-[280px] bg-brand-green/10 dark:bg-brand-green/15 blur-[100px] rounded-full hidden dark:block"
+        className="absolute top-[18%] left-[8%] w-[280px] h-[280px] bg-brand-green/10 dark:bg-brand-green/15 blur-[100px] rounded-full hidden dark:md:block gpu-accelerate"
         animate={{ opacity: [0.35, 0.55, 0.35], scale: [1, 1.06, 1] }}
         transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute bottom-[20%] right-[12%] w-[320px] h-[320px] bg-brand-green/5 dark:bg-brand-green/8 blur-[110px] rounded-full hidden dark:block"
+        className="absolute bottom-[20%] right-[12%] w-[320px] h-[320px] bg-brand-green/5 dark:bg-brand-green/8 blur-[110px] rounded-full hidden dark:md:block gpu-accelerate"
         animate={{ opacity: [0.2, 0.4, 0.2], scale: [1.04, 1, 1.04] }}
         transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />

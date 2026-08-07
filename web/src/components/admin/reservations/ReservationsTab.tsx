@@ -35,6 +35,7 @@ interface ReservationsTabProps {
   reservationSearch: string;
   setReservationSearch: (search: string) => void;
   onOpenDetails: (res: Reservation) => void;
+  onRefresh?: () => Promise<void> | void;
 }
 
 export const ReservationsTab: React.FC<ReservationsTabProps> = ({
@@ -46,7 +47,9 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
   reservationSearch,
   setReservationSearch,
   onOpenDetails,
+  onRefresh,
 }) => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<"Completed" | "Cancelled" | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
@@ -89,6 +92,29 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
     "Cancelled",
   ];
 
+  // Compute count badges per status filter
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      All: reservations.length,
+      Pending: 0,
+      "Pre-Approved": 0,
+      Approved: 0,
+      Completed: 0,
+      "Cancellation Requested": 0,
+      Cancelled: 0,
+    };
+
+    reservations.forEach((res) => {
+      const compositeKey = `${res.fullName}-${res.date}-${res.time}`;
+      const status = (res.id && reservationStatuses[res.id]) || reservationStatuses[compositeKey] || res.status || "Pending";
+      if (counts[status] !== undefined) {
+        counts[status] += 1;
+      }
+    });
+
+    return counts;
+  }, [reservations, reservationStatuses]);
+
   // Filtered and sorted reservations computation
   const filteredReservations = useMemo(() => {
     let result = reservations.filter((res) => {
@@ -118,8 +144,31 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
       return true;
     });
 
-    // Sort Logic
+    // Sort Logic: Prioritize urgent action items ("Cancellation Requested" & "Pending") first
     result = [...result].sort((a, b) => {
+      const keyA = `${a.fullName}-${a.date}-${a.time}`;
+      const statusA = (a.id && reservationStatuses[a.id]) || reservationStatuses[keyA] || a.status || "Pending";
+
+      const keyB = `${b.fullName}-${b.date}-${b.time}`;
+      const statusB = (b.id && reservationStatuses[b.id]) || reservationStatuses[keyB] || b.status || "Pending";
+
+      const getPriority = (st: string) => {
+        if (st === "Cancellation Requested") return 0;
+        if (st === "Pending") return 1;
+        if (st === "Pre-Approved") return 2;
+        if (st === "Approved") return 3;
+        if (st === "Completed") return 4;
+        if (st === "Cancelled") return 5;
+        return 6;
+      };
+
+      const priorityA = getPriority(statusA);
+      const priorityB = getPriority(statusB);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
       if (sortBy === "name-az") {
         return a.fullName.localeCompare(b.fullName);
       }
@@ -206,24 +255,48 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
       <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md p-4 space-y-4 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search by guest name, email, phone, location, or event type..."
-              value={reservationSearch}
-              onChange={(e) => setReservationSearch(e.target.value)}
-              className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
-            />
-            {reservationSearch && (
+          {/* Search Input & Refresh Button */}
+          <div className="flex items-center gap-2 flex-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search by guest name, email, phone, location, or event type..."
+                value={reservationSearch}
+                onChange={(e) => setReservationSearch(e.target.value)}
+                className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
+              />
+              {reservationSearch && (
+                <button
+                  onClick={() => setReservationSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground text-xs font-semibold cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Refresh Button */}
+            <div className="relative group">
               <button
-                onClick={() => setReservationSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground text-xs font-semibold cursor-pointer"
+                type="button"
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  if (onRefresh) {
+                    await onRefresh();
+                  }
+                  setTimeout(() => setIsRefreshing(false), 500);
+                }}
+                disabled={isRefreshing}
+                className="p-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 hover:text-brand-green dark:hover:text-emerald-400 hover:border-brand-green/40 transition-all cursor-pointer flex items-center justify-center disabled:opacity-50 shadow-sm"
+                aria-label="Refresh Reservations"
               >
-                Clear
+                <RefreshCw size={15} className={isRefreshing ? "animate-spin text-brand-green dark:text-emerald-400" : ""} />
               </button>
-            )}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Refresh Tab
+              </div>
+            </div>
           </div>
 
           {/* Action Toolbar: View Mode Toggle & Reset Button */}
@@ -285,17 +358,37 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
           <div className="flex flex-wrap items-center gap-1.5">
             {filterStates.map((status) => {
               const isActive = reservationFilter === status;
+              const count = statusCounts[status] || 0;
               return (
                 <button
                   key={status}
                   onClick={() => setReservationFilter(status)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all duration-200 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all duration-200 flex items-center gap-1.5 ${
                     isActive
                       ? "bg-brand-green text-white shadow-sm font-semibold"
                       : "bg-neutral-100 dark:bg-background-alt text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-card-border"
                   }`}
                 >
-                  {status}
+                  <span>{status}</span>
+                  {count > 0 && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold leading-none transition-all ${
+                        status === "Cancellation Requested"
+                          ? isActive
+                            ? "bg-white text-orange-600"
+                            : "bg-orange-500 text-white animate-pulse shadow-sm"
+                          : status === "Pending"
+                          ? isActive
+                            ? "bg-white text-sky-700"
+                            : "bg-sky-500 text-white shadow-sm"
+                          : isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-neutral-200 dark:bg-neutral-700/60 text-neutral-700 dark:text-neutral-300"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}

@@ -19,15 +19,20 @@ export function calculateAccurateDistance(
   city: string = "",
   province: string = ""
 ): DistanceResult {
-  const s = street.trim().toLowerCase();
-  const b = barangay.trim().toLowerCase();
-  const c = city.trim().toLowerCase();
-  const p = province.trim().toLowerCase();
+  let s = street.trim().toLowerCase();
+  let b = barangay.trim().toLowerCase();
+  let c = city.trim().toLowerCase();
+  let p = province.trim().toLowerCase();
 
   const fullText = `${s} ${b} ${c} ${p}`.trim();
   if (!fullText) {
     return { distanceKm: 0, transpoFee: 0, areaLabel: "No address entered" };
   }
+
+  // If a single combined address string was passed in city or street, copy fullText to missing parts
+  if (!b) b = fullText;
+  if (!c) c = fullText;
+  if (!p) p = fullText;
 
   let distanceKm = 0;
   let areaLabel = "Calculated Location";

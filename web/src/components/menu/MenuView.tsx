@@ -276,6 +276,7 @@ export function MenuView() {
                               alt={item.name}
                               className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 group-hover:rotate-[0.5deg]"
                               loading="lazy"
+                              decoding="async"
                             />
 
                             {/* Film Aspect Vignette Overlay */}

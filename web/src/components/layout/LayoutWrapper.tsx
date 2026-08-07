@@ -62,19 +62,34 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
     // Evaluate session status on client-side mount
     checkStatus();
 
-    // Poll every 2 seconds to ensure rapid synchronization upon login/logout
-    const interval = setInterval(checkStatus, 2000);
-
     const handleMaintenanceChange = () => {
       checkStatus();
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkStatus();
+      }
+    };
+
+    // Low-frequency fallback (every 30s) instead of aggressive 2s polling
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        checkStatus();
+      }
+    }, 30000);
+
     window.addEventListener("storage", handleMaintenanceChange);
     window.addEventListener("maintenance_mode_changed", handleMaintenanceChange);
+    window.addEventListener("focus", handleMaintenanceChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       clearInterval(interval);
       window.removeEventListener("storage", handleMaintenanceChange);
       window.removeEventListener("maintenance_mode_changed", handleMaintenanceChange);
+      window.removeEventListener("focus", handleMaintenanceChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [pathname]);
 

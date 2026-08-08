@@ -1,6 +1,4 @@
 import { Resend } from "resend";
-import fs from "fs";
-import path from "path";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 
@@ -44,24 +42,6 @@ export async function sendEmail({
     const recipients = Array.isArray(to) ? to : [to];
 
     const attachments: Array<{ filename: string; content: Buffer }> = [];
-
-    if (includeStandardAttachments) {
-      const logoPath = path.join(process.cwd(), "public", "logo.png");
-      if (fs.existsSync(logoPath)) {
-        attachments.push({
-          filename: "logo.png",
-          content: fs.readFileSync(logoPath),
-        });
-      }
-
-      const heroPath = path.join(process.cwd(), "public", "hero.png");
-      if (fs.existsSync(heroPath)) {
-        attachments.push({
-          filename: "hero.png",
-          content: fs.readFileSync(heroPath),
-        });
-      }
-    }
 
     const client = new Resend(apiKey);
 

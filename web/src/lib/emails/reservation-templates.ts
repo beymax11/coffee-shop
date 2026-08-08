@@ -41,7 +41,7 @@ function renderResponsiveStyles() {
 }
 
 function renderCommonHeader(isPreview = false) {
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.agshop.lat").replace(/\/$/, "");
+  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://agshop.lat").replace(/\/$/, "");
   const logoSrc = isPreview ? "/logo.png" : `${baseUrl}/logo.png`;
   const heroSrc = isPreview ? "/hero.png" : `${baseUrl}/hero.png`;
   return `

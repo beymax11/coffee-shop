@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     const isFreeTranspo = Boolean(reservation.isFreeTranspoFee ?? reservation.is_free_transpo_fee ?? false);
     const customDp = reservation.customDownpayment ?? reservation.custom_downpayment ?? null;
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://antonionigrounds.vercel.app";
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://agshop.lat";
     const reservationLink = `${baseUrl}/reservations/${reservation.id}`;
     const { amount, balance, totalLabel } = getDownpaymentAmount(
       reservation.eventType,

@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
 
     // Send email booking confirmation server-side
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://antonionigrounds.vercel.app";
+      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://agshop.lat";
       const reservationLink = `${baseUrl}/reservations/${data.id}`;
       const { amount, totalLabel } = getDownpaymentAmount(data.event_type, data.guest_count, Number(data.transpo_fee || 0));
 

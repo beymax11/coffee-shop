@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, password, name, username } = body;
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://antonionigrounds.vercel.app";
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://agshop.lat";
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

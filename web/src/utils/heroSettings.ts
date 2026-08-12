@@ -7,6 +7,7 @@ export interface HomeHeroConfig {
   headlineHighlight: string;
   subcopy: string;
   bgImageUrl: string;
+  bgImageUrlMobile?: string;
 }
 
 export const DEFAULT_HERO_CONFIG: HomeHeroConfig = {
@@ -15,6 +16,7 @@ export const DEFAULT_HERO_CONFIG: HomeHeroConfig = {
   headlineHighlight: "Finds Its Story",
   subcopy: "Experience handcrafted coffee, thoughtfully prepared with quality beans, warm hospitality, and a space made for meaningful moments.",
   bgImageUrl: "/hero.png",
+  bgImageUrlMobile: "",
 };
 
 let memoryHeroConfig: HomeHeroConfig | null = null;

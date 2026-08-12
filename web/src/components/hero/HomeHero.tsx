@@ -72,11 +72,12 @@ export const HomeHero: React.FC = () => {
 
   return (
     <section className="relative -mt-[72px] lg:mt-0 min-h-[100dvh] h-[100dvh] lg:h-auto lg:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] pt-[72px] lg:pt-0 pb-6 sm:pb-0">
-      {/* Background with slow Ken Burns */}
+      {/* Background with slow Ken Burns (Desktop & Tablet vs Mobile) */}
       <div className="absolute inset-0 opacity-100 dark:opacity-80 transition-opacity duration-500">
+        {/* Desktop & Tablet View (>= 768px) */}
         <motion.div
-          key={displayConfig.bgImageUrl}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          key={`desktop-${displayConfig.bgImageUrl}`}
+          className="hidden md:block absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: `url('${displayConfig.bgImageUrl || "/hero.png"}')`,
           }}
@@ -87,12 +88,27 @@ export const HomeHero: React.FC = () => {
             scale: { duration: 22, repeat: Infinity, ease: "linear" },
           }}
         />
+
+        {/* Mobile View (< 768px) */}
+        <motion.div
+          key={`mobile-${displayConfig.bgImageUrlMobile || displayConfig.bgImageUrl}`}
+          className="md:hidden block absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('${displayConfig.bgImageUrlMobile || displayConfig.bgImageUrl || "/hero.png"}')`,
+          }}
+          initial={{ scale: 1.02, opacity: 0 }}
+          animate={{ scale: [1.0, 1.03, 1.0], opacity: 1 }}
+          transition={{
+            opacity: { duration: 1.4, ease: EASE },
+            scale: { duration: 22, repeat: Infinity, ease: "linear" },
+          }}
+        />
       </div>
 
-      {/* Overlays — left scrim for readable copy, photo stays visible on the right */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B]/95 via-[#0B0B0B]/55 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B]/80 via-transparent to-black/10" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_20%_45%,rgba(0,0,0,0.4)_0%,transparent_65%)]" />
+      {/* Overlays — left scrim for readable copy on desktop/tablet */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B]/95 via-[#0B0B0B]/55 to-transparent hidden md:block" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B]/80 via-transparent to-black/10 hidden md:block" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_20%_45%,rgba(0,0,0,0.4)_0%,transparent_65%)] hidden md:block" />
 
       {/* Ambient green glow — anchored near left content (desktop only for high performance) */}
       <motion.div
@@ -116,9 +132,9 @@ export const HomeHero: React.FC = () => {
       <div className="pointer-events-none absolute inset-y-0 left-12 w-px bg-white/[0.06] hidden xl:block" />
       <div className="pointer-events-none absolute inset-y-0 right-12 w-px bg-white/[0.06] hidden xl:block" />
 
-      {/* Content */}
+      {/* Content (Hidden on Mobile, Visible on Desktop & Tablet) */}
       <motion.div
-        className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 lg:px-16 text-center md:text-left -mt-6 sm:mt-0"
+        className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 lg:px-16 text-center md:text-left -mt-6 sm:mt-0 hidden md:block"
         variants={heroStagger}
         initial="hidden"
         animate="show"

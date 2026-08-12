@@ -63,33 +63,62 @@ export const SettingsTab: React.FC = () => {
   const [heroHeadlineHighlight, setHeroHeadlineHighlight] = useState(DEFAULT_HERO_CONFIG.headlineHighlight);
   const [heroSubcopy, setHeroSubcopy] = useState(DEFAULT_HERO_CONFIG.subcopy);
   const [heroBgImageUrl, setHeroBgImageUrl] = useState(DEFAULT_HERO_CONFIG.bgImageUrl);
+  const [heroBgImageUrlMobile, setHeroBgImageUrlMobile] = useState(DEFAULT_HERO_CONFIG.bgImageUrlMobile || "");
   const [isSavingHero, setIsSavingHero] = useState(false);
-  const [isDragActive, setIsDragActive] = useState(false);
+  const [isDragActiveDesktop, setIsDragActiveDesktop] = useState(false);
+  const [isDragActiveMobile, setIsDragActiveMobile] = useState(false);
 
-  // Drag and drop image upload handlers
-  const handleDrag = (e: React.DragEvent) => {
+  // Drag and drop image upload handlers for Desktop & Tablet
+  const handleDragDesktop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
-      setIsDragActive(true);
+      setIsDragActiveDesktop(true);
     } else if (e.type === "dragleave") {
-      setIsDragActive(false);
+      setIsDragActiveDesktop(false);
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDropDesktop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragActive(false);
+    setIsDragActiveDesktop(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
+      handleFile(e.dataTransfer.files[0], "desktop");
     }
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputDesktop = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
+      handleFile(e.target.files[0], "desktop");
+    }
+  };
+
+  // Drag and drop image upload handlers for Mobile
+  const handleDragMobile = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragActiveMobile(true);
+    } else if (e.type === "dragleave") {
+      setIsDragActiveMobile(false);
+    }
+  };
+
+  const handleDropMobile = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActiveMobile(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0], "mobile");
+    }
+  };
+
+  const handleFileInputMobile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0], "mobile");
     }
   };
 
@@ -141,15 +170,22 @@ export const SettingsTab: React.FC = () => {
     });
   };
 
-  const handleFile = async (file: File) => {
+  const handleFile = async (file: File, target: "desktop" | "mobile" = "desktop") => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please upload a valid image file (PNG, JPG, WebP).");
       return;
     }
-    const compressedUrl = await compressImage(file);
+    const maxWidth = target === "mobile" ? 1080 : 1920;
+    const maxHeight = target === "mobile" ? 1920 : 1080;
+    const compressedUrl = await compressImage(file, maxWidth, maxHeight);
     if (compressedUrl) {
-      setHeroBgImageUrl(compressedUrl);
-      toast.success("Hero image uploaded & optimized successfully!");
+      if (target === "mobile") {
+        setHeroBgImageUrlMobile(compressedUrl);
+        toast.success("Mobile Hero image uploaded & optimized successfully!");
+      } else {
+        setHeroBgImageUrl(compressedUrl);
+        toast.success("Desktop & Tablet Hero image uploaded & optimized successfully!");
+      }
     } else {
       toast.error("Failed to read image file.");
     }
@@ -201,6 +237,7 @@ export const SettingsTab: React.FC = () => {
       setHeroHeadlineHighlight(cfg.headlineHighlight);
       setHeroSubcopy(cfg.subcopy);
       setHeroBgImageUrl(cfg.bgImageUrl);
+      setHeroBgImageUrlMobile(cfg.bgImageUrlMobile || "");
     };
     loadHero();
 
@@ -230,6 +267,7 @@ export const SettingsTab: React.FC = () => {
         headlineHighlight: heroHeadlineHighlight,
         subcopy: heroSubcopy,
         bgImageUrl: heroBgImageUrl,
+        bgImageUrlMobile: heroBgImageUrlMobile,
       };
 
       await setHeroConfig(updatedConfig);
@@ -238,15 +276,20 @@ export const SettingsTab: React.FC = () => {
         ? `${heroBgImageUrl.substring(0, 30)}... [Compressed Image Data]`
         : heroBgImageUrl;
 
+      const displayBgUrlMobile = heroBgImageUrlMobile.startsWith("data:")
+        ? `${heroBgImageUrlMobile.substring(0, 30)}... [Compressed Image Data]`
+        : heroBgImageUrlMobile;
+
       auditLogger.log({
         action: "UPDATE",
         category: "settings",
         target: "Home Hero Configuration",
-        details: `Updated Home Hero text & background image (${displayBgUrl}).`,
+        details: `Updated Home Hero text & background images (Desktop: ${displayBgUrl}, Mobile: ${displayBgUrlMobile || "Same as Desktop"}).`,
         severity: "info",
         metadata: {
           ...updatedConfig,
           bgImageUrl: displayBgUrl,
+          bgImageUrlMobile: displayBgUrlMobile,
         },
       });
 
@@ -804,62 +847,126 @@ export const SettingsTab: React.FC = () => {
                 />
               </div>
 
-              {/* Hero Background Image */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-zinc-500 flex items-center justify-between">
-                  <span>Hero Background Image (Drag & Drop or Select)</span>
-                  <span className="text-[9px] font-normal text-neutral-400">Drag image file or click to upload</span>
-                </label>
+              {/* Dual Hero Background Images Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                {/* 1. Desktop & Tablet Hero Background Image */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-zinc-500 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-emerald-400">
+                      🖥️ Desktop & Tablet Hero Image
+                    </span>
+                    <span className="text-[9px] font-normal text-neutral-400">Landscape (1920x1080)</span>
+                  </label>
 
-                {/* Drag and Drop Zone */}
-                <div
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                  className={`relative border-2 border-dashed rounded-2xl p-4 text-center transition-all cursor-pointer overflow-hidden ${
-                    isDragActive
-                      ? "border-brand-green bg-brand-green/10 scale-[1.01]"
-                      : "border-card-border hover:border-brand-green/60 bg-white/50 dark:bg-background-alt/50"
-                  }`}
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileInput}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                  />
+                  <div
+                    onDragEnter={handleDragDesktop}
+                    onDragLeave={handleDragDesktop}
+                    onDragOver={handleDragDesktop}
+                    onDrop={handleDropDesktop}
+                    className={`relative border-2 border-dashed rounded-2xl p-3 text-center transition-all cursor-pointer overflow-hidden ${
+                      isDragActiveDesktop
+                        ? "border-brand-green bg-brand-green/10 scale-[1.01]"
+                        : "border-card-border hover:border-brand-green/60 bg-white/50 dark:bg-background-alt/50"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInputDesktop}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                    />
 
-                  {heroBgImageUrl ? (
-                    <div className="relative h-36 w-full rounded-xl overflow-hidden group">
-                      <img
-                        src={heroBgImageUrl}
-                        alt="Hero Background Preview"
-                        className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-3">
-                        <Upload size={20} className="text-emerald-400 animate-bounce" />
-                        <span className="text-xs font-semibold text-white">
-                          Drag & drop new image here, or click to replace
-                        </span>
-                        <span className="text-[10px] text-zinc-300">
-                          Supports PNG, JPG, WebP
-                        </span>
+                    {heroBgImageUrl ? (
+                      <div className="relative h-32 w-full rounded-xl overflow-hidden group">
+                        <img
+                          src={heroBgImageUrl}
+                          alt="Desktop Hero Preview"
+                          className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
+                          <Upload size={18} className="text-emerald-400 animate-bounce" />
+                          <span className="text-[11px] font-semibold text-white">
+                            Change Desktop/Tablet Image
+                          </span>
+                          <span className="text-[9px] text-zinc-300">
+                            Drag & drop or click to replace
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="py-6 flex flex-col items-center justify-center gap-2">
-                      <div className="p-3 rounded-2xl bg-brand-green/15 text-brand-green">
-                        <Upload size={22} />
+                    ) : (
+                      <div className="py-4 flex flex-col items-center justify-center gap-1.5">
+                        <div className="p-2.5 rounded-2xl bg-brand-green/15 text-brand-green">
+                          <Upload size={20} />
+                        </div>
+                        <p className="text-xs font-semibold text-foreground">
+                          Upload Desktop Hero Image
+                        </p>
+                        <p className="text-[10px] text-neutral-400">
+                          For Desktop & Tablet View
+                        </p>
                       </div>
-                      <p className="text-xs font-semibold text-foreground">
-                        Drag & drop your Hero image here
-                      </p>
-                      <p className="text-[10px] text-neutral-400">
-                        Or click anywhere to browse files on your computer
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Mobile Hero Background Image */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-zinc-500 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-emerald-400">
+                      📱 Mobile Hero Image
+                    </span>
+                    <span className="text-[9px] font-normal text-neutral-400">Portrait (1080x1920)</span>
+                  </label>
+
+                  <div
+                    onDragEnter={handleDragMobile}
+                    onDragLeave={handleDragMobile}
+                    onDragOver={handleDragMobile}
+                    onDrop={handleDropMobile}
+                    className={`relative border-2 border-dashed rounded-2xl p-3 text-center transition-all cursor-pointer overflow-hidden ${
+                      isDragActiveMobile
+                        ? "border-brand-green bg-brand-green/10 scale-[1.01]"
+                        : "border-card-border hover:border-brand-green/60 bg-white/50 dark:bg-background-alt/50"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInputMobile}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                    />
+
+                    {heroBgImageUrlMobile ? (
+                      <div className="relative h-32 w-full rounded-xl overflow-hidden group">
+                        <img
+                          src={heroBgImageUrlMobile}
+                          alt="Mobile Hero Preview"
+                          className="w-full h-full object-cover rounded-xl transition-transform duration-300 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
+                          <Upload size={18} className="text-emerald-400 animate-bounce" />
+                          <span className="text-[11px] font-semibold text-white">
+                            Change Mobile Image
+                          </span>
+                          <span className="text-[9px] text-zinc-300">
+                            Drag & drop or click to replace
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-4 flex flex-col items-center justify-center gap-1.5">
+                        <div className="p-2.5 rounded-2xl bg-brand-green/15 text-brand-green">
+                          <Upload size={20} />
+                        </div>
+                        <p className="text-xs font-semibold text-foreground">
+                          Upload Mobile Hero Image
+                        </p>
+                        <p className="text-[10px] text-neutral-400">
+                          Fallback: Desktop image if left empty
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

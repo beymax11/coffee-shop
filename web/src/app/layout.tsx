@@ -71,13 +71,18 @@ const harmoniqueDisplay = localFont({
 export const metadata: Metadata = {
   metadataBase: new URL("https://agshop.lat"),
   title: {
-    default: "Antonioni Grounds | Artisanal Coffee & Luxury Patisserie",
+    default: "Antonioni Grounds",
     template: "%s | Antonioni Grounds",
   },
   description: "Experience the art of artisanal coffee. Antonioni Grounds offers exclusive single-origin Geisha coffees, luxury custom patisserie, and cinematic private café events.",
   keywords: ["luxury coffee", "single origin coffee", "geisha coffee beans", "specialty coffee", "private event booking", "coffee catering", "espresso bar"],
+  icons: {
+    icon: "/stamps_orig.png",
+    shortcut: "/stamps_orig.png",
+    apple: "/stamps_orig.png",
+  },
   openGraph: {
-    title: "Antonioni Grounds | Artisanal Coffee & Luxury Patisserie",
+    title: "Antonioni Grounds",
     description: "Experience the art of artisanal coffee. Antonioni Grounds offers exclusive single-origin Geisha coffees, luxury custom patisserie, and cinematic private café events.",
     url: "https://agshop.lat",
     siteName: "Antonioni Grounds",
@@ -96,7 +101,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Antonioni Grounds | Artisanal Coffee & Luxury Patisserie",
+    title: "Antonioni Grounds",
     description: "Experience the art of artisanal coffee. Antonioni Grounds offers exclusive single-origin Geisha coffees, luxury custom patisserie, and cinematic private café events.",
     images: ["https://agshop.lat/og-image.jpg"],
   },

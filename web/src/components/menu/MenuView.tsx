@@ -22,7 +22,7 @@ import {
   X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { QuickViewModal } from "@/components/shared/QuickViewModal";
+import { QuickViewModal } from "@/components/menu/QuickViewModal";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { MenuItem } from "@/types";
 

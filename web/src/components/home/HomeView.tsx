@@ -9,7 +9,7 @@ import { SignatureShowcase } from "@/components/sections/SignatureShowcase";
 import { EventShowcase } from "@/components/sections/EventShowcase";
 import { EventsUpdates } from "@/components/sections/EventsUpdates";
 import { LifestyleGrid } from "@/components/sections/LifestyleGrid";
-import { QuickViewModal } from "@/components/shared/QuickViewModal";
+import { QuickViewModal } from "@/components/menu/QuickViewModal";
 import { MenuItem } from "@/types";
 
 export function HomeView() {

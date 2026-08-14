@@ -306,8 +306,8 @@ export const MenuModal: React.FC<MenuModalProps> = ({
               <div className="space-y-1.5">
                 <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">MENU ITEM IMAGE</label>
                 {menuForm.image ? (
-                  <div className="relative rounded-xl overflow-hidden border border-card-border h-32 group bg-neutral-900/50">
-                    <img src={menuForm.image} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="relative rounded-xl overflow-hidden border border-card-border h-32 group bg-neutral-900/50 flex items-center justify-center p-2">
+                    <img src={menuForm.image} alt="Preview" className="max-h-full max-w-full object-contain rounded-lg" />
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
                       <button
                         type="button"

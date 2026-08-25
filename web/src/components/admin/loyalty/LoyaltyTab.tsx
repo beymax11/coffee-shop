@@ -18,6 +18,9 @@ import {
   SlidersHorizontal,
   Users,
   Award,
+  Mail,
+  Calendar,
+  Phone,
 } from "lucide-react";
 import { LoyaltyMember } from "@/utils/db";
 import { formatDisplayPhone } from "@/utils/phone";
@@ -66,6 +69,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
   const [stampFilter, setStampFilter] = useState<"all" | "none" | "has" | "reward">("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "highest" | "lowest" | "alphabetical">("newest");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -150,15 +154,15 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-2.5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       
       {/* 1. STAMP STATION HEADER */}
-      <div className="rounded-2xl border border-brand-green/25 bg-white dark:bg-card/90 p-6 shadow-sm relative overflow-hidden">
+      <div className="sm:rounded-2xl border-0 sm:border sm:border-brand-green/25 bg-transparent sm:bg-white dark:sm:bg-card/90 p-0 sm:p-6 shadow-none sm:shadow-sm relative sm:overflow-hidden">
         {/* Glow decoration */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-brand-green/5 blur-[90px] rounded-full pointer-events-none" />
+        <div className="hidden sm:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-brand-green/5 blur-[90px] rounded-full pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-1.5 max-w-lg">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
+          <div className="hidden sm:block space-y-1.5 max-w-lg">
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-brand-green animate-pulse shrink-0" />
               <h3 className="type-ui text-sm text-foreground font-bold tracking-wider uppercase">Stamp Station</h3>
@@ -168,19 +172,19 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
             <button
               onClick={() => setIsScanModalOpen(true)}
-              className="flex items-center gap-2 rounded-xl bg-brand-green text-white px-5 py-2.5 text-xs font-semibold hover:bg-brand-green/90 transition-all duration-200 shadow-sm cursor-pointer"
+              className="flex-1 lg:flex-initial flex items-center justify-center gap-2 rounded-xl bg-brand-green text-white px-4 sm:px-5 py-3 sm:py-2.5 text-sm sm:text-xs font-semibold hover:bg-brand-green/90 transition-all duration-200 shadow-sm cursor-pointer whitespace-nowrap"
             >
-              <QrCode size={15} />
+              <QrCode className="w-[17px] h-[17px] sm:w-[15px] sm:h-[15px] shrink-0" />
               Scan QR Code
             </button>
             <button
               onClick={() => setIsEnterIdModalOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt hover:bg-neutral-100 dark:hover:bg-neutral-800/30 text-neutral-700 dark:text-neutral-300 px-4 py-2.5 text-xs font-semibold transition-all duration-200 cursor-pointer"
+              className="flex-1 lg:flex-initial flex items-center justify-center gap-2 rounded-xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card hover:bg-neutral-100 dark:hover:bg-neutral-800/30 text-neutral-700 dark:text-neutral-300 px-3.5 sm:px-4 py-3 sm:py-2.5 text-sm sm:text-xs font-semibold transition-all duration-200 shadow-sm sm:shadow-none cursor-pointer whitespace-nowrap"
             >
-              <Plus size={15} />
+              <Plus className="w-[17px] h-[17px] sm:w-[15px] sm:h-[15px] shrink-0" />
               Enter Member ID
             </button>
           </div>
@@ -188,18 +192,17 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
       </div>
 
       {/* 2. SEARCH, FILTERS & ACTION TOOLBAR (AUDIT LOGS STYLE) */}
-      <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md p-4 space-y-4 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          
+      <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md px-3.5 pt-3.5 pb-3 sm:p-4 space-y-3 sm:space-y-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2 sm:gap-3 flex-wrap sm:flex-nowrap pt-1 sm:pt-0">
           {/* Search Input */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-[120px]">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
             <input
               type="text"
               placeholder="Search members by name, email, phone, or Member ID..."
               value={loyaltySearch}
               onChange={(e) => setLoyaltySearch(e.target.value)}
-              className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
+              className="w-full pl-10 pr-14 sm:pr-16 py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
             />
             {loyaltySearch && (
               <button
@@ -211,70 +214,90 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             )}
           </div>
 
-          {/* Action Toolbar: View Mode Toggle & Register Member */}
-          <div className="flex items-center gap-2 flex-wrap self-end lg:self-center">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border rounded-xl p-1">
-              <div className="relative group">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
-                    viewMode === "grid" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
-                  }`}
-                  aria-label="Grid View"
-                >
-                  <LayoutGrid size={15} />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                  Grid View
-                </div>
-              </div>
+          {/* Filter Toggle Button (Mobile Only - Hidden on Tablet & Desktop) */}
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((prev) => !prev)}
+            aria-label="Toggle filter tabs"
+            title="Toggle Stamp Filters"
+            className={`sm:hidden flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer shrink-0 ${
+              showMobileFilters || stampFilter !== "all"
+                ? "bg-brand-green/10 border-brand-green/40 text-brand-green dark:bg-brand-green/20"
+                : "bg-white dark:bg-background-alt border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/30"
+            }`}
+          >
+            <Filter size={15} className={stampFilter !== "all" ? "text-brand-green" : ""} />
+            {stampFilter !== "all" && (
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-green" />
+            )}
+          </button>
 
-              <div className="relative group">
-                <button
-                  onClick={() => setViewMode("table")}
-                  className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
-                    viewMode === "table" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
-                  }`}
-                  aria-label="Table View"
-                >
-                  <List size={15} />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                  Table View
-                </div>
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border rounded-xl p-0.5 sm:p-1 shrink-0">
+            <div className="relative group">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
+                  viewMode === "grid" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
+                }`}
+                aria-label="Grid View"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Grid View
               </div>
             </div>
 
-            {/* Reset Filters / Refresh Button */}
-            {hasActiveFilters && (
-              <div className="relative group">
-                <button
-                  onClick={resetAllFilters}
-                  className="p-2.5 rounded-xl border border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt hover:bg-neutral-100 dark:hover:bg-neutral-800/30 text-neutral-700 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
-                  aria-label="Reset Filters"
-                >
-                  <RefreshCw size={15} />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                  Reset Filters
-                </div>
+            <div className="relative group">
+              <button
+                onClick={() => setViewMode("table")}
+                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
+                  viewMode === "table" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
+                }`}
+                aria-label="Table View"
+              >
+                <List size={15} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Table View
               </div>
-            )}
-
-            {/* Register Member Primary Button */}
-            <button
-              onClick={onOpenRegisterModal}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-green hover:bg-brand-green/90 text-white text-xs font-semibold shadow-sm transition-all duration-200 cursor-pointer shrink-0"
-            >
-              <Plus size={15} />
-              <span>Register Member</span>
-            </button>
+            </div>
           </div>
+
+          {/* Reset Filters / Refresh Button */}
+          {hasActiveFilters && (
+            <div className="relative group shrink-0">
+              <button
+                onClick={resetAllFilters}
+                className="p-2.5 rounded-xl border border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt hover:bg-neutral-100 dark:hover:bg-neutral-800/30 text-neutral-700 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
+                aria-label="Reset Filters"
+              >
+                <RefreshCw size={15} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Reset Filters
+              </div>
+            </div>
+          )}
+
+          {/* Register Member Primary Button */}
+          <button
+            onClick={onOpenRegisterModal}
+            className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl bg-brand-green hover:bg-brand-green/90 text-white text-xs font-semibold shadow-sm transition-all duration-200 cursor-pointer shrink-0"
+          >
+            <Plus size={15} />
+            <span className="hidden sm:inline">Register Member</span>
+            <span className="sm:hidden">Register</span>
+          </button>
         </div>
 
-        {/* Filter Pills & Sort Selector Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200/60 dark:border-card-border/60">
+        {/* Filter Pills & Sort Selector Toolbar (Hidden on mobile by default, toggleable via Filters button, always visible on sm+) */}
+        <div
+          className={`${
+            showMobileFilters ? "flex" : "hidden sm:flex"
+          } flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200/60 dark:border-card-border/60 animate-in fade-in slide-in-from-top-1 duration-200`}
+        >
           {/* Stamp Filter Pills */}
           <div className="flex flex-wrap items-center gap-1.5">
             {[
@@ -378,7 +401,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
           </div>
         ) : viewMode === "grid" ? (
           /* GRID CARDS VIEW */
-          <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          <div className="p-3.5 sm:p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-4 md:gap-6">
             {paginatedMembers.map((member) => (
               <LoyaltyMemberCard
                 key={member.id}
@@ -397,122 +420,230 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
           </div>
         ) : (
           /* TABLE VIEW */
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 dark:bg-background-alt border-b border-neutral-200 dark:border-card-border uppercase text-[10px] tracking-wider text-neutral-600 dark:text-neutral-400 font-semibold">
-                <tr>
-                  <th className="py-3.5 px-4">Member Name & ID</th>
-                  <th className="py-3.5 px-4">Contact Details</th>
-                  <th className="py-3.5 px-4">Joined Date</th>
-                  <th className="py-3.5 px-4">Stamps Progress</th>
-                  <th className="py-3.5 px-4 text-center w-36">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200/70 dark:divide-card-border">
-                {paginatedMembers.map((member) => {
-                  const freeDrinkEarned = member.stamps >= 10;
-                  return (
-                    <tr
-                      key={member.id}
-                      onClick={() => {
-                        setSelectedMember(member);
-                        setIsDetailsModalOpen(true);
-                      }}
-                      className="hover:bg-neutral-50 dark:hover:bg-neutral-800/20 transition-colors cursor-pointer group"
-                    >
-                      {/* Name & ID */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-foreground font-serif text-sm">{member.name}</div>
-                        <div className="text-[10px] text-brand-green font-mono font-bold">ID: {member.id}</div>
-                      </td>
+          <div>
+            {/* 1. DESKTOP & TABLET TABLE */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full min-w-[650px] text-left text-xs">
+                <thead className="bg-neutral-50 dark:bg-background-alt border-b border-neutral-200 dark:border-card-border uppercase text-[10px] tracking-wider text-neutral-600 dark:text-neutral-400 font-semibold">
+                  <tr>
+                    <th className="py-3.5 px-4">Member Name & ID</th>
+                    <th className="py-3.5 px-4">Contact Details</th>
+                    <th className="py-3.5 px-4">Joined Date</th>
+                    <th className="py-3.5 px-4">Stamps Progress</th>
+                    <th className="py-3.5 px-4 text-center w-36">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200/70 dark:divide-card-border">
+                  {paginatedMembers.map((member) => {
+                    const freeDrinkEarned = member.stamps >= 10;
+                    return (
+                      <tr
+                        key={member.id}
+                        onClick={() => {
+                          setSelectedMember(member);
+                          setIsDetailsModalOpen(true);
+                        }}
+                        className="hover:bg-neutral-50 dark:hover:bg-neutral-800/20 transition-colors cursor-pointer group"
+                      >
+                        {/* Name & ID */}
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-foreground font-serif text-sm">{member.name}</div>
+                          <div className="text-[10px] text-brand-green font-mono font-bold">ID: {member.id}</div>
+                        </td>
 
-                      {/* Contact */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-foreground">{member.email || "N/A"}</div>
-                        <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">{formatDisplayPhone(member.phone)}</div>
-                      </td>
+                        {/* Contact */}
+                        <td className="py-3.5 px-4">
+                          <div className="font-medium text-foreground">{member.email || "N/A"}</div>
+                          <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">{formatDisplayPhone(member.phone)}</div>
+                        </td>
 
-                      {/* Joined Date */}
-                      <td className="py-3.5 px-4 whitespace-nowrap font-mono text-[11px] text-neutral-600 dark:text-neutral-400">
-                        {member.joinedAt || "N/A"}
-                      </td>
+                        {/* Joined Date */}
+                        <td className="py-3.5 px-4 whitespace-nowrap font-mono text-[11px] text-neutral-600 dark:text-neutral-400">
+                          {member.joinedAt || "N/A"}
+                        </td>
 
-                      {/* Stamps Progress */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-foreground font-mono">{member.stamps} / 10</span>
-                          {freeDrinkEarned ? (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-brand-green text-white shadow-sm">
-                              Reward Unlocked
-                            </span>
-                          ) : (
-                            <div className="flex items-center gap-0.5">
-                              {[...Array(10)].map((_, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`h-2.5 w-2.5 rounded-full ${
-                                    idx < member.stamps ? "bg-brand-green" : "bg-neutral-200 dark:bg-neutral-700"
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </td>
+                        {/* Stamps Progress */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-foreground font-mono">{member.stamps} / 10</span>
+                            {freeDrinkEarned ? (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-brand-green text-white shadow-sm">
+                                Reward Unlocked
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-0.5">
+                                {[...Array(10)].map((_, idx) => (
+                                  <div
+                                    key={idx}
+                                    className={`h-2.5 w-2.5 rounded-full ${
+                                      idx < member.stamps ? "bg-brand-green" : "bg-neutral-200 dark:bg-neutral-700"
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </td>
 
-                      {/* Actions */}
-                      <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="inline-flex items-center gap-1.5">
-                          {freeDrinkEarned && (
+                        {/* Actions */}
+                        <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="inline-flex items-center gap-1.5">
+                            {freeDrinkEarned && (
+                              <button
+                                onClick={() => onRedeemFreeDrink(member)}
+                                className="px-2.5 py-1.5 rounded-lg bg-brand-green text-white text-[10px] font-bold hover:bg-brand-green/90 transition-colors cursor-pointer shadow-sm"
+                                title="Redeem Free Drink"
+                              >
+                                Redeem
+                              </button>
+                            )}
                             <button
-                              onClick={() => onRedeemFreeDrink(member)}
-                              className="px-2 py-1 rounded-lg bg-brand-green text-white text-[10px] font-bold hover:bg-brand-green/90 transition-colors cursor-pointer"
-                              title="Redeem Free Drink"
+                              onClick={() => {
+                                setSelectedMember(member);
+                                setIsDetailsModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 hover:text-brand-green hover:border-brand-green/30 transition-colors cursor-pointer"
+                              title="View Member Details"
                             >
-                              Redeem
+                              <Eye size={14} />
                             </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              setSelectedMember(member);
-                              setIsDetailsModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 hover:text-brand-green hover:border-brand-green/30 transition-colors cursor-pointer"
-                            title="View Member Details"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setMemberToDelete(member);
-                              setIsDeleteConfirmOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20 transition-colors cursor-pointer"
-                            title="Delete Member"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                            <button
+                              onClick={() => {
+                                setMemberToDelete(member);
+                                setIsDeleteConfirmOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                              title="Delete Member"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 2. MOBILE DEDICATED TABLE / LIST VIEW (Visible on mobile < sm) */}
+            <div className="block sm:hidden divide-y divide-neutral-200/70 dark:divide-card-border">
+              {paginatedMembers.map((member) => {
+                const freeDrinkEarned = member.stamps >= 10;
+                return (
+                  <div
+                    key={member.id}
+                    onClick={() => {
+                      setSelectedMember(member);
+                      setIsDetailsModalOpen(true);
+                    }}
+                    className="p-3.5 hover:bg-neutral-50 dark:hover:bg-neutral-800/20 active:bg-neutral-100 dark:active:bg-neutral-800/40 transition-colors cursor-pointer space-y-2.5"
+                  >
+                    {/* Header: Member Name, ID badge & Actions */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="font-semibold text-foreground font-serif text-sm truncate">
+                          {member.name}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        <div className="text-[10px] text-brand-green font-mono font-bold">
+                          ID: {member.id}
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        {freeDrinkEarned && (
+                          <button
+                            onClick={() => onRedeemFreeDrink(member)}
+                            className="px-2.5 py-1 rounded-lg bg-brand-green text-white text-[10px] font-bold hover:bg-brand-green/90 transition-colors cursor-pointer shadow-sm"
+                            title="Redeem Free Drink"
+                          >
+                            Redeem
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setSelectedMember(member);
+                            setIsDetailsModalOpen(true);
+                          }}
+                          className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 hover:text-brand-green hover:border-brand-green/30 transition-colors cursor-pointer"
+                          title="View Member Details"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setMemberToDelete(member);
+                            setIsDeleteConfirmOpen(true);
+                          }}
+                          className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                          title="Delete Member"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Stamps progress bar / pill */}
+                    <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-neutral-50 dark:bg-background-alt border border-neutral-200/70 dark:border-card-border/60 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase text-neutral-500 dark:text-neutral-400">Stamps:</span>
+                        <span className="font-bold text-foreground font-mono text-xs">{member.stamps} / 10</span>
+                      </div>
+
+                      {freeDrinkEarned ? (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-brand-green text-white shadow-sm">
+                          Reward Unlocked
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-0.5">
+                          {[...Array(10)].map((_, idx) => (
+                            <div
+                              key={idx}
+                              className={`h-2 w-2 rounded-full ${
+                                idx < member.stamps ? "bg-brand-green" : "bg-neutral-200 dark:bg-neutral-700"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer Contact & Joined Date */}
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-neutral-500 dark:text-neutral-400">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Mail size={11} className="shrink-0 text-neutral-400" />
+                        <span className="truncate">{member.email || "No email"}</span>
+                      </div>
+                      {member.phone && (
+                        <div className="flex items-center gap-1.5 font-mono text-[10px]">
+                          <Phone size={10} className="shrink-0 text-neutral-400" />
+                          <span>{formatDisplayPhone(member.phone)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 font-mono text-[10px]">
+                        <Calendar size={10} className="shrink-0 text-neutral-400" />
+                        <span>{member.joinedAt || "N/A"}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
         {/* 4. PAGINATION FOOTER */}
         {filteredLoyalty.length > 0 && (
-          <div className="p-4 border-t border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-600 dark:text-neutral-400">
-            <div className="flex items-center gap-2">
+          <div className="p-3.5 sm:p-4 border-t border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-600 dark:text-neutral-400">
+            <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2">
               <span>
                 Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredLoyalty.length)} of {filteredLoyalty.length} members
               </span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="px-2 py-1 rounded-lg bg-white dark:bg-card border border-neutral-200 dark:border-card-border text-xs text-foreground focus:outline-none cursor-pointer"
+                className="px-2 py-1 rounded-lg bg-white dark:bg-card border border-neutral-200 dark:border-card-border text-xs text-foreground focus:outline-none cursor-pointer shrink-0"
               >
                 <option value={10}>10 per page</option>
                 <option value={25}>25 per page</option>
@@ -520,7 +651,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
               </select>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-1">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}

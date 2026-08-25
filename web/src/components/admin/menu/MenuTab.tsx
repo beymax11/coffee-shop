@@ -47,6 +47,7 @@ export const MenuTab: React.FC<MenuTabProps> = ({
   const [viewingItem, setViewingItem] = useState<MenuItem | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [sortBy, setSortBy] = useState<string>("name");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -127,18 +128,17 @@ export const MenuTab: React.FC<MenuTabProps> = ({
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       
       {/* 1. SEARCH, FILTERS & ACTION TOOLBAR (AUDIT LOGS STYLE) */}
-      <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md p-4 space-y-4 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          
+      <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md p-3.5 sm:p-4 space-y-3 sm:space-y-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
           {/* Search Input */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-[120px]">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
             <input
               type="text"
               placeholder="Search coffee, pastries, descriptions, or tags..."
               value={menuSearch}
               onChange={(e) => setMenuSearch(e.target.value)}
-              className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
+              className="w-full pl-10 pr-14 sm:pr-16 py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
             />
             {menuSearch && (
               <button
@@ -150,70 +150,90 @@ export const MenuTab: React.FC<MenuTabProps> = ({
             )}
           </div>
 
-          {/* Action Toolbar: View Mode Toggle & Add Item Button */}
-          <div className="flex items-center gap-2 flex-wrap self-end lg:self-center">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border rounded-xl p-1">
-              <div className="relative group">
-                <button
-                  onClick={() => setViewMode("table")}
-                  className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
-                    viewMode === "table" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
-                  }`}
-                  aria-label="Table View"
-                >
-                  <List size={15} />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                  Table View
-                </div>
-              </div>
+          {/* Filter Toggle Button (Mobile Only - Hidden on Tablet & Desktop) */}
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((prev) => !prev)}
+            aria-label="Toggle filter tabs"
+            title="Toggle Category Filters"
+            className={`sm:hidden flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer shrink-0 ${
+              showMobileFilters || menuCatFilter !== "All"
+                ? "bg-brand-green/10 border-brand-green/40 text-brand-green dark:bg-brand-green/20"
+                : "bg-white dark:bg-background-alt border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/30"
+            }`}
+          >
+            <Filter size={15} className={menuCatFilter !== "All" ? "text-brand-green" : ""} />
+            {menuCatFilter !== "All" && (
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-green" />
+            )}
+          </button>
 
-              <div className="relative group">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
-                    viewMode === "grid" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
-                  }`}
-                  aria-label="Grid View"
-                >
-                  <LayoutGrid size={15} />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                  Grid View
-                </div>
+          {/* View Mode Toggle beside Search Bar */}
+          <div className="flex items-center bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border rounded-xl p-0.5 sm:p-1 shrink-0">
+            <div className="relative group">
+              <button
+                onClick={() => setViewMode("table")}
+                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
+                  viewMode === "table" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
+                }`}
+                aria-label="Table View"
+              >
+                <List size={15} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Table View
               </div>
             </div>
 
-            {/* Reset Filters / Refresh Button */}
-            {hasActiveFilters && (
-              <div className="relative group">
-                <button
-                  onClick={resetAllFilters}
-                  className="p-2.5 rounded-xl border border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt hover:bg-neutral-100 dark:hover:bg-neutral-800/30 text-neutral-700 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
-                  aria-label="Reset Filters"
-                >
-                  <RefreshCw size={15} />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                  Reset Filters
-                </div>
+            <div className="relative group">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
+                  viewMode === "grid" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
+                }`}
+                aria-label="Grid View"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Grid View
               </div>
-            )}
-
-            {/* Add Item Primary Button */}
-            <button
-              onClick={onOpenAddModal}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-green hover:bg-brand-green/90 text-white text-xs font-semibold shadow-sm transition-all duration-200 cursor-pointer shrink-0"
-            >
-              <Plus size={15} />
-              <span>Add Item</span>
-            </button>
+            </div>
           </div>
+
+          {/* Reset Filters / Refresh Button */}
+          {hasActiveFilters && (
+            <div className="relative group shrink-0">
+              <button
+                onClick={resetAllFilters}
+                className="p-2.5 rounded-xl border border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt hover:bg-neutral-100 dark:hover:bg-neutral-800/30 text-neutral-700 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
+                aria-label="Reset Filters"
+              >
+                <RefreshCw size={15} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Reset Filters
+              </div>
+            </div>
+          )}
+
+          {/* Add Item Primary Button beside search and view toggle */}
+          <button
+            onClick={onOpenAddModal}
+            className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl bg-brand-green hover:bg-brand-green/90 text-white text-xs font-semibold shadow-sm transition-all duration-200 cursor-pointer shrink-0"
+          >
+            <Plus size={15} />
+            <span className="hidden sm:inline">Add Item</span>
+            <span className="sm:hidden">Add</span>
+          </button>
         </div>
 
-        {/* Categories & Sorting Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200/60 dark:border-card-border/60">
+        {/* Categories & Sorting Toolbar (Hidden on mobile by default, toggleable via Filters button, always visible on sm+) */}
+        <div
+          className={`${
+            showMobileFilters ? "flex" : "hidden sm:flex"
+          } flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200/60 dark:border-card-border/60 animate-in fade-in slide-in-from-top-1 duration-200`}
+        >
           {/* Category Pill Filters */}
           <div className="flex flex-wrap items-center gap-1.5">
             {categories.map((cat) => {
@@ -310,84 +330,176 @@ export const MenuTab: React.FC<MenuTabProps> = ({
           </div>
         ) : viewMode === "table" ? (
           /* TABLE VIEW */
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 dark:bg-background-alt border-b border-neutral-200 dark:border-card-border uppercase text-[10px] tracking-wider text-neutral-600 dark:text-neutral-400 font-semibold">
-                <tr>
-                  <th className="py-3.5 px-4">Item Details</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4 text-right">Price</th>
-                  <th className="py-3.5 px-4 text-center w-32">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200/70 dark:divide-card-border">
-                {paginatedItems.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-neutral-50 dark:hover:bg-neutral-800/20 transition-colors group cursor-pointer"
-                    onClick={() => setViewingItem(item)}
-                  >
-                    {/* Details: Image, Name, Description, Tags */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-12 rounded-lg overflow-hidden border border-neutral-200 dark:border-card-border bg-neutral-100 dark:bg-background-alt shrink-0 relative shadow-inner">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-semibold text-foreground font-serif text-sm truncate">{item.name}</div>
-                          <div className="text-[11px] text-neutral-600 dark:text-neutral-400 truncate max-w-xs md:max-w-md">{item.description}</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Category Badge */}
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20">
-                        {item.category}
-                      </span>
-                    </td>
-
-                    {/* Price */}
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <span className="font-serif text-brand-green dark:text-emerald-400 text-sm font-bold">
-                        ₱{item.price.toFixed(2)}
-                      </span>
-                    </td>
-
-                    {/* Operations */}
-                    <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                      <div className="inline-flex items-center gap-1.5">
-                        <button
-                          onClick={() => setViewingItem(item)}
-                          className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 hover:text-brand-green hover:border-brand-green/30 transition-colors cursor-pointer"
-                          title="View Details"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          onClick={() => onEditItem(item)}
-                          className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 hover:text-brand-green hover:border-brand-green/30 transition-colors cursor-pointer"
-                          title="Edit Item"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        <button
-                          onClick={() => onDeleteItem(item.id)}
-                          className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20 transition-colors cursor-pointer"
-                          title="Delete Item"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+          <div>
+            {/* 1. DESKTOP & TABLET TABLE (hidden on mobile < sm) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-neutral-50 dark:bg-background-alt border-b border-neutral-200 dark:border-card-border uppercase text-[10px] tracking-wider text-neutral-600 dark:text-neutral-400 font-semibold">
+                  <tr>
+                    <th className="py-3.5 px-4">Item Details</th>
+                    <th className="py-3.5 px-4">Category</th>
+                    <th className="py-3.5 px-4 text-right">Price</th>
+                    <th className="py-3.5 px-4 text-center w-32">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-neutral-200/70 dark:divide-card-border">
+                  {paginatedItems.map((item) => (
+                    <tr
+                      key={item.id}
+                      className="hover:bg-neutral-50 dark:hover:bg-neutral-800/20 transition-colors group cursor-pointer"
+                      onClick={() => setViewingItem(item)}
+                    >
+                      {/* Details: Image, Name, Description, Tags */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-12 rounded-lg overflow-hidden border border-neutral-200 dark:border-card-border bg-neutral-100 dark:bg-background-alt shrink-0 relative shadow-inner">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-foreground font-serif text-sm truncate">{item.name}</div>
+                            <div className="text-[11px] text-neutral-600 dark:text-neutral-400 truncate max-w-xs md:max-w-md">{item.description}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Category Badge */}
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20">
+                          {item.category}
+                        </span>
+                      </td>
+
+                      {/* Price */}
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <span className="font-serif text-brand-green dark:text-emerald-400 text-sm font-bold">
+                          ₱{item.price.toFixed(2)}
+                        </span>
+                      </td>
+
+                      {/* Operations */}
+                      <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            onClick={() => setViewingItem(item)}
+                            className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 hover:text-brand-green hover:border-brand-green/30 transition-colors cursor-pointer"
+                            title="View Details"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            onClick={() => onEditItem(item)}
+                            className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 hover:text-brand-green hover:border-brand-green/30 transition-colors cursor-pointer"
+                            title="Edit Item"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          <button
+                            onClick={() => onDeleteItem(item.id)}
+                            className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                            title="Delete Item"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 2. MOBILE DEDICATED CARD LIST (visible on mobile < sm only) */}
+            <div className="block sm:hidden divide-y divide-neutral-200/70 dark:divide-card-border">
+              {paginatedItems.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setViewingItem(item)}
+                  className="p-3.5 hover:bg-neutral-50 dark:hover:bg-neutral-800/30 active:bg-neutral-100 dark:active:bg-neutral-800/50 transition-colors cursor-pointer group flex flex-col gap-2.5"
+                >
+                  {/* Top Row: Thumbnail + Details + Price */}
+                  <div className="flex items-start gap-3">
+                    {/* Thumbnail */}
+                    <div className="h-16 w-16 rounded-xl overflow-hidden border border-neutral-200 dark:border-card-border bg-neutral-100 dark:bg-background-alt shrink-0 relative shadow-inner">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-semibold text-foreground font-serif text-sm leading-snug line-clamp-1">
+                          {item.name}
+                        </h4>
+                        <span className="font-serif text-brand-green dark:text-emerald-400 text-sm font-bold shrink-0">
+                          ₱{item.price.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {/* Category Badge */}
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20">
+                          {item.category}
+                        </span>
+                      </div>
+
+                      {/* Truncated Description */}
+                      {item.description && (
+                        <p className="text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-1 mt-1">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Actions Row with Touch-Friendly Targets */}
+                  <div
+                    className="flex items-center justify-between pt-2 border-t border-neutral-100 dark:border-card-border/60 text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-mono">
+                      ID: #{item.id.slice(0, 6)}
+                    </span>
+
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setViewingItem(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-300 hover:text-brand-green hover:border-brand-green/30 text-xs font-medium transition-colors cursor-pointer"
+                        title="View Details"
+                      >
+                        <Eye size={13} />
+                        <span>View</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onEditItem(item)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-300 hover:text-brand-green hover:border-brand-green/30 text-xs font-medium transition-colors cursor-pointer"
+                        title="Edit Item"
+                      >
+                        <Edit3 size={13} />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteItem(item.id)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
+                        title="Delete Item"
+                      >
+                        <Trash2 size={13} />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           /* GRID VIEW */

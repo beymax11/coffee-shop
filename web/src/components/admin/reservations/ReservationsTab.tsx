@@ -60,6 +60,7 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
 
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [sortBy, setSortBy] = useState<string>("date-newest");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -248,117 +249,138 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
     }
   };
 
+  // Status card border accent helper
+  const getStatusCardBorder = (st: string) => {
+    switch (st) {
+      case "Approved":
+        return "border-l-[5px] border-l-emerald-500 hover:border-l-emerald-600";
+      case "Pre-Approved":
+        return "border-l-[5px] border-l-amber-500 hover:border-l-amber-600";
+      case "Completed":
+        return "border-l-[5px] border-l-blue-500 hover:border-l-blue-600";
+      case "Cancellation Requested":
+        return "border-l-[5px] border-l-orange-500 hover:border-l-orange-600 shadow-orange-500/5";
+      case "Cancelled":
+        return "border-l-[5px] border-l-rose-500 hover:border-l-rose-600";
+      default: // Pending
+        return "border-l-[5px] border-l-sky-500 hover:border-l-sky-600";
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       
-      {/* 1. SEARCH, FILTERS & ACTION TOOLBAR (AUDIT LOGS STYLE) */}
-      <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md p-4 space-y-4 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          
-          {/* Search Input & Refresh Button */}
-          <div className="flex items-center gap-2 flex-1">
-            <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
-              <input
-                type="text"
-                placeholder="Search by guest name, email, phone, location, or event type..."
-                value={reservationSearch}
-                onChange={(e) => setReservationSearch(e.target.value)}
-                className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
-              />
-              {reservationSearch && (
-                <button
-                  onClick={() => setReservationSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground text-xs font-semibold cursor-pointer"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Refresh Button */}
-            <div className="relative group">
+      {/* 1. SEARCH, FILTERS & ACTION TOOLBAR */}
+      <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md p-3.5 sm:p-4 space-y-3 sm:space-y-4 shadow-sm">
+        <div className="flex items-center justify-between gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[120px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
+            <input
+              type="text"
+              placeholder="Search guest, email, phone, location, or notes..."
+              value={reservationSearch}
+              onChange={(e) => setReservationSearch(e.target.value)}
+              className="w-full pl-10 pr-14 sm:pr-16 py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
+            />
+            {reservationSearch && (
               <button
-                type="button"
-                onClick={async () => {
-                  setIsRefreshing(true);
-                  if (onRefresh) {
-                    await onRefresh();
-                  }
-                  setTimeout(() => setIsRefreshing(false), 500);
-                }}
-                disabled={isRefreshing}
-                className="p-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 hover:text-brand-green dark:hover:text-emerald-400 hover:border-brand-green/40 transition-all cursor-pointer flex items-center justify-center disabled:opacity-50 shadow-sm"
-                aria-label="Refresh Reservations"
+                onClick={() => setReservationSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground text-xs font-semibold cursor-pointer"
               >
-                <RefreshCw size={15} className={isRefreshing ? "animate-spin text-brand-green dark:text-emerald-400" : ""} />
+                Clear
               </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                Refresh Tab
-              </div>
-            </div>
-          </div>
-
-          {/* Action Toolbar: View Mode Toggle & Reset Button */}
-          <div className="flex items-center gap-2 flex-wrap self-end lg:self-center">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border rounded-xl p-1">
-              <div className="relative group">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
-                    viewMode === "grid" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
-                  }`}
-                  aria-label="Grid Cards View"
-                >
-                  <LayoutGrid size={15} />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                  Grid View
-                </div>
-              </div>
-
-              <div className="relative group">
-                <button
-                  onClick={() => setViewMode("table")}
-                  className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
-                    viewMode === "table" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
-                  }`}
-                  aria-label="Table View"
-                >
-                  <List size={15} />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                  Table View
-                </div>
-              </div>
-            </div>
-
-            {/* Refresh / Reset Filters Button */}
-            {hasActiveFilters && (
-              <div className="relative group">
-                <button
-                  onClick={resetAllFilters}
-                  className="p-2.5 rounded-xl border border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt hover:bg-neutral-100 dark:hover:bg-neutral-800/30 text-neutral-700 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
-                  aria-label="Reset Filters"
-                >
-                  <RefreshCw size={15} />
-                </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
-                  Reset Filters
-                </div>
-              </div>
             )}
           </div>
+
+          {/* Filter Toggle Button (Mobile Only) */}
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((prev) => !prev)}
+            aria-label="Toggle status filter tabs"
+            title="Toggle Status Filters"
+            className={`sm:hidden flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer shrink-0 ${
+              showMobileFilters || reservationFilter !== "All"
+                ? "bg-brand-green/10 border-brand-green/40 text-brand-green dark:bg-brand-green/20"
+                : "bg-white dark:bg-background-alt border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/30"
+            }`}
+          >
+            <Filter size={15} className={reservationFilter !== "All" ? "text-brand-green" : ""} />
+            {reservationFilter !== "All" && (
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-green" />
+            )}
+          </button>
+
+          {/* View Mode Toggle beside Search Bar */}
+          <div className="flex items-center bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border rounded-xl p-0.5 sm:p-1 shrink-0">
+            <div className="relative group">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
+                  viewMode === "grid" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
+                }`}
+                aria-label="Cards View"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Card Grid
+              </div>
+            </div>
+
+            <div className="relative group">
+              <button
+                onClick={() => setViewMode("table")}
+                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
+                  viewMode === "table" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
+                }`}
+                aria-label="Table View"
+              >
+                <List size={15} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Table View
+              </div>
+            </div>
+          </div>
+
+          {/* Refresh Action Button */}
+          {onRefresh && (
+            <div className="relative group shrink-0">
+              <button
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  try {
+                    await onRefresh();
+                  } finally {
+                    setIsRefreshing(false);
+                  }
+                }}
+                disabled={isRefreshing}
+                className="p-2.5 rounded-xl border border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt hover:bg-neutral-100 dark:hover:bg-neutral-800/30 text-neutral-700 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center"
+                aria-label="Refresh Reservations"
+              >
+                <RefreshCw size={15} className={isRefreshing ? "animate-spin text-brand-green" : ""} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-neutral-900 dark:bg-neutral-800 text-white text-[10px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg z-20">
+                Refresh Data
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Status Pill Filters & Sorting Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200/60 dark:border-card-border/60">
+        {/* Status Filters Toolbar (Toggleable on mobile, always visible on sm+) */}
+        <div
+          className={`${
+            showMobileFilters ? "flex" : "hidden sm:flex"
+          } flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200/60 dark:border-card-border/60 animate-in fade-in slide-in-from-top-1 duration-200`}
+        >
           {/* Status Filter Pills */}
           <div className="flex flex-wrap items-center gap-1.5">
             {filterStates.map((status) => {
               const isActive = reservationFilter === status;
               const count = statusCounts[status] || 0;
+
               return (
                 <button
                   key={status}
@@ -471,7 +493,7 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
           </div>
         ) : viewMode === "grid" ? (
           /* GRID CARDS VIEW */
-          <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          <div className="p-3.5 sm:p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-4 md:gap-6">
             {paginatedReservations.map((res, index) => {
               const compositeKey = `${res.fullName}-${res.date}-${res.time}`;
               const status = (res.id && reservationStatuses[res.id]) || reservationStatuses[compositeKey] || res.status || "Pending";
@@ -481,9 +503,10 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                 <div
                   key={res.id || index}
                   onClick={() => onOpenDetails(res)}
-                  className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt p-5 shadow-sm flex flex-col justify-between gap-4 relative overflow-hidden transition-all duration-300 hover:border-brand-green/40 hover:shadow-md cursor-pointer group"
+                  className={`rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt p-4 sm:p-5 shadow-sm flex flex-col justify-between gap-3 sm:gap-4 relative overflow-hidden transition-all duration-300 hover:shadow-md cursor-pointer group active:scale-[0.99] ${getStatusCardBorder(status)}`}
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-2.5 sm:space-y-3">
+                    {/* Header: Event Type & Status Badge */}
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[9px] text-brand-green dark:text-emerald-400 font-mono uppercase tracking-wider font-bold">
                         {res.eventType}
@@ -491,74 +514,113 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                       {renderStatusBadge(status)}
                     </div>
 
-                    <h4 className="font-serif font-bold text-foreground text-lg">{res.fullName}</h4>
+                    {/* Guest Name & ID */}
+                    <div className="flex items-baseline justify-between gap-2">
+                      <h4 className="font-serif font-bold text-foreground text-base sm:text-lg leading-snug group-hover:text-brand-green transition-colors">
+                        {res.fullName}
+                      </h4>
+                      {res.id && (
+                        <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-mono shrink-0">
+                          #{res.id.slice(0, 6)}
+                        </span>
+                      )}
+                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-neutral-600 dark:text-neutral-400">
-                      <div className="flex items-center gap-2">
-                        <Mail size={13} className="text-neutral-400 shrink-0" />
-                        <span className="truncate">{res.email}</span>
+                    {/* Highlighted Schedule Box: Date, Time & Guest Count */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-neutral-50 dark:bg-card border border-neutral-200/70 dark:border-card-border/50 text-xs">
+                      <div className="flex items-center gap-1.5 font-medium text-foreground">
+                        <Calendar size={14} className="text-brand-green shrink-0" />
+                        <span>{res.date}</span>
+                        <span className="text-neutral-300 dark:text-neutral-600">•</span>
+                        <strong className="font-mono text-brand-green dark:text-emerald-400">{res.time}</strong>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Phone size={13} className="text-neutral-400 shrink-0" />
-                        <span>{res.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar size={13} className="text-brand-green shrink-0" />
-                        <span>{res.date} at <strong className="font-mono text-foreground">{res.time}</strong></span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Users size={13} className="text-brand-green shrink-0" />
-                        <span>{res.guestCount} Guest{res.guestCount > 1 ? "s" : ""}</span>
+                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200/80 dark:border-card-border text-[11px] font-semibold text-foreground shrink-0 shadow-2xs">
+                        <Users size={12} className="text-brand-green shrink-0" />
+                        <span>{res.guestCount} {res.guestCount > 1 ? "Guests" : "Guest"}</span>
                       </div>
                     </div>
 
+                    {/* 1-Tap Quick Contact Links */}
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
+                      {res.phone && (
+                        <a
+                          href={`tel:${res.phone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 dark:bg-card hover:bg-brand-green/10 hover:text-brand-green dark:hover:bg-brand-green/20 border border-neutral-200/70 dark:border-card-border text-[11px] text-neutral-700 dark:text-neutral-300 font-medium transition-colors cursor-pointer"
+                          title="Direct Call"
+                        >
+                          <Phone size={12} className="text-brand-green shrink-0" />
+                          <span>{res.phone}</span>
+                        </a>
+                      )}
+                      {res.email && (
+                        <a
+                          href={`mailto:${res.email}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 dark:bg-card hover:bg-brand-green/10 hover:text-brand-green dark:hover:bg-brand-green/20 border border-neutral-200/70 dark:border-card-border text-[11px] text-neutral-700 dark:text-neutral-300 font-medium transition-colors cursor-pointer max-w-[200px] truncate"
+                          title="Direct Email"
+                        >
+                          <Mail size={12} className="text-brand-green shrink-0" />
+                          <span className="truncate">{res.email}</span>
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Location if present */}
                     {res.location && (
-                      <div className="flex items-center gap-2 text-[11px] text-neutral-600 dark:text-neutral-400 border-t border-neutral-200/60 dark:border-card-border/50 pt-2.5">
-                        <MapPin size={13} className="text-neutral-400 shrink-0" />
+                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-600 dark:text-neutral-400">
+                        <MapPin size={12} className="text-neutral-400 shrink-0" />
                         <span>Location: <strong className="text-foreground">{res.location}</strong></span>
                       </div>
                     )}
 
+                    {/* Notes if present */}
                     {res.notes && (
-                      <div className="flex gap-2 rounded-xl border border-neutral-200/70 dark:border-card-border/60 bg-neutral-50 dark:bg-background/50 p-3 text-[11px] text-neutral-600 dark:text-neutral-400">
+                      <div className="flex items-start gap-2 rounded-xl border border-neutral-200/70 dark:border-card-border/60 bg-neutral-50/80 dark:bg-card/50 p-2.5 text-[11px] text-neutral-600 dark:text-neutral-400">
                         <MessageSquare size={12} className="text-brand-green shrink-0 mt-0.5" />
-                        <p className="italic">"{res.notes}"</p>
+                        <p className="italic line-clamp-2">"{res.notes}"</p>
                       </div>
                     )}
 
+                    {/* Payment Verified Inline Pill */}
                     {(res.referenceNumber || res.proofOfPayment) && (
-                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-neutral-600 dark:text-neutral-400 space-y-1">
-                        <span className="text-[9px] uppercase font-mono font-bold text-emerald-600 dark:text-emerald-400 block">
-                          Payment Verified
-                        </span>
-                        <div className="space-y-0.5 text-[11px]">
-                          <p>Method: <strong className="text-foreground">{res.paymentMethod || "—"}</strong></p>
-                          <p>Ref No: <strong className="text-foreground font-mono">{res.referenceNumber || "—"}</strong></p>
+                      <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs">
+                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold text-[11px] truncate">
+                          <CreditCard size={13} className="shrink-0" />
+                          <span>{res.paymentMethod || "Paid Online"}</span>
+                          {res.referenceNumber && (
+                            <span className="font-mono text-[10px] text-neutral-500 dark:text-neutral-400 truncate">
+                              (Ref: #{res.referenceNumber})
+                            </span>
+                          )}
                         </div>
+                        <span className="text-[9px] uppercase font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0">
+                          Verified ✓
+                        </span>
                       </div>
                     )}
                   </div>
 
                   {/* Actions Deck */}
-                  <div className="flex gap-2 border-t border-neutral-200/60 dark:border-card-border/50 pt-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-2 border-t border-neutral-200/60 dark:border-card-border/50 pt-3" onClick={(e) => e.stopPropagation()}>
                     {status === "Pending" && (
                       <>
                         <button
                           onClick={() => onUpdateStatus(res, "Pre-Approved")}
                           disabled={updatingKey !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 py-2 text-[10px] font-bold tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 py-2.5 sm:py-2 text-xs font-bold tracking-wide transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          <Check size={12} /> Pre-Approve
+                          <Check size={13} /> Pre-Approve
                         </button>
                         <button
                           onClick={() => setConfirmAction({ res, type: "Cancel", targetStatus: "Cancelled" })}
                           disabled={updatingKey !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 py-2 text-[10px] font-bold tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 py-2.5 sm:py-2 text-xs font-bold tracking-wide transition-colors cursor-pointer disabled:opacity-50"
                         >
                           {isCardUpdating && updatingStatus === "Cancelled" ? (
-                            <RefreshCw size={12} className="animate-spin" />
+                            <RefreshCw size={13} className="animate-spin" />
                           ) : (
-                            <X size={12} />
+                            <X size={13} />
                           )}
                           {isCardUpdating && updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
                         </button>
@@ -570,19 +632,19 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                         <button
                           onClick={() => onUpdateStatus(res, "Approved")}
                           disabled={updatingKey !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2 text-[10px] font-bold tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 py-2.5 sm:py-2 text-xs font-bold tracking-wide transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          <Check size={12} /> Approve & Paid
+                          <Check size={13} /> Approve & Paid
                         </button>
                         <button
                           onClick={() => setConfirmAction({ res, type: "Cancel", targetStatus: "Cancelled" })}
                           disabled={updatingKey !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 py-2 text-[10px] font-bold tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 py-2.5 sm:py-2 text-xs font-bold tracking-wide transition-colors cursor-pointer disabled:opacity-50"
                         >
                           {isCardUpdating && updatingStatus === "Cancelled" ? (
-                            <RefreshCw size={12} className="animate-spin" />
+                            <RefreshCw size={13} className="animate-spin" />
                           ) : (
-                            <X size={12} />
+                            <X size={13} />
                           )}
                           {isCardUpdating && updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
                         </button>
@@ -594,24 +656,24 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                         <button
                           onClick={() => setConfirmAction({ res, type: "Complete", targetStatus: "Completed" })}
                           disabled={updatingKey !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 py-2 text-[10px] font-bold tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 py-2.5 sm:py-2 text-xs font-bold tracking-wide transition-colors cursor-pointer disabled:opacity-50"
                         >
                           {isCardUpdating && updatingStatus === "Completed" ? (
-                            <RefreshCw size={12} className="animate-spin" />
+                            <RefreshCw size={13} className="animate-spin" />
                           ) : (
-                            <Check size={12} />
+                            <Check size={13} />
                           )}
                           {isCardUpdating && updatingStatus === "Completed" ? "Completing..." : "Complete"}
                         </button>
                         <button
                           onClick={() => setConfirmAction({ res, type: "Cancel", targetStatus: "Cancelled" })}
                           disabled={updatingKey !== null}
-                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 py-2 text-[10px] font-bold tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 py-2.5 sm:py-2 text-xs font-bold tracking-wide transition-colors cursor-pointer disabled:opacity-50"
                         >
                           {isCardUpdating && updatingStatus === "Cancelled" ? (
-                            <RefreshCw size={12} className="animate-spin" />
+                            <RefreshCw size={13} className="animate-spin" />
                           ) : (
-                            <X size={12} />
+                            <X size={13} />
                           )}
                           {isCardUpdating && updatingStatus === "Cancelled" ? "Cancelling..." : "Cancel"}
                         </button>
@@ -621,7 +683,7 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                     {status === "Cancellation Requested" && (
                       <button
                         onClick={() => onOpenDetails(res)}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/20 py-2 text-[10px] font-bold tracking-wider transition-colors cursor-pointer"
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/20 py-2.5 sm:py-2 text-xs font-bold tracking-wide transition-colors cursor-pointer"
                       >
                         Review Cancellation Request
                       </button>
@@ -631,7 +693,7 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                       <button
                         onClick={() => onUpdateStatus(res, "Approved")}
                         disabled={updatingKey !== null}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-neutral-100 dark:bg-background border border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 py-2 text-[10px] font-bold tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-neutral-100 dark:bg-background border border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 py-2.5 sm:py-2 text-xs font-bold tracking-wide transition-colors cursor-pointer disabled:opacity-50"
                       >
                         Restore to Active (Approved)
                       </button>
@@ -641,7 +703,7 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
                       <button
                         onClick={() => onUpdateStatus(res, "Pending")}
                         disabled={updatingKey !== null}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-neutral-100 dark:bg-background border border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 py-2 text-[10px] font-bold tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-neutral-100 dark:bg-background border border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 py-2.5 sm:py-2 text-xs font-bold tracking-wide transition-colors cursor-pointer disabled:opacity-50"
                       >
                         Restore to Pending
                       </button>
@@ -653,72 +715,142 @@ export const ReservationsTab: React.FC<ReservationsTabProps> = ({
           </div>
         ) : (
           /* TABLE VIEW */
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 dark:bg-background-alt border-b border-neutral-200 dark:border-card-border uppercase text-[10px] tracking-wider text-neutral-600 dark:text-neutral-400 font-semibold">
-                <tr>
-                  <th className="py-3.5 px-4">Guest & Event</th>
-                  <th className="py-3.5 px-4">Contact Info</th>
-                  <th className="py-3.5 px-4">Date & Time</th>
-                  <th className="py-3.5 px-4">Guests</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Inspect</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200/70 dark:divide-card-border">
-                {paginatedReservations.map((res, index) => {
-                  const compositeKey = `${res.fullName}-${res.date}-${res.time}`;
-                  const status = (res.id && reservationStatuses[res.id]) || reservationStatuses[compositeKey] || res.status || "Pending";
-                  
-                  return (
-                    <tr
-                      key={res.id || index}
-                      onClick={() => onOpenDetails(res)}
-                      className="hover:bg-neutral-50 dark:hover:bg-neutral-800/20 transition-colors cursor-pointer group"
-                    >
-                      {/* Guest & Event */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-foreground font-serif text-sm">{res.fullName}</div>
-                        <div className="text-[10px] text-brand-green dark:text-emerald-400 font-mono font-bold uppercase">{res.eventType}</div>
-                      </td>
+          <div>
+            {/* 1. DESKTOP & TABLET TABLE */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-neutral-50 dark:bg-background-alt border-b border-neutral-200 dark:border-card-border uppercase text-[10px] tracking-wider text-neutral-600 dark:text-neutral-400 font-semibold">
+                  <tr>
+                    <th className="py-3.5 px-4">Guest & Event</th>
+                    <th className="py-3.5 px-4">Contact Info</th>
+                    <th className="py-3.5 px-4">Date & Time</th>
+                    <th className="py-3.5 px-4">Guests</th>
+                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4 text-right">Inspect</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200/70 dark:divide-card-border">
+                  {paginatedReservations.map((res, index) => {
+                    const compositeKey = `${res.fullName}-${res.date}-${res.time}`;
+                    const status = (res.id && reservationStatuses[res.id]) || reservationStatuses[compositeKey] || res.status || "Pending";
+                    
+                    return (
+                      <tr
+                        key={res.id || index}
+                        onClick={() => onOpenDetails(res)}
+                        className="hover:bg-neutral-50 dark:hover:bg-neutral-800/20 transition-colors cursor-pointer group"
+                      >
+                        {/* Guest & Event */}
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-foreground font-serif text-sm">{res.fullName}</div>
+                          <div className="text-[10px] text-brand-green dark:text-emerald-400 font-mono font-bold uppercase">{res.eventType}</div>
+                        </td>
 
-                      {/* Contact Info */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-medium text-foreground">{res.email}</div>
-                        <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">{res.phone}</div>
-                      </td>
+                        {/* Contact Info */}
+                        <td className="py-3.5 px-4">
+                          <div className="font-medium text-foreground">{res.email}</div>
+                          <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">{res.phone}</div>
+                        </td>
 
-                      {/* Date & Time */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="font-medium text-foreground">{res.date}</div>
-                        <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">{res.time}</div>
-                      </td>
+                        {/* Date & Time */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="font-medium text-foreground">{res.date}</div>
+                          <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">{res.time}</div>
+                        </td>
 
-                      {/* Guest Count */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="font-semibold text-foreground">{res.guestCount} pax</span>
-                      </td>
+                        {/* Guest Count */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className="font-semibold text-foreground">{res.guestCount} pax</span>
+                        </td>
 
-                      {/* Status */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {renderStatusBadge(status)}
-                      </td>
+                        {/* Status */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {renderStatusBadge(status)}
+                        </td>
 
-                      {/* Inspect Button */}
-                      <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => onOpenDetails(res)}
-                          className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 group-hover:text-brand-green group-hover:border-brand-green/30 transition-colors cursor-pointer"
-                          title="Inspect Reservation"
-                        >
-                          <Eye size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        {/* Inspect Button */}
+                        <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => onOpenDetails(res)}
+                            className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 group-hover:text-brand-green group-hover:border-brand-green/30 transition-colors cursor-pointer"
+                            title="Inspect Reservation"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 2. MOBILE DEDICATED CARD LIST (Visible on < sm when Table view is active) */}
+            <div className="block sm:hidden divide-y divide-neutral-200/70 dark:divide-card-border">
+              {paginatedReservations.map((res, index) => {
+                const compositeKey = `${res.fullName}-${res.date}-${res.time}`;
+                const status = (res.id && reservationStatuses[res.id]) || reservationStatuses[compositeKey] || res.status || "Pending";
+                
+                return (
+                  <div
+                    key={res.id || index}
+                    onClick={() => onOpenDetails(res)}
+                    className={`p-3.5 hover:bg-neutral-50 dark:hover:bg-neutral-800/30 active:bg-neutral-100 dark:active:bg-neutral-800/50 transition-colors cursor-pointer flex flex-col gap-2.5 ${getStatusCardBorder(status)}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-[9px] text-brand-green dark:text-emerald-400 font-mono uppercase tracking-wider font-bold">
+                          {res.eventType}
+                        </span>
+                        <h4 className="font-serif font-bold text-foreground text-sm leading-snug">
+                          {res.fullName}
+                        </h4>
+                      </div>
+                      {renderStatusBadge(status)}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-neutral-600 dark:text-neutral-400 bg-neutral-50 dark:bg-background-alt/60 p-2 rounded-xl border border-neutral-200/60 dark:border-card-border/50">
+                      <div className="flex items-center gap-1">
+                        <Calendar size={12} className="text-brand-green" />
+                        <span>{res.date} • <strong className="font-mono text-foreground">{res.time}</strong></span>
+                      </div>
+                      <span className="font-semibold text-foreground font-mono text-[11px]">{res.guestCount} pax</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-neutral-100 dark:border-card-border/40" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5">
+                        {res.phone && (
+                          <a
+                            href={`tel:${res.phone}`}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-100 dark:bg-card text-[11px] text-neutral-700 dark:text-neutral-300 font-medium"
+                          >
+                            <Phone size={11} className="text-brand-green" />
+                            <span>Call</span>
+                          </a>
+                        )}
+                        {res.email && (
+                          <a
+                            href={`mailto:${res.email}`}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-neutral-100 dark:bg-card text-[11px] text-neutral-700 dark:text-neutral-300 font-medium"
+                          >
+                            <Mail size={11} className="text-brand-green" />
+                            <span>Email</span>
+                          </a>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => onOpenDetails(res)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-green/10 text-brand-green border border-brand-green/20 text-xs font-semibold"
+                      >
+                        <Eye size={12} />
+                        <span>View</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

@@ -264,59 +264,70 @@ export const LifestyleTab: React.FC = () => {
   return (
     <div className="space-y-6 pb-24 md:pb-6">
       {/* Header and Controls */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-col md:flex-row md:items-center gap-3 flex-1">
-            <div className="relative flex-1 sm:max-w-xs">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
-              <input
-                type="text"
-                placeholder="Search by user, caption, or location..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-full border border-card-border bg-background/40 py-2.5 pl-10 pr-4 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background/60 focus:ring-1 focus:ring-brand-green/20"
-              />
-            </div>
-
-            {/* Status Filter Tab Pills */}
-            <div className="flex items-center gap-1 bg-background-alt/30 border border-card-border/55 p-1 rounded-full w-fit">
+      <div className="rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-3.5 sm:p-4 shadow-xl">
+        <div className="grid grid-cols-[1fr_auto] sm:flex sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Search Input */}
+          <div className="order-1 col-span-1 relative flex-1 sm:max-w-xs min-w-0">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
+            <input
+              type="text"
+              placeholder="Search user, caption, or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-full border border-card-border bg-background/40 py-2.5 pl-10 pr-9 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background/60 focus:ring-1 focus:ring-brand-green/20"
+            />
+            {searchQuery && (
               <button
-                onClick={() => setStatusFilter("all")}
-                className={`px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer ${statusFilter === "all"
-                    ? "bg-foreground/5 dark:bg-white/5 text-foreground"
-                    : "text-neutral-500 dark:text-zinc-400 hover:text-foreground"
-                  }`}
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground text-xs font-semibold cursor-pointer p-0.5"
+                title="Clear search"
               >
-                All
+                <X size={13} />
               </button>
-              <button
-                onClick={() => setStatusFilter("posted")}
-                className={`px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer ${statusFilter === "posted"
-                    ? "bg-[#2E5A44]/15 text-[#4d9b73] border border-[#2E5A44]/20"
-                    : "text-neutral-500 dark:text-zinc-400 hover:text-[#4d9b73]"
-                  }`}
-              >
-                Posted
-              </button>
-              <button
-                onClick={() => setStatusFilter("unposted")}
-                className={`px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer ${statusFilter === "unposted"
-                    ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                    : "text-neutral-500 dark:text-zinc-400 hover:text-red-400"
-                  }`}
-              >
-                Unposted
-              </button>
-            </div>
+            )}
           </div>
 
-          <div className="flex flex-wrap gap-2.5 items-center">
+          {/* Add Button - In row 1 beside search bar on mobile, right-aligned on desktop */}
+          <div className="order-2 col-span-1 flex items-center sm:order-3 sm:ml-auto shrink-0">
             <button
               onClick={handleOpenAddModal}
-              className="flex items-center justify-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 type-ui text-[9px] text-white transition-all duration-300 font-bold shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25 cursor-pointer min-h-[44px]"
+              className="flex items-center justify-center gap-1.5 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-3.5 sm:px-5 py-2.5 type-ui text-[10px] sm:text-[9px] text-white transition-all duration-300 font-bold shadow-lg shadow-[#2E5A44]/10 hover:shadow-[#234533]/25 cursor-pointer whitespace-nowrap min-h-[40px] sm:min-h-[42px]"
             >
-              <Plus size={13} />
-              Add Lifestyle Post
+              <Plus size={13} className="shrink-0" />
+              <span className="hidden sm:inline">Add Lifestyle Post</span>
+              <span className="sm:hidden">Add Post</span>
+            </button>
+          </div>
+
+          {/* Status Filter Tab Pills - In row 2 on mobile, inline on desktop */}
+          <div className="order-3 col-span-2 sm:order-2 sm:col-span-1 flex items-center gap-1 bg-background-alt/30 border border-card-border/55 p-1 rounded-full w-fit max-w-full overflow-x-auto shrink-0">
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`px-3.5 sm:px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer whitespace-nowrap ${statusFilter === "all"
+                  ? "bg-foreground/5 dark:bg-white/5 text-foreground"
+                  : "text-neutral-500 dark:text-zinc-400 hover:text-foreground"
+                }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setStatusFilter("posted")}
+              className={`px-3.5 sm:px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer whitespace-nowrap ${statusFilter === "posted"
+                  ? "bg-[#2E5A44]/15 text-[#4d9b73] border border-[#2E5A44]/20"
+                  : "text-neutral-500 dark:text-zinc-400 hover:text-[#4d9b73]"
+                }`}
+            >
+              Posted
+            </button>
+            <button
+              onClick={() => setStatusFilter("unposted")}
+              className={`px-3.5 sm:px-4 py-1.5 rounded-full type-ui text-[9px] font-bold transition-all cursor-pointer whitespace-nowrap ${statusFilter === "unposted"
+                  ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                  : "text-neutral-500 dark:text-zinc-400 hover:text-red-400"
+                }`}
+            >
+              Unposted
             </button>
           </div>
         </div>

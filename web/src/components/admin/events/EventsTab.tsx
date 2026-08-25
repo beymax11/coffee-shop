@@ -214,31 +214,47 @@ export const EventsTab: React.FC = () => {
   return (
     <div className="space-y-8 pb-12">
       {/* Control Area */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:max-w-md">
-          <Search
-            size={16}
-            className="absolute left-4.5 top-1/2 -translate-y-1/2 text-neutral-500"
-          />
-          <input
-            type="text"
-            placeholder="Search events, announcements..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-card/50 border border-card-border rounded-xl pl-12 pr-4 py-3 text-xs text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand-green transition-all"
-          />
-        </div>
-        <div className="flex flex-col items-start sm:items-end gap-2">
-          <button
-            onClick={handleOpenAddModal}
-            className="flex items-center gap-2 bg-brand-green hover:bg-brand-green-dark text-white px-4 py-2.5 rounded-xl type-ui text-[11px] font-semibold tracking-wider uppercase transition-all duration-300 shadow-lg shadow-brand-green/20 hover:scale-[1.02] cursor-pointer"
-          >
-            <Plus size={14} />
-            Add Announcement
-          </button>
-          <div className="text-[11px] text-neutral-500 font-sans">
-            Showing {filteredEvents.length} of {events.length} announcements
+      <div className="flex flex-col gap-2.5 sm:gap-4">
+        <div className="flex items-center justify-between gap-2.5 sm:gap-4">
+          <div className="relative flex-1 sm:max-w-md min-w-0">
+            <Search
+              size={16}
+              className="absolute left-3.5 sm:left-4.5 top-1/2 -translate-y-1/2 text-neutral-500"
+            />
+            <input
+              type="text"
+              placeholder="Search events, announcements..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-card/50 border border-card-border rounded-xl pl-10 sm:pl-12 pr-9 py-2.5 sm:py-3 text-xs text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand-green transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground text-xs font-semibold cursor-pointer p-0.5"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
+          <div className="flex flex-col items-end shrink-0 sm:gap-2">
+            <button
+              onClick={handleOpenAddModal}
+              className="flex items-center justify-center gap-1.5 sm:gap-2 bg-brand-green hover:bg-brand-green-dark text-white px-3.5 sm:px-4 py-2.5 rounded-xl type-ui text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase transition-all duration-300 shadow-lg shadow-brand-green/20 hover:scale-[1.02] cursor-pointer whitespace-nowrap min-h-[38px] sm:min-h-[42px]"
+            >
+              <Plus size={14} className="shrink-0" />
+              <span className="hidden sm:inline">Add Announcement</span>
+              <span className="sm:hidden">Add Event</span>
+            </button>
+            <div className="hidden sm:block text-[11px] text-neutral-500 font-sans">
+              Showing {filteredEvents.length} of {events.length} announcements
+            </div>
+          </div>
+        </div>
+        <div className="sm:hidden text-[10px] text-neutral-500 font-sans px-1">
+          Showing {filteredEvents.length} of {events.length} announcements
         </div>
       </div>
 

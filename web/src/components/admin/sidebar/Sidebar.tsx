@@ -9,6 +9,7 @@ import {
   Users,
   LogOut,
   ChevronLeft,
+  ChevronRight,
   Camera,
   Megaphone,
   Wrench,
@@ -18,6 +19,7 @@ import {
 import { motion } from "framer-motion";
 import { supabase } from "@/utils/supabase";
 import { AdminHelpModal } from "./AdminHelpModal";
+import { MobileDrawer } from "./MobileDrawer";
 
 interface SidebarTabItem {
   id: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings" | "audit";
@@ -31,6 +33,10 @@ interface SidebarProps {
   setActiveTab: (tab: "dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings" | "audit") => void;
   onLogout: () => void;
   currentUserRole?: "admin" | "barista";
+  isMobileDrawerOpen?: boolean;
+  setIsMobileDrawerOpen?: (open: boolean) => void;
+  theme?: "light" | "dark";
+  onThemeChange?: (theme: "light" | "dark") => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -38,6 +44,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveTab,
   onLogout,
   currentUserRole = "admin",
+  isMobileDrawerOpen = false,
+  setIsMobileDrawerOpen,
+  theme = "dark",
+  onThemeChange,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -380,51 +390,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </motion.aside>
 
-      {/* Floating Bottom Nav for Mobile Screens */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-md border-t border-card-border/80 flex items-center justify-around py-3 px-2 shadow-2xl" style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom))" }}>
-        {(
-          [
-            { id: "dashboard", label: "Overview", icon: LayoutDashboard },
-            { id: "menu", label: "Menu", icon: Coffee },
-            { id: "reservations", label: "Bookings", icon: Calendar },
-            { id: "loyalty", label: "Loyalty", icon: CreditCard },
-            { id: "users", label: "Users", icon: Users },
-          ] as SidebarTabItem[]
-        ).filter(tab => {
-          if (currentUserRole === "barista") {
-            return tab.id !== "menu" && tab.id !== "users";
-          }
-          return true;
-        }).map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-1 cursor-pointer transition-colors duration-300 relative ${isActive ? "text-brand-green" : "text-neutral-500 dark:text-zinc-400"}`}
-            >
-              <div className="relative w-fit h-fit mx-auto">
-                <Icon size={18} className={isActive ? "scale-110" : ""} />
-                {tab.badge && tab.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-2 font-mono text-[7.5px] bg-brand-green text-white font-bold min-w-[14px] h-3.5 px-0.5 rounded-full flex items-center justify-center scale-90 border border-card shadow-sm whitespace-nowrap">
-                    {tab.badge}
-                  </span>
-                )}
-              </div>
-              <span className="text-[8px] font-medium tracking-wide uppercase">{tab.label}</span>
-            </button>
-          );
-        })}
-        {/* Help Quick Link for Mobile */}
-        <button
-          onClick={() => setShowHelpModal(true)}
-          className="flex flex-col items-center gap-1 cursor-pointer text-neutral-500 dark:text-zinc-400"
-        >
-          <HelpCircle size={18} />
-          <span className="text-[8px] font-medium tracking-wide uppercase">Help</span>
-        </button>
-      </div>
+      {/* Mobile Navigation Drawer for Hamburger Menu */}
+      <MobileDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen?.(false)}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        currentUserRole={currentUserRole}
+        adminInfo={adminInfo}
+        onLogout={onLogout}
+        onOpenHelp={() => setShowHelpModal(true)}
+        theme={theme}
+        onThemeChange={onThemeChange}
+      />
 
       {/* Admin Help Modal Component */}
       <AdminHelpModal

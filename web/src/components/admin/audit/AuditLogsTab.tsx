@@ -60,6 +60,7 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
   const [selectedTimeRange, setSelectedTimeRange] = useState<string>("All");
   const [selectedActorRole, setSelectedActorRole] = useState<string>("All");
   const [viewMode, setViewMode] = useState<"table" | "timeline">("table");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -136,13 +137,16 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
     toast.info("All audit log filters have been reset.");
   };
 
-  const hasActiveFilters = Boolean(
-    search.trim() ||
+  const hasDropdownFiltersActive = Boolean(
     selectedCategory !== "All" ||
     selectedAction !== "All" ||
     selectedSeverity !== "All" ||
     selectedTimeRange !== "All" ||
     selectedActorRole !== "All"
+  );
+
+  const hasActiveFilters = Boolean(
+    search.trim() || hasDropdownFiltersActive
   );
 
   // Filtered logs computation
@@ -374,31 +378,50 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
       </div>
 
       {/* 2. SEARCH, FILTERS & ACTION TOOLBAR */}
-      <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md p-4 space-y-4 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md px-3.5 pt-3 pb-2.5 sm:p-4 space-y-2.5 sm:space-y-3 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 flex-1">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[120px]">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search by action, target, actor email, or details..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-14 sm:pr-4 py-2 sm:py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground text-xs font-semibold cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
 
-          {/* Search Input */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search by action, target, actor email, or details..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-xs text-foreground placeholder:text-neutral-500 focus:outline-none focus:border-brand-green transition-all"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground text-xs"
-              >
-                Clear
-              </button>
-            )}
+            {/* Advance Filter Toggle Button (Mobile Only - Hidden on Tablet & Desktop) */}
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters((prev) => !prev)}
+              aria-label="Toggle advance filters"
+              title="Toggle Advance Filters"
+              className={`sm:hidden flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer shrink-0 ${
+                showMobileFilters || hasDropdownFiltersActive
+                  ? "bg-brand-green/10 border-brand-green/40 text-brand-green dark:bg-brand-green/20"
+                  : "bg-white dark:bg-background-alt border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/30"
+              }`}
+            >
+              <Filter size={15} className={hasDropdownFiltersActive ? "text-brand-green" : ""} />
+              {hasDropdownFiltersActive && (
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-green" />
+              )}
+            </button>
           </div>
 
           {/* Action Buttons: View Toggle, Refresh, Exports, Clear */}
-          <div className="flex items-center gap-2 flex-wrap self-end lg:self-center">
+          <div className="flex items-center justify-center gap-2 flex-wrap self-center w-full lg:w-auto">
             {/* View Mode Toggle */}
             <div className="flex items-center bg-neutral-100 dark:bg-background-alt border border-neutral-200 dark:border-card-border rounded-xl p-1">
               <div className="relative group">
@@ -488,7 +511,11 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
         </div>
 
         {/* Filter Dropdowns Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2 border-t border-neutral-200/60 dark:border-card-border/60">
+        <div
+          className={`${
+            showMobileFilters ? "grid" : "hidden sm:grid"
+          } grid-cols-2 sm:grid-cols-5 gap-3 pt-2 border-t border-neutral-200/60 dark:border-card-border/60 animate-in fade-in slide-in-from-top-1 duration-200`}
+        >
 
           {/* Category Filter */}
           <div>
@@ -664,89 +691,158 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
           </div>
         ) : viewMode === "table" ? (
           /* TABLE VIEW */
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-neutral-50 dark:bg-background-alt border-b border-neutral-200 dark:border-card-border uppercase text-[10px] tracking-wider text-neutral-600 dark:text-neutral-400 font-semibold">
-                <tr>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Action</th>
-                  <th className="py-3.5 px-4">Target & Summary</th>
-                  <th className="py-3.5 px-4">Actor</th>
-                  <th className="py-3.5 px-4">Time</th>
-                  <th className="py-3.5 px-4">Severity</th>
-                  <th className="py-3.5 px-4 text-right">Inspect</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200/70 dark:divide-card-border">
-                {paginatedLogs.map((log) => (
-                  <tr
-                    key={log.id}
-                    onClick={() => setInspectLog(log)}
-                    className="hover:bg-neutral-50 dark:hover:bg-neutral-800/20 transition-colors cursor-pointer group"
-                  >
-                    {/* Category Icon & Label */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-background border border-neutral-200 dark:border-card-border">
-                          {getCategoryIcon(log.category)}
-                        </div>
-                        <span className="font-semibold text-foreground capitalize">{log.category}</span>
+          <>
+            {/* MOBILE CARD VIEW (Visible on mobile < sm) */}
+            <div className="sm:hidden divide-y divide-neutral-200/60 dark:divide-card-border/60">
+              {paginatedLogs.map((log) => (
+                <div
+                  key={log.id}
+                  onClick={() => setInspectLog(log)}
+                  className="p-3.5 space-y-2.5 active:bg-neutral-50 dark:active:bg-neutral-800/20 transition-colors cursor-pointer"
+                >
+                  {/* Top Row: Category, Severity, and Time */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-background border border-neutral-200 dark:border-card-border shrink-0">
+                        {getCategoryIcon(log.category)}
                       </div>
-                    </td>
-
-                    {/* Action Badge */}
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20">
-                        {log.action}
+                      <span className="font-semibold text-foreground capitalize text-xs truncate">
+                        {log.category}
                       </span>
-                    </td>
+                    </div>
 
-                    {/* Target & Details */}
-                    <td className="py-3.5 px-4 max-w-xs md:max-w-md">
-                      <div className="font-medium text-foreground truncate">{log.target}</div>
-                      <div className="text-[11px] text-neutral-600 dark:text-neutral-400 truncate">{log.details}</div>
-                    </td>
-
-                    {/* Actor Details */}
-                    <td className="py-3.5 px-4">
-                      <div className="font-medium text-foreground">{log.actor.name}</div>
-                      <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">{log.actor.email}</div>
-                    </td>
-
-                    {/* Timestamp */}
-                    <td className="py-3.5 px-4 whitespace-nowrap text-neutral-500 dark:text-neutral-400 font-mono text-[11px]">
-                      {formatTimeAgo(log.timestamp)}
-                    </td>
-
-                    {/* Severity */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {renderSeverityBadge(log.severity)}
-                    </td>
+                      <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">
+                        {formatTimeAgo(log.timestamp)}
+                      </span>
+                    </div>
+                  </div>
 
-                    {/* Inspect Button */}
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setInspectLog(log);
-                        }}
-                        className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 group-hover:text-brand-green group-hover:border-brand-green/30 transition-colors cursor-pointer"
-                        title="Inspect Log Entry"
-                      >
-                        <Eye size={14} />
-                      </button>
-                    </td>
+                  {/* Middle Row: Action Badge + Target */}
+                  <div className="flex items-start gap-2">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20 shrink-0">
+                      {log.action}
+                    </span>
+                    <span className="font-medium text-foreground text-xs leading-snug line-clamp-1">
+                      {log.target}
+                    </span>
+                  </div>
+
+                  {/* Details Snippet */}
+                  {log.details && (
+                    <p className="text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-2 leading-relaxed bg-neutral-50/80 dark:bg-background-alt/50 p-2 rounded-lg border border-neutral-200/40 dark:border-card-border/40">
+                      {log.details}
+                    </p>
+                  )}
+
+                  {/* Bottom Row: Actor & Inspect Button */}
+                  <div className="flex items-center justify-between gap-2 pt-1 text-[11px] text-neutral-500 dark:text-neutral-400">
+                    <div className="min-w-0 truncate">
+                      <span className="text-foreground font-medium">{log.actor.name}</span>
+                      <span className="text-neutral-400 dark:text-neutral-500 font-mono text-[10px] ml-1">({log.actor.role})</span>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInspectLog(log);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-neutral-100 dark:bg-background-alt hover:bg-brand-green/10 dark:hover:bg-brand-green/20 text-neutral-600 dark:text-neutral-300 hover:text-brand-green border border-neutral-200 dark:border-card-border text-[10px] font-semibold transition-colors cursor-pointer shrink-0"
+                    >
+                      <Eye size={12} />
+                      <span>Inspect</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP TABLE VIEW (Hidden on mobile < sm, visible on sm+) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-neutral-50 dark:bg-background-alt border-b border-neutral-200 dark:border-card-border uppercase text-[10px] tracking-wider text-neutral-600 dark:text-neutral-400 font-semibold">
+                  <tr>
+                    <th className="py-3.5 px-4">Category</th>
+                    <th className="py-3.5 px-4">Action</th>
+                    <th className="py-3.5 px-4">Target & Summary</th>
+                    <th className="py-3.5 px-4">Actor</th>
+                    <th className="py-3.5 px-4">Time</th>
+                    <th className="py-3.5 px-4">Severity</th>
+                    <th className="py-3.5 px-4 text-right">Inspect</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-neutral-200/70 dark:divide-card-border">
+                  {paginatedLogs.map((log) => (
+                    <tr
+                      key={log.id}
+                      onClick={() => setInspectLog(log)}
+                      className="hover:bg-neutral-50 dark:hover:bg-neutral-800/20 transition-colors cursor-pointer group"
+                    >
+                      {/* Category Icon & Label */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-background border border-neutral-200 dark:border-card-border">
+                            {getCategoryIcon(log.category)}
+                          </div>
+                          <span className="font-semibold text-foreground capitalize">{log.category}</span>
+                        </div>
+                      </td>
+
+                      {/* Action Badge */}
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-green/10 text-brand-green border border-brand-green/20">
+                          {log.action}
+                        </span>
+                      </td>
+
+                      {/* Target & Details */}
+                      <td className="py-3.5 px-4 max-w-xs md:max-w-md">
+                        <div className="font-medium text-foreground truncate">{log.target}</div>
+                        <div className="text-[11px] text-neutral-600 dark:text-neutral-400 truncate">{log.details}</div>
+                      </td>
+
+                      {/* Actor Details */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-medium text-foreground">{log.actor.name}</div>
+                        <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">{log.actor.email}</div>
+                      </td>
+
+                      {/* Timestamp */}
+                      <td className="py-3.5 px-4 whitespace-nowrap text-neutral-500 dark:text-neutral-400 font-mono text-[11px]">
+                        {formatTimeAgo(log.timestamp)}
+                      </td>
+
+                      {/* Severity */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        {renderSeverityBadge(log.severity)}
+                      </td>
+
+                      {/* Inspect Button */}
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInspectLog(log);
+                          }}
+                          className="p-1.5 rounded-lg bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border text-neutral-500 dark:text-neutral-400 group-hover:text-brand-green group-hover:border-brand-green/30 transition-colors cursor-pointer"
+                          title="Inspect Log Entry"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           /* TIMELINE VIEW */
-          <div className="p-6 space-y-6">
-            <div className="relative border-l-2 border-brand-green/30 ml-4 space-y-6">
+          <div className="p-4 sm:p-6 space-y-6">
+            <div className="relative border-l-2 border-brand-green/30 ml-2 sm:ml-4 space-y-4 sm:space-y-6">
               {paginatedLogs.map((log) => (
-                <div key={log.id} className="relative pl-6 group">
+                <div key={log.id} className="relative pl-5 sm:pl-6 group">
                   {/* Timeline Dot */}
                   <div className="absolute -left-[9px] top-1.5 h-4 w-4 rounded-full border-2 border-brand-green bg-white dark:bg-background flex items-center justify-center">
                     <div className="h-1.5 w-1.5 rounded-full bg-brand-green" />
@@ -755,7 +851,7 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
                   {/* Card Content */}
                   <div
                     onClick={() => setInspectLog(log)}
-                    className="p-4 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border hover:border-brand-green/40 transition-all cursor-pointer space-y-2 shadow-sm"
+                    className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-background-alt border border-neutral-200 dark:border-card-border hover:border-brand-green/40 transition-all cursor-pointer space-y-2 shadow-sm"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -788,21 +884,23 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
 
         {/* 4. PAGINATION FOOTER */}
         {filteredLogs.length > 0 && (
-          <div className="p-4 border-t border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-600 dark:text-neutral-400">
-            <div className="flex items-center gap-2">
-              <span>Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length} entries</span>
+          <div className="p-3.5 sm:p-4 border-t border-neutral-200 dark:border-card-border bg-white dark:bg-background-alt flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-neutral-600 dark:text-neutral-400">
+            <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+              <span className="text-[11px] sm:text-xs">
+                Showing {((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length}
+              </span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
                 className="px-2 py-1 rounded-lg bg-white dark:bg-card border border-neutral-200 dark:border-card-border text-xs text-foreground focus:outline-none cursor-pointer"
               >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
+                <option value={10}>10 / page</option>
+                <option value={25}>25 / page</option>
+                <option value={50}>50 / page</option>
               </select>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-center gap-1 w-full sm:w-auto">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -810,7 +908,7 @@ export const AuditLogsTab: React.FC<AuditLogsTabProps> = ({
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="px-3 py-1 font-mono text-foreground font-semibold">
+              <span className="px-3 py-1 font-mono text-foreground font-semibold text-xs">
                 Page {currentPage} of {totalPages}
               </span>
               <button

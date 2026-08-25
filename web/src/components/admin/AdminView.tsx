@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Sun, Moon, Wrench, X, AlertTriangle, Trash2 } from "lucide-react";
+import { RefreshCw, Sun, Moon, Wrench, X, AlertTriangle, Trash2, Menu } from "lucide-react";
 import { db, LoyaltyMember, UserProfile } from "@/utils/db";
 import { MenuItem, Reservation, ReservationType } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -55,6 +55,7 @@ export const AdminView: React.FC = () => {
 
 
   // Modal / Drawer States
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [showAddMenuModal, setShowAddMenuModal] = useState(false);
   const [showAddLoyaltyModal, setShowAddLoyaltyModal] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
@@ -1390,46 +1391,62 @@ export const AdminView: React.FC = () => {
         setActiveTab={setActiveTab}
         onLogout={handleLogout}
         currentUserRole={currentUserRole}
+        isMobileDrawerOpen={isMobileNavOpen}
+        setIsMobileDrawerOpen={setIsMobileNavOpen}
+        theme={theme}
+        onThemeChange={changeTheme}
       />
 
       {/* Main Workspace */}
-      <main className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-6 md:p-8 relative pb-24 md:pb-8">
+      <main className="flex-1 flex flex-col overflow-y-auto p-3.5 sm:p-6 md:p-8 relative pb-6 sm:pb-8">
 
         {/* TOP BAR / Header */}
-        <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-8 pb-3 md:pb-4 border-b border-card-border relative">
-          <div>
-            <h1 className="type-h2 text-foreground font-serif tracking-tight text-lg sm:text-xl md:text-2xl">
-              {activeTab === "dashboard" && "DASHBOARD OVERVIEW"}
-              {activeTab === "menu" && "MENU OFFERINGS"}
-              {activeTab === "reservations" && "EXPERIENCE BOOKINGS"}
-              {activeTab === "loyalty" && "DIGITAL LOYALTY DIRECTORY"}
-              {activeTab === "users" && "USER ACCOUNTS & ROLES"}
-              {activeTab === "lifestyle" && "LIFESTYLE SELECTIONS"}
-              {activeTab === "events" && "EVENTS & ANNOUNCEMENTS"}
-              {activeTab === "settings" && "CONSOLE SETTINGS"}
-              {activeTab === "audit" && "SYSTEM AUDIT LOGS"}
-            </h1>
-            <p className="type-caption text-neutral-500 mt-1 hidden sm:block">
-              {activeTab === "users"
-                ? "Adjust account authorization roles, inspect client profiles, and manage system access."
-                : activeTab === "lifestyle"
-                  ? "Curate and manage social media post selections featured on the lifestyle bento grid."
-                  : activeTab === "events"
-                    ? "Manage promotional events, holiday schedules, and seasonal menu announcements."
-                    : activeTab === "settings"
-                      ? "Configure your personal dashboard details and set console system preferences."
-                      : activeTab === "audit"
-                        ? "Inspect administrative security activity, operator actions, and historical audit trails."
-                        : "Manage menu inventory, client reservations, and card records."
-              }
-            </p>
+        <header className="flex flex-row justify-between items-center gap-2 sm:gap-4 mb-3 sm:mb-4 md:mb-8 pb-2.5 sm:pb-3 md:pb-4 border-b border-card-border relative">
+          <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1">
+            {/* Hamburger Button for Mobile View (Clean icon without box container) */}
+            <button
+              type="button"
+              onClick={() => setIsMobileNavOpen(true)}
+              aria-label="Open navigation drawer"
+              title="Open Navigation Menu"
+              className="md:hidden p-1.5 -ml-1 text-foreground hover:text-brand-green active:scale-90 transition-all duration-150 cursor-pointer shrink-0 flex items-center justify-center"
+            >
+              <Menu size={22} className="text-foreground" />
+            </button>
+
+            <div className="min-w-0 flex-1">
+              <h1 className="type-h2 text-foreground font-serif tracking-tight text-base sm:text-xl md:text-2xl truncate">
+                {activeTab === "dashboard" && "DASHBOARD OVERVIEW"}
+                {activeTab === "menu" && "MENU OFFERINGS"}
+                {activeTab === "reservations" && "EXPERIENCE BOOKINGS"}
+                {activeTab === "loyalty" && "DIGITAL LOYALTY DIRECTORY"}
+                {activeTab === "users" && "USER ACCOUNTS & ROLES"}
+                {activeTab === "lifestyle" && "LIFESTYLE SELECTIONS"}
+                {activeTab === "events" && "EVENTS & ANNOUNCEMENTS"}
+                {activeTab === "settings" && "CONSOLE SETTINGS"}
+                {activeTab === "audit" && "SYSTEM AUDIT LOGS"}
+              </h1>
+              <p className="type-caption text-neutral-500 mt-0.5 sm:mt-1 hidden sm:block">
+                {activeTab === "users"
+                  ? "Adjust account authorization roles, inspect client profiles, and manage system access."
+                  : activeTab === "lifestyle"
+                    ? "Curate and manage social media post selections featured on the lifestyle bento grid."
+                    : activeTab === "events"
+                      ? "Manage promotional events, holiday schedules, and seasonal menu announcements."
+                      : activeTab === "settings"
+                        ? "Configure your personal dashboard details and set console system preferences."
+                        : activeTab === "audit"
+                          ? "Inspect administrative security activity, operator actions, and historical audit trails."
+                          : "Manage menu inventory, client reservations, and card records."
+                }
+              </p>
+            </div>
           </div>
 
           {/* Top Right Actions: Theme Toggle and Notifications */}
-          <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-start md:self-center">
-
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Theme Toggle */}
-            <div className="flex items-center gap-1 bg-foreground/[0.03] border border-card-border rounded-full p-1 shadow-sm">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-foreground/[0.03] border border-card-border rounded-full p-0.5 sm:p-1 shadow-sm">
               <button
                 onClick={() => changeTheme("light")}
                 title="Light Mode"

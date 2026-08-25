@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import {
   Search,
+  Filter,
   Shield,
   Coffee,
   User,
@@ -57,7 +58,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "barista" | "customer">("all");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "alphabetical">("newest");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Modal States
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -87,12 +88,9 @@ export const UsersTab: React.FC<UsersTabProps> = ({
       return matchesSearch && matchesRole;
     })
     .sort((a, b) => {
-      if (sortBy === "alphabetical") {
-        return a.name.localeCompare(b.name);
-      }
       const dateA = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
       const dateB = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
-      return sortBy === "newest" ? dateB - dateA : dateA - dateB;
+      return dateB - dateA;
     });
 
   const getInitials = (name: string) => {
@@ -182,65 +180,70 @@ export const UsersTab: React.FC<UsersTabProps> = ({
       </motion.div>
 
       {/* FILTER & CONTROLS DECK */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl">
+      <div className="rounded-2xl border border-card-border bg-card/50 backdrop-blur-sm p-4 shadow-xl space-y-3 sm:space-y-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Search Box */}
-          <div className="relative flex-1 sm:max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
-            <input
-              type="text"
-              placeholder="Search by name, email, username..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-full border border-card-border bg-background/40 py-2.5 pl-10 pr-4 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20"
-            />
-          </div>
+          {/* Search Box & Mobile Filter Toggle */}
+          <div className="flex items-center gap-2 flex-1 sm:max-w-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-zinc-500" size={14} />
+              <input
+                type="text"
+                placeholder="Search by name, email, username..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-full border border-card-border bg-background/40 py-2.5 pl-10 pr-4 type-caption text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20"
+              />
+            </div>
 
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="type-ui text-[9px] text-neutral-500 dark:text-zinc-400 font-bold uppercase tracking-wider">
-              Sort by:
-            </span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="rounded-full border border-card-border bg-background/40 px-3.5 py-1.5 type-ui text-[9px] text-foreground dark:text-zinc-300 outline-none cursor-pointer transition-all duration-300 focus:border-brand-green/60 focus:bg-background"
+            {/* Mobile Filter Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters((prev) => !prev)}
+              aria-label="Toggle role filters"
+              title="Toggle Role Filters"
+              className={`sm:hidden flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-full border text-xs font-semibold transition-all duration-200 cursor-pointer shrink-0 ${
+                showMobileFilters || roleFilter !== "all"
+                  ? "bg-brand-green/10 border-brand-green/40 text-brand-green dark:bg-brand-green/20"
+                  : "bg-background/40 border-card-border text-neutral-600 dark:text-neutral-400 hover:text-foreground"
+              }`}
             >
-              <option value="newest" className="bg-card text-foreground">Newest Accounts</option>
-              <option value="oldest" className="bg-card text-foreground">Oldest Accounts</option>
-              <option value="alphabetical" className="bg-card text-foreground">Name (A-Z)</option>
-            </select>
+              <Filter size={14} className={roleFilter !== "all" ? "text-brand-green" : ""} />
+              {roleFilter !== "all" && (
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-green" />
+              )}
+            </button>
           </div>
-        </div>
 
-        {/* Filter buttons */}
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-card-border/40 pt-3">
-          <span className="type-ui text-[9px] text-neutral-500 dark:text-zinc-400 font-bold uppercase tracking-wider mr-2">
-            Filter by role:
-          </span>
-          {(
-            [
-              { value: "all", label: "All Accounts" },
-              { value: "admin", label: "Administrators" },
-              { value: "barista", label: "Baristas/Staff" },
-              { value: "customer", label: "Customers" },
-            ] as const
-          ).map((opt) => {
-            const isActive = roleFilter === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => setRoleFilter(opt.value)}
-                className={`rounded-full px-3.5 py-1.5 type-ui text-[9px] tracking-wider border cursor-pointer transition-all duration-300 ${
-                  isActive
-                    ? "bg-brand-green border-brand-green text-white font-semibold shadow-[0_2px_10px_rgba(46,90,68,0.2)]"
-                    : "bg-foreground/[0.02] border-card-border/50 text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+          {/* Filter by role (Always visible on sm+, toggleable on mobile) */}
+          <div
+            className={`${
+              showMobileFilters ? "flex" : "hidden sm:flex"
+            } flex-wrap items-center gap-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-card-border/40 overflow-x-auto`}
+          >
+            {(
+              [
+                { value: "all", label: "All Accounts" },
+                { value: "admin", label: "Administrators" },
+                { value: "barista", label: "Baristas/Staff" },
+                { value: "customer", label: "Customers" },
+              ] as const
+            ).map((opt) => {
+              const isActive = roleFilter === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setRoleFilter(opt.value)}
+                  className={`rounded-full px-3.5 py-1.5 type-ui text-[9px] tracking-wider border cursor-pointer transition-all duration-300 shrink-0 ${
+                    isActive
+                      ? "bg-brand-green border-brand-green text-white font-semibold shadow-[0_2px_10px_rgba(46,90,68,0.2)]"
+                      : "bg-foreground/[0.02] border-card-border/50 text-neutral-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white dark:hover:border-white/20"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

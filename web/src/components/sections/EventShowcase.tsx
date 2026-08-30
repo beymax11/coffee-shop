@@ -73,7 +73,7 @@ export const EventShowcase: React.FC = () => {
         
         {/* Section Header */}
         <div className="text-center max-w-xl mx-auto mb-8 md:mb-12">
-          <span className="type-eyebrow">Bespoke Bookings</span>
+          <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Bespoke Bookings</span>
           <h2 className="type-h2 text-foreground mt-2">
             Curated Coffee Experiences
           </h2>

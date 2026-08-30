@@ -357,7 +357,7 @@ export const LifestyleGrid: React.FC = () => {
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center max-w-xl mx-auto mb-8 md:mb-12">
-          <span className="type-eyebrow">Social Curation</span>
+          <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Social Curation</span>
           <h2 className="type-h2 text-foreground mt-2 font-serif">
             Antonioni Grounds Lifestyle
           </h2>

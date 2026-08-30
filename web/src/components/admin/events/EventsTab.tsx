@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
   Plus,
@@ -9,6 +9,10 @@ import {
   X,
   ExternalLink,
   AlertTriangle,
+  UploadCloud,
+  Image as ImageIcon,
+  Loader2,
+  Link2,
 } from "lucide-react";
 import { EventItem } from "@/types";
 import { db } from "@/utils/db";
@@ -31,7 +35,6 @@ const cardVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
 };
 
-
 export const EventsTab: React.FC = () => {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,6 +43,12 @@ export const EventsTab: React.FC = () => {
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Image upload & drag state
+  const [imageInputMode, setImageInputMode] = useState<"upload" | "url">("upload");
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Form state
   const [formState, setFormState] = useState<{
     category: string;
@@ -47,6 +56,7 @@ export const EventsTab: React.FC = () => {
     description: string;
     highlight: string;
     image: string;
+    imageFile?: File | null;
     link: string;
     linkLabel: string;
   }>({
@@ -55,6 +65,7 @@ export const EventsTab: React.FC = () => {
     description: "",
     highlight: "",
     image: "",
+    imageFile: null,
     link: "",
     linkLabel: "",
   });
@@ -114,12 +125,15 @@ export const EventsTab: React.FC = () => {
 
   const handleOpenAddModal = () => {
     setEditingEvent(null);
+    setImageInputMode("upload");
+    setIsDragActive(false);
     setFormState({
       category: "",
       title: "",
       description: "",
       highlight: "",
       image: "",
+      imageFile: null,
       link: "",
       linkLabel: "",
     });
@@ -128,12 +142,21 @@ export const EventsTab: React.FC = () => {
 
   const handleOpenEditModal = (event: EventItem) => {
     setEditingEvent(event);
+    setImageInputMode(
+      event.image.startsWith("data:")
+        ? "upload"
+        : event.image.startsWith("http")
+        ? "url"
+        : "upload"
+    );
+    setIsDragActive(false);
     setFormState({
       category: event.category,
       title: event.title,
       description: event.description,
       highlight: event.highlight,
       image: event.image,
+      imageFile: null,
       link: event.link,
       linkLabel: event.linkLabel,
     });
@@ -141,34 +164,127 @@ export const EventsTab: React.FC = () => {
   };
 
   const handleCloseModal = () => {
+    if (isSubmitting) return;
     setIsModalOpen(false);
     setEditingEvent(null);
+    setIsDragActive(false);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragActive(true);
+    } else if (e.type === "dragleave") {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file (JPG, PNG, WEBP, etc.).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setFormState((prev) => ({
+          ...prev,
+          image: e.target!.result as string,
+          imageFile: file,
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
-      !formState.category ||
-      !formState.title ||
-      !formState.description ||
-      !formState.image
+      !formState.category.trim() ||
+      !formState.title.trim() ||
+      !formState.description.trim() ||
+      !formState.image.trim()
     ) {
-      toast.error("Please fill in all required fields.");
+      toast.error("Please fill in all required fields (including event image).");
       return;
     }
 
-    const payload: EventItem = {
-      id: editingEvent ? editingEvent.id : crypto.randomUUID(),
-      category: formState.category,
-      title: formState.title,
-      description: formState.description,
-      highlight: formState.highlight || "Limited Time",
-      image: formState.image,
-      link: formState.link || "/menu",
-      linkLabel: formState.linkLabel || "Explore More",
-    };
-
+    setIsSubmitting(true);
     try {
+      let finalImageUrl = formState.image.trim();
+
+      if (formState.imageFile && supabase) {
+        try {
+          const file = formState.imageFile;
+          const fileExt = file.name.split(".").pop() || "jpg";
+          const fileName = `event-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("menu-images")
+            .upload(fileName, file, { cacheControl: "3600", upsert: true });
+
+          if (uploadError) {
+            console.warn("Supabase Storage upload warning for event:", uploadError);
+          } else if (uploadData) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("menu-images")
+              .getPublicUrl(fileName);
+            if (publicUrl) {
+              finalImageUrl = publicUrl;
+            }
+          }
+        } catch (uploadErr) {
+          console.error("Storage upload exception for event:", uploadErr);
+        }
+      }
+
+      const payload: EventItem = {
+        id: editingEvent ? editingEvent.id : crypto.randomUUID(),
+        category: formState.category.trim(),
+        title: formState.title.trim(),
+        description: formState.description.trim(),
+        highlight: formState.highlight.trim() || "Limited Time",
+        image: finalImageUrl,
+        link: formState.link.trim() || "/menu",
+        linkLabel: formState.linkLabel.trim() || "Explore More",
+      };
+
+      if (supabase) {
+        const { error } = await supabase
+          .from("events_updates")
+          .upsert({
+            id: payload.id,
+            category: payload.category,
+            title: payload.title,
+            description: payload.description,
+            highlight: payload.highlight,
+            image: payload.image,
+            link: payload.link,
+            link_label: payload.linkLabel,
+            icon: payload.icon || "Sparkles",
+          });
+        if (error) {
+          console.error("Supabase upsert error for event:", error);
+        }
+      }
+
       db.saveEvent(payload);
       toast.success(
         editingEvent ? "Event updated successfully" : "Event created successfully",
@@ -181,6 +297,8 @@ export const EventsTab: React.FC = () => {
     } catch (error) {
       console.error("Error saving event:", error);
       toast.error("An error occurred while saving the event.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -358,14 +476,15 @@ export const EventsTab: React.FC = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.4, ease: EASE }}
-              className="w-full max-w-xl rounded-2xl border border-card-border bg-card p-6 md:p-8 shadow-2xl relative z-10 overflow-hidden"
+              className="w-full max-w-xl rounded-2xl border border-card-border bg-card p-6 md:p-8 shadow-2xl relative z-10 overflow-hidden max-h-[90vh] flex flex-col"
             >
               {/* Decorative Accent Glow */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-brand-green/5 blur-[20px] rounded-full pointer-events-none" />
 
               <button
                 onClick={handleCloseModal}
-                className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors p-1.5 rounded-full cursor-pointer"
+                disabled={isSubmitting}
+                className="absolute top-5 right-5 text-neutral-500 hover:text-foreground hover:bg-foreground/5 dark:text-zinc-500 dark:hover:text-white dark:hover:bg-white/5 transition-colors p-1.5 rounded-full cursor-pointer disabled:opacity-40"
               >
                 <X size={16} />
               </button>
@@ -374,11 +493,11 @@ export const EventsTab: React.FC = () => {
                 {editingEvent ? "Edit Announcement" : "Create Announcement"}
               </h3>
 
-              <form onSubmit={handleFormSubmit} className="space-y-5">
+              <form onSubmit={handleFormSubmit} className="space-y-4 overflow-y-auto max-h-[72vh] pr-1">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Title */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
+                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">
                       Title <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -395,7 +514,7 @@ export const EventsTab: React.FC = () => {
 
                   {/* Category */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
+                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">
                       Category <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -413,7 +532,7 @@ export const EventsTab: React.FC = () => {
 
                 {/* Description */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
+                  <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">
                     Description <span className="text-rose-500">*</span>
                   </label>
                   <textarea
@@ -428,10 +547,141 @@ export const EventsTab: React.FC = () => {
                   />
                 </div>
 
+                {/* Event Image (Upload / Drag / URL) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">
+                      Event / Announcement Image <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="flex items-center bg-background border border-card-border/60 rounded-lg p-0.5 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setImageInputMode("upload")}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                          imageInputMode === "upload"
+                            ? "bg-brand-green text-white shadow-sm"
+                            : "text-neutral-500 hover:text-foreground"
+                        }`}
+                      >
+                        <UploadCloud size={11} />
+                        <span>Upload / Drop</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageInputMode("url")}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                          imageInputMode === "url"
+                            ? "bg-brand-green text-white shadow-sm"
+                            : "text-neutral-500 hover:text-foreground"
+                        }`}
+                      >
+                        <Link2 size={11} />
+                        <span>Image URL</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {imageInputMode === "upload" ? (
+                    <div>
+                      {formState.image ? (
+                        <div className="relative rounded-xl overflow-hidden border border-card-border h-44 group bg-neutral-900/60 flex items-center justify-center p-2">
+                          <img
+                            src={formState.image}
+                            alt="Event Preview"
+                            className="max-h-full max-w-full object-contain rounded-lg shadow-md"
+                          />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
+                            <button
+                              type="button"
+                              disabled={isSubmitting}
+                              onClick={() => fileInputRef.current?.click()}
+                              className="px-3.5 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                            >
+                              <ImageIcon size={13} /> Change Image
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isSubmitting}
+                              onClick={() => setFormState((prev) => ({ ...prev, image: "", imageFile: null }))}
+                              className="px-3.5 py-2 rounded-lg bg-rose-500/80 hover:bg-rose-500 text-white text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                            >
+                              <Trash2 size={13} /> Remove
+                            </button>
+                          </div>
+                          {formState.imageFile && (
+                            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[9px] text-zinc-300 font-mono max-w-[200px] truncate">
+                              {formState.imageFile.name}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          onDragEnter={handleDrag}
+                          onDragOver={handleDrag}
+                          onDragLeave={handleDrag}
+                          onDrop={handleDrop}
+                          onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                          className={`w-full rounded-xl border-2 border-dashed py-7 px-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 ${
+                            isDragActive
+                              ? "border-brand-green bg-brand-green/10 scale-[0.99]"
+                              : "border-card-border bg-background/50 hover:border-brand-green/50 hover:bg-background"
+                          } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <div className={`p-3 rounded-full mb-2.5 transition-all ${
+                            isDragActive ? "bg-brand-green/20 text-brand-green" : "bg-foreground/5 text-neutral-500 dark:text-zinc-400"
+                          }`}>
+                            <UploadCloud size={24} />
+                          </div>
+                          <p className="type-ui text-xs font-bold text-foreground">
+                            Drag & drop image here, or browse
+                          </p>
+                          <p className="text-[10px] text-neutral-500 dark:text-zinc-400 mt-1 font-sans">
+                            Supports JPG, PNG, WEBP, GIF (Landscape or Banner recommended)
+                          </p>
+                        </div>
+                      )}
+
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileInput}
+                        accept="image/*"
+                        disabled={isSubmitting}
+                        className="hidden"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input
+                        type="url"
+                        placeholder="https://images.unsplash.com/photo-..."
+                        value={formState.image}
+                        onChange={(e) => setFormState({ ...formState, image: e.target.value, imageFile: null })}
+                        className="w-full bg-background border border-card-border rounded-xl px-4 py-2.5 text-xs text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand-green transition-all"
+                      />
+                      {formState.image && (
+                        <div className="relative rounded-xl overflow-hidden border border-card-border h-32 bg-neutral-900/40 flex items-center justify-center p-2">
+                          <img
+                            src={formState.image}
+                            alt="URL Preview"
+                            className="max-h-full max-w-full object-contain rounded-lg"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
+                      <p className="text-[9px] text-neutral-500">
+                        Paste direct image link from Unsplash or web hosting.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Highlight text */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
+                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">
                       Highlight Text
                     </label>
                     <input
@@ -445,28 +695,9 @@ export const EventsTab: React.FC = () => {
                     />
                   </div>
 
-                  {/* Image URL */}
+                  {/* Action Link Path */}
                   <div className="flex flex-col gap-1.5">
-                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
-                      Image URL <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="url"
-                      required
-                      value={formState.image}
-                      onChange={(e) =>
-                        setFormState({ ...formState, image: e.target.value })
-                      }
-                      placeholder="https://images.unsplash.com/..."
-                      className="bg-background border border-card-border rounded-xl px-4 py-2.5 text-xs text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand-green transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Link Path */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
+                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">
                       Action Link Path
                     </label>
                     <input
@@ -479,37 +710,42 @@ export const EventsTab: React.FC = () => {
                       className="bg-background border border-card-border rounded-xl px-4 py-2.5 text-xs text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand-green transition-all"
                     />
                   </div>
+                </div>
 
-                  {/* Link Label */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400">
-                      Link Label
-                    </label>
-                    <input
-                      type="text"
-                      value={formState.linkLabel}
-                      onChange={(e) =>
-                        setFormState({ ...formState, linkLabel: e.target.value })
-                      }
-                      placeholder="e.g., View Menu"
-                      className="bg-background border border-card-border rounded-xl px-4 py-2.5 text-xs text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand-green transition-all"
-                    />
-                  </div>
+                {/* Link Label */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="type-ui text-[10px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">
+                    Link Label
+                  </label>
+                  <input
+                    type="text"
+                    value={formState.linkLabel}
+                    onChange={(e) =>
+                      setFormState({ ...formState, linkLabel: e.target.value })
+                    }
+                    placeholder="e.g., View Menu"
+                    className="bg-background border border-card-border rounded-xl px-4 py-2.5 text-xs text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand-green transition-all"
+                  />
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-card-border/50">
                   <button
                     type="button"
+                    disabled={isSubmitting}
                     onClick={handleCloseModal}
-                    className="px-4 py-2.5 text-xs tracking-wider uppercase border border-card-border hover:bg-foreground/5 transition-colors rounded-lg cursor-pointer text-neutral-500 hover:text-foreground"
+                    className="px-4 py-2.5 text-xs tracking-wider uppercase border border-card-border hover:bg-foreground/5 transition-colors rounded-lg cursor-pointer text-neutral-500 hover:text-foreground disabled:opacity-40"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 text-xs tracking-wider uppercase bg-brand-green hover:bg-brand-green-dark text-white transition-colors rounded-lg shadow-md cursor-pointer"
+                    disabled={isSubmitting}
+                    className={`px-5 py-2.5 text-xs tracking-wider uppercase bg-brand-green hover:bg-brand-green-dark text-white transition-colors rounded-lg shadow-md cursor-pointer flex items-center gap-1.5 ${
+                      isSubmitting ? "opacity-75 cursor-not-allowed" : ""
+                    }`}
                   >
-                    {editingEvent ? "Save Changes" : "Create Event"}
+                    {isSubmitting && <Loader2 size={13} className="animate-spin shrink-0" />}
+                    <span>{editingEvent ? "Save Changes" : "Create Event"}</span>
                   </button>
                 </div>
               </form>

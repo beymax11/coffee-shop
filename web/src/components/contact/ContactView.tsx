@@ -132,8 +132,8 @@ export function ContactView() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 right-4">
-                    <span className="type-micro text-brand-gold/80">Flagship Coffee House</span>
-                    <p className="type-card-title text-white mt-1">{primaryLocation.name}</p>
+
+
                   </div>
                 </div>
               </FadeUp>
@@ -211,7 +211,7 @@ export function ContactView() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-2">
-                          <label className="type-label block pl-1 tracking-[0.2em] text-[#8B5E3C]/90 dark:text-brand-beige">
+                          <label className="type-label block pl-1 tracking-[0.2em] text-[#2E5A44]/90 dark:text-emerald-400">
                             Your Name
                           </label>
                           <div className="relative group">
@@ -230,7 +230,7 @@ export function ContactView() {
                         </div>
 
                         <div className="space-y-2">
-                          <label className="type-label block pl-1 tracking-[0.2em] text-[#8B5E3C]/90 dark:text-brand-beige">
+                          <label className="type-label block pl-1 tracking-[0.2em] text-[#2E5A44]/90 dark:text-emerald-400">
                             Email Address
                           </label>
                           <div className="relative group">

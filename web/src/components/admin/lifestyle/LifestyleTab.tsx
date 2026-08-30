@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Search, Plus, Edit3, Trash2, Heart, MessageCircle, X, ExternalLink, AlertTriangle, Check } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Search, Plus, Edit3, Trash2, Heart, MessageCircle, X, ExternalLink, AlertTriangle, Check, UploadCloud, Image as ImageIcon, Loader2, Link2 } from "lucide-react";
 import { LifestylePost, LifestyleComment } from "@/types";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
@@ -35,9 +35,16 @@ export const LifestyleTab: React.FC = () => {
   const [isDeletingComment, setIsDeletingComment] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "posted" | "unposted">("all");
 
+  // Image upload & drag state
+  const [imageInputMode, setImageInputMode] = useState<"upload" | "url">("upload");
+  const [isDragActive, setIsDragActive] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Form state
   const [formState, setFormState] = useState<{
     imageUrl: string;
+    imageFile?: File | null;
     username: string;
     caption: string;
     likes: number | "";
@@ -46,6 +53,7 @@ export const LifestyleTab: React.FC = () => {
     status: string;
   }>({
     imageUrl: "",
+    imageFile: null,
     username: "",
     caption: "",
     likes: 0,
@@ -92,8 +100,11 @@ export const LifestyleTab: React.FC = () => {
 
   const handleOpenAddModal = () => {
     setEditingPost(null);
+    setImageInputMode("upload");
+    setIsDragActive(false);
     setFormState({
       imageUrl: "",
+      imageFile: null,
       username: "",
       caption: "",
       likes: 0,
@@ -106,8 +117,11 @@ export const LifestyleTab: React.FC = () => {
 
   const handleOpenEditModal = (post: LifestylePost) => {
     setEditingPost(post);
+    setImageInputMode(post.imageUrl.startsWith("data:") ? "upload" : (post.imageUrl.startsWith("http") ? "url" : "upload"));
+    setIsDragActive(false);
     setFormState({
       imageUrl: post.imageUrl,
+      imageFile: null,
       username: post.username,
       caption: post.caption,
       likes: post.likes,
@@ -116,6 +130,50 @@ export const LifestyleTab: React.FC = () => {
       status: post.status || "unposted",
     });
     setIsModalOpen(true);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragActive(true);
+    } else if (e.type === "dragleave") {
+      setIsDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file (JPG, PNG, WEBP, etc.).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setFormState((prev) => ({
+          ...prev,
+          imageUrl: e.target!.result as string,
+          imageFile: file,
+        }));
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDeletePost = (id: number) => {
@@ -202,49 +260,89 @@ export const LifestyleTab: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formState.imageUrl.trim() || !formState.username.trim() || !formState.caption.trim()) {
+    if (!formState.imageUrl.trim()) {
+      toast.error("Please upload or provide an image for the post.");
+      return;
+    }
+    if (!formState.username.trim() || !formState.caption.trim()) {
       toast.error("Please fill in all required fields.");
       return;
     }
 
-    const postData: LifestylePost = {
-      id: editingPost ? editingPost.id : Date.now(),
-      imageUrl: formState.imageUrl.trim(),
-      username: formState.username.replace("@", "").trim(),
-      likes: Number(formState.likes) || 0,
-      caption: formState.caption.trim(),
-      date: formState.date.trim() || new Date().toISOString().split("T")[0],
-      location: formState.location.trim() || "Antonioni Grounds",
-      comments: editingPost ? editingPost.comments : [],
-      commentsCount: editingPost ? editingPost.commentsCount : 0,
-      status: formState.status,
-    };
+    setIsSubmitting(true);
+    try {
+      let finalImageUrl = formState.imageUrl.trim();
 
-    if (supabase) {
-      const { error } = await supabase
-        .from("lifestyle_posts")
-        .upsert({
-          id: postData.id,
-          imageUrl: postData.imageUrl,
-          username: postData.username,
-          likes: postData.likes,
-          caption: postData.caption,
-          date: postData.date,
-          location: postData.location,
-          comments: postData.comments,
-          commentsCount: postData.commentsCount,
-          status: postData.status
-        });
-      if (error) {
-        toast.error("Failed to save to Supabase: " + error.message);
-        return;
+      // If user uploaded a new local file, upload to Supabase storage
+      if (formState.imageFile && supabase) {
+        try {
+          const file = formState.imageFile;
+          const fileExt = file.name.split(".").pop() || "jpg";
+          const fileName = `lifestyle-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("menu-images")
+            .upload(fileName, file, { cacheControl: "3600", upsert: true });
+
+          if (uploadError) {
+            console.warn("Supabase Storage upload warning, using local image data:", uploadError);
+          } else if (uploadData) {
+            const { data: { publicUrl } } = supabase.storage
+              .from("menu-images")
+              .getPublicUrl(fileName);
+            if (publicUrl) {
+              finalImageUrl = publicUrl;
+            }
+          }
+        } catch (uploadErr) {
+          console.error("Storage upload exception:", uploadErr);
+        }
       }
-    }
 
-    db.saveLifestylePost(postData);
-    loadPosts();
-    setIsModalOpen(false);
-    toast.success(editingPost ? "Lifestyle post updated successfully." : "New lifestyle post added successfully.");
+      const postData: LifestylePost = {
+        id: editingPost ? editingPost.id : Date.now(),
+        imageUrl: finalImageUrl,
+        username: formState.username.replace("@", "").trim(),
+        likes: Number(formState.likes) || 0,
+        caption: formState.caption.trim(),
+        date: formState.date.trim() || new Date().toISOString().split("T")[0],
+        location: formState.location.trim() || "Antonioni Grounds",
+        comments: editingPost ? editingPost.comments : [],
+        commentsCount: editingPost ? editingPost.commentsCount : 0,
+        status: formState.status,
+      };
+
+      if (supabase) {
+        const { error } = await supabase
+          .from("lifestyle_posts")
+          .upsert({
+            id: postData.id,
+            imageUrl: postData.imageUrl,
+            username: postData.username,
+            likes: postData.likes,
+            caption: postData.caption,
+            date: postData.date,
+            location: postData.location,
+            comments: postData.comments,
+            commentsCount: postData.commentsCount,
+            status: postData.status
+          });
+        if (error) {
+          toast.error("Failed to save to Supabase: " + error.message);
+          return;
+        }
+      }
+
+      db.saveLifestylePost(postData);
+      loadPosts();
+      setIsModalOpen(false);
+      toast.success(editingPost ? "Lifestyle post updated successfully." : "New lifestyle post added successfully.");
+    } catch (err: any) {
+      console.error("Submit lifestyle post error:", err);
+      toast.error("An error occurred while saving the post.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredPosts = posts.filter((post) => {
@@ -438,8 +536,9 @@ export const LifestyleTab: React.FC = () => {
                   {editingPost ? "Edit Lifestyle Post" : "Add Lifestyle Post"}
                 </h3>
                 <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="w-7 h-7 rounded-full bg-foreground/[0.03] text-neutral-500 hover:text-foreground flex items-center justify-center transition-all cursor-pointer"
+                  onClick={() => !isSubmitting && setIsModalOpen(false)}
+                  disabled={isSubmitting}
+                  className="w-7 h-7 rounded-full bg-foreground/[0.03] text-neutral-500 hover:text-foreground flex items-center justify-center transition-all cursor-pointer disabled:opacity-40"
                 >
                   <X size={14} />
                 </button>
@@ -447,22 +546,135 @@ export const LifestyleTab: React.FC = () => {
 
               {/* Modal Form */}
               <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto max-h-[75vh]">
-                {/* Image URL */}
-                <div className="space-y-1">
-                  <label className="type-label text-[10px] text-neutral-500 dark:text-zinc-400">
-                    Image URL <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="url"
-                    required
-                    placeholder="https://images.unsplash.com/photo-..."
-                    value={formState.imageUrl}
-                    onChange={(e) => setFormState({ ...formState, imageUrl: e.target.value })}
-                    className="w-full rounded-lg border border-card-border bg-background-alt/40 p-2.5 text-xs text-foreground outline-none transition-all focus:border-brand-green/60 focus:bg-background-alt/80"
-                  />
-                  <p className="text-[9px] text-neutral-500">
-                    Use high quality image links from Unsplash or other hosting sites.
-                  </p>
+                {/* Post Image (Upload / Drag / URL) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="type-label text-[10px] text-neutral-500 dark:text-zinc-400 font-bold uppercase tracking-wider">
+                      Post Image <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center bg-background-alt/50 border border-card-border/60 rounded-lg p-0.5 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setImageInputMode("upload")}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                          imageInputMode === "upload"
+                            ? "bg-[#2E5A44] text-white shadow-sm"
+                            : "text-neutral-500 hover:text-foreground"
+                        }`}
+                      >
+                        <UploadCloud size={11} />
+                        <span>Upload / Drop</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageInputMode("url")}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                          imageInputMode === "url"
+                            ? "bg-[#2E5A44] text-white shadow-sm"
+                            : "text-neutral-500 hover:text-foreground"
+                        }`}
+                      >
+                        <Link2 size={11} />
+                        <span>Image URL</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {imageInputMode === "upload" ? (
+                    <div>
+                      {formState.imageUrl ? (
+                        <div className="relative rounded-xl overflow-hidden border border-card-border h-48 group bg-neutral-900/60 flex items-center justify-center p-2">
+                          <img
+                            src={formState.imageUrl}
+                            alt="Post Preview"
+                            className="max-h-full max-w-full object-contain rounded-lg shadow-md"
+                          />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
+                            <button
+                              type="button"
+                              disabled={isSubmitting}
+                              onClick={() => fileInputRef.current?.click()}
+                              className="px-3.5 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                            >
+                              <ImageIcon size={13} /> Change Image
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isSubmitting}
+                              onClick={() => setFormState((prev) => ({ ...prev, imageUrl: "", imageFile: null }))}
+                              className="px-3.5 py-2 rounded-lg bg-rose-500/80 hover:bg-rose-500 text-white text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                            >
+                              <Trash2 size={13} /> Remove
+                            </button>
+                          </div>
+                          {formState.imageFile && (
+                            <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded text-[9px] text-zinc-300 font-mono max-w-[200px] truncate">
+                              {formState.imageFile.name}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          onDragEnter={handleDrag}
+                          onDragOver={handleDrag}
+                          onDragLeave={handleDrag}
+                          onDrop={handleDrop}
+                          onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                          className={`w-full rounded-xl border-2 border-dashed py-8 px-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 ${
+                            isDragActive
+                              ? "border-[#2E5A44] bg-[#2E5A44]/10 scale-[0.99]"
+                              : "border-card-border bg-background-alt/30 hover:border-[#2E5A44]/50 hover:bg-background-alt/50"
+                          } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <div className={`p-3 rounded-full mb-2.5 transition-all ${
+                            isDragActive ? "bg-[#2E5A44]/20 text-[#4d9b73]" : "bg-foreground/5 text-neutral-500 dark:text-zinc-400"
+                          }`}>
+                            <UploadCloud size={24} />
+                          </div>
+                          <p className="type-ui text-xs font-bold text-foreground">
+                            Drag & drop image here, or browse
+                          </p>
+                          <p className="text-[10px] text-neutral-500 dark:text-zinc-400 mt-1 font-sans">
+                            Supports JPG, PNG, WEBP, GIF (Square or Portrait recommended)
+                          </p>
+                        </div>
+                      )}
+
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileInput}
+                        accept="image/*"
+                        disabled={isSubmitting}
+                        className="hidden"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input
+                        type="url"
+                        placeholder="https://images.unsplash.com/photo-..."
+                        value={formState.imageUrl}
+                        onChange={(e) => setFormState({ ...formState, imageUrl: e.target.value, imageFile: null })}
+                        className="w-full rounded-lg border border-card-border bg-background-alt/40 p-2.5 text-xs text-foreground outline-none transition-all focus:border-brand-green/60 focus:bg-background-alt/80"
+                      />
+                      {formState.imageUrl && (
+                        <div className="relative rounded-xl overflow-hidden border border-card-border h-36 bg-neutral-900/40 flex items-center justify-center p-2">
+                          <img
+                            src={formState.imageUrl}
+                            alt="URL Preview"
+                            className="max-h-full max-w-full object-contain rounded-lg"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
+                      <p className="text-[9px] text-neutral-500">
+                        Paste direct image link from Unsplash, Cloudinary, or web hosting.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Grid for Username and Likes */}
@@ -582,16 +794,29 @@ export const LifestyleTab: React.FC = () => {
                 <div className="border-t border-card-border/50 pt-4 flex items-center justify-end gap-2.5">
                   <button
                     type="button"
+                    disabled={isSubmitting}
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2.5 rounded-lg border border-card-border hover:bg-foreground/[0.03] type-ui text-[9px] text-neutral-500 dark:text-zinc-400 hover:text-foreground dark:hover:text-white transition-all cursor-pointer font-bold"
+                    className="px-4 py-2.5 rounded-lg border border-card-border hover:bg-foreground/[0.03] type-ui text-[9px] text-neutral-500 dark:text-zinc-400 hover:text-foreground dark:hover:text-white transition-all cursor-pointer font-bold disabled:opacity-40"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-lg bg-brand-green hover:bg-[#234533] type-ui text-[9px] text-white transition-all cursor-pointer font-bold"
+                    disabled={isSubmitting}
+                    className={`px-5 py-2.5 rounded-lg bg-brand-green hover:bg-[#234533] type-ui text-[9px] text-white transition-all cursor-pointer font-bold flex items-center gap-1.5 ${
+                      isSubmitting ? "opacity-75 cursor-not-allowed" : ""
+                    }`}
                   >
-                    {editingPost ? "Save Changes" : "Create Post"}
+                    {isSubmitting && <Loader2 size={13} className="animate-spin shrink-0" />}
+                    <span>
+                      {isSubmitting
+                        ? editingPost
+                          ? "Saving Changes..."
+                          : "Creating Post..."
+                        : editingPost
+                          ? "Save Changes"
+                          : "Create Post"}
+                    </span>
                   </button>
                 </div>
               </form>

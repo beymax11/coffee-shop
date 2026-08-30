@@ -117,7 +117,7 @@ export const EventsUpdates: React.FC = () => {
         
         {/* Section Header */}
         <div className="text-center max-w-xl mx-auto mb-8 md:mb-12">
-          <span className="type-eyebrow">Events & Announcements</span>
+          <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Events & Announcements</span>
           <h2 className="type-h2 text-foreground mt-2">
             Latest Happenings & Updates
           </h2>

@@ -36,8 +36,11 @@ export const Footer: React.FC = () => {
                 className="h-10 w-auto object-contain invert dark:invert-0"
               />
             </Link>
-            <p className="type-body-sm text-neutral-500 dark:text-zinc-400">
-              A sensory sanctuary redefining coffee. We source the world’s most exclusive microlots, roasting to reveal complex, elegant flavor profiles for the discerning palate.
+            <p className="type-body-sm text-neutral-500 dark:text-zinc-400 leading-relaxed">
+              A coffee shop in Tiaong. A cart that comes to you. Same care either way.
+            </p>
+            <p className="text-sm font-serif font-bold text-emerald-600 dark:text-emerald-400 tracking-wide">
+              Tara, kape!
             </p>
           </div>
 
@@ -47,19 +50,25 @@ export const Footer: React.FC = () => {
               <h4 className="type-label text-foreground">Navigation</h4>
               <ul className="space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
                 <li>
-                  <Link href="/menu" className="hover:text-brand-gold transition-colors">Our Menu</Link>
+                  <Link href="/" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Home</Link>
                 </li>
                 <li>
-                  <Link href="/reservations" className="hover:text-brand-gold transition-colors">Reservations</Link>
+                  <Link href="/menu" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Menu</Link>
                 </li>
                 <li>
-                  <Link href="/loyalty" className="hover:text-brand-gold transition-colors">Loyalty Card</Link>
+                  <Link href="/brew-buggy" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Brew Buggy</Link>
                 </li>
                 <li>
-                  <Link href="/about" className="hover:text-brand-gold transition-colors">About Us</Link>
+                  <Link href="/reservations" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Reservations</Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="hover:text-brand-gold transition-colors">Contact</Link>
+                  <Link href="/loyalty" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Loyalty Card</Link>
+                </li>
+                <li>
+                  <Link href="/about" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">About Us</Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Contact</Link>
                 </li>
               </ul>
             </div>
@@ -68,12 +77,8 @@ export const Footer: React.FC = () => {
               <h4 className="type-label text-foreground">Opening Hours</h4>
               <ul className="space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
                 <li>
-                  <span>Monday - Friday</span>
-                  <span className="block text-neutral-800 dark:text-zinc-300 font-medium">07:00 - 20:00</span>
-                </li>
-                <li>
-                  <span>Saturday - Sunday</span>
-                  <span className="block text-neutral-800 dark:text-zinc-300 font-medium">08:00 - 22:00</span>
+                  <span>Monday – Sunday</span>
+                  <span className="block text-neutral-800 dark:text-zinc-300 font-medium">9:00 AM – 9:00 PM</span>
                 </li>
               </ul>
             </div>
@@ -89,6 +94,9 @@ export const Footer: React.FC = () => {
 
             <div className="space-y-4">
               <h4 className="type-label text-foreground">Connect with us</h4>
+              <p className="text-xs text-neutral-500 dark:text-zinc-400">
+                Tag us <span className="font-semibold text-emerald-600 dark:text-emerald-400">#antonionigrounds #natorist</span>
+              </p>
               <div className="flex items-center gap-4 text-zinc-500">
                 <a
                   href="https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg=="

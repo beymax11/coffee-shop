@@ -198,29 +198,11 @@ function setLocalStorageItem<T>(key: string, value: T): void {
 export const db = {
   // --- MENU ITEMS ---
   getMenuItems(): MenuItem[] {
-    // If not in localStorage, seed defaults
-    if (isBrowser && !localStorage.getItem("menu_items")) {
-      setLocalStorageItem("menu_items", defaultMenuItems);
+    const items = getLocalStorageItem<MenuItem[]>("menu_items", []);
+    if (Array.isArray(items)) {
+      return items;
     }
-    const items = getLocalStorageItem("menu_items", defaultMenuItems);
-
-    // Auto-merge logic: if defaults have items not present in localStorage, merge them.
-    // This allows new signature drinks or modified defaults to sync automatically.
-    if (isBrowser && Array.isArray(items)) {
-      let updated = false;
-      const merged = [...items];
-      defaultMenuItems.forEach((defItem) => {
-        if (!merged.some((item) => item.id === defItem.id)) {
-          merged.push(defItem);
-          updated = true;
-        }
-      });
-      if (updated) {
-        setLocalStorageItem("menu_items", merged);
-        return merged;
-      }
-    }
-    return items;
+    return [];
   },
 
   saveMenuItem(item: MenuItem): void {

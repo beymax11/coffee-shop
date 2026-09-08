@@ -100,17 +100,17 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
         <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-8 md:mb-14 gap-8">
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 mb-3">
-              <Film size={12} className="text-emerald-500 animate-pulse" />
+
               <span className="text-[10px] font-sans font-bold tracking-[0.25em] text-emerald-600 dark:text-emerald-400 uppercase">
-                Antonioni Grounds · Special Reserve
+                Our Signature Pourings
               </span>
             </div>
             <h2 className="text-4xl md:text-5xl font-serif font-bold text-foreground dark:text-zinc-100 tracking-tight leading-tight">
-              Our Signature Pourings
+              Featured Flavors
             </h2>
             <p className="text-zinc-600 dark:text-zinc-400 mt-4 text-sm md:text-base leading-relaxed">
-              Every extraction is a meticulously directed scene. Experience our curated espresso masterpieces, crafted with cinematic precision, premium single-origin beans, and rare botanicals.
-            </p>
+
+              Here’s what’s pouring. Hot, iced, or somewhere in between. Modest and Grand are our size names, “medium” and “large” felt like someone else’s menu.            </p>
           </div>
 
           <div>
@@ -187,13 +187,6 @@ export const SignatureShowcase: React.FC<SignatureShowcaseProps> = ({ onQuickVie
                         <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 line-clamp-2 leading-relaxed">
                           {item.description}
                         </p>
-                      </div>
-
-                      {/* Price & Action Row */}
-                      <div className="flex items-center justify-between border-t border-card-border dark:border-zinc-900 pt-2.5 mt-3 sm:pt-4 sm:mt-4">
-                        <span className="text-xs sm:text-base font-sans font-extrabold text-[#2E5A44] dark:text-emerald-400">
-                          ₱{item.price.toFixed(2)}
-                        </span>
                       </div>
                     </div>
                   </div>

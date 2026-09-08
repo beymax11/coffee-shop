@@ -261,6 +261,7 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     { name: "Home", href: "/" },
     { name: "Menu", href: "/menu" },
+    { name: "Brew Buggy", href: "/brew-buggy" },
     { name: "Reservations", href: "/reservations" },
     { name: "Loyalty Card", href: "/loyalty" },
     { name: "About Us", href: "/about" },
@@ -287,7 +288,7 @@ export const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="flex items-center gap-8">
+          <nav className="flex items-center gap-6 xl:gap-8">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (

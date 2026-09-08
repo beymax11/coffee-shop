@@ -53,22 +53,100 @@ export const MenuTab: React.FC<MenuTabProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+const LEGACY_MOCK_CATEGORIES = [
+  "Hot Coffee",
+  "Cold Coffee",
+  "Signature Drinks",
+  "Non-Coffee",
+  "Pastries",
+  "Desserts",
+];
+
+  // Sync categories from database / local cache
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("menu_categories");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const names = parsed
+              .map((c: any) => (typeof c === "string" ? c : c?.name)?.trim())
+              .filter((c: string) => !!c && !LEGACY_MOCK_CATEGORIES.includes(c));
+            if (names.length > 0) {
+              setDbCategories(names);
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    const fetchCats = async () => {
+      try {
+        const res = await fetch("/api/menu/categories");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.categories && Array.isArray(json.categories)) {
+            const names = json.categories
+              .map((c: any) => (typeof c === "string" ? c : c?.name)?.trim())
+              .filter((c: string) => !!c && !LEGACY_MOCK_CATEGORIES.includes(c));
+            if (names.length > 0) {
+              setDbCategories(names);
+              if (typeof window !== "undefined") {
+                localStorage.setItem("menu_categories", JSON.stringify(names));
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    fetchCats();
+    window.addEventListener("menu_categories_updated", fetchCats);
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "menu_categories" || e.key === null) {
+        fetchCats();
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("menu_categories_updated", fetchCats);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
   // Available categories calculation
   const categories = useMemo(() => {
-    const defaultCats = [
-      "All",
-      "Hot Coffee",
-      "Cold Coffee",
-      "Signature Drinks",
-      "Non-Coffee",
-      "Pastries",
-      "Desserts",
-    ];
-    const customCats = menuItems
-      .map((item) => item.category)
-      .filter((cat): cat is string => !!cat && !defaultCats.includes(cat));
-    return [...defaultCats, ...Array.from(new Set(customCats))];
-  }, [menuItems]);
+    const list: string[] = ["All"];
+    const seen = new Set<string>(["all"]);
+
+    dbCategories.forEach((cat) => {
+      const trimmed = cat.trim();
+      const lower = trimmed.toLowerCase();
+      if (trimmed && !seen.has(lower)) {
+        seen.add(lower);
+        list.push(trimmed);
+      }
+    });
+
+    menuItems.forEach((item) => {
+      const trimmed = item.category?.trim();
+      if (trimmed) {
+        const lower = trimmed.toLowerCase();
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          list.push(trimmed);
+        }
+      }
+    });
+
+    return list;
+  }, [dbCategories, menuItems]);
 
   // Filtered & Sorted items computation
   const filteredMenuItems = useMemo(() => {
@@ -86,7 +164,10 @@ export const MenuTab: React.FC<MenuTabProps> = ({
       }
 
       // 2. Category Filter
-      if (menuCatFilter !== "All" && item.category !== menuCatFilter) {
+      if (
+        menuCatFilter !== "All" &&
+        item.category?.trim().toLowerCase() !== menuCatFilter.trim().toLowerCase()
+      ) {
         return false;
       }
 
@@ -95,8 +176,10 @@ export const MenuTab: React.FC<MenuTabProps> = ({
 
     // Sort logic
     result = [...result].sort((a, b) => {
-      if (sortBy === "price-asc") return a.price - b.price;
-      if (sortBy === "price-desc") return b.price - a.price;
+      const priceA = a.price ?? a.modest ?? a.hot ?? a.grand ?? 0;
+      const priceB = b.price ?? b.modest ?? b.hot ?? b.grand ?? 0;
+      if (sortBy === "price-asc") return priceA - priceB;
+      if (sortBy === "price-desc") return priceB - priceA;
       return a.name.localeCompare(b.name);
     });
 
@@ -376,7 +459,15 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                       {/* Price */}
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <span className="font-serif text-brand-green dark:text-emerald-400 text-sm font-bold">
-                          ₱{item.price.toFixed(2)}
+                          {item.price != null
+                            ? `₱${Number(item.price).toFixed(2)}`
+                            : item.modest != null
+                            ? `₱${Number(item.modest).toFixed(2)}`
+                            : item.hot != null
+                            ? `₱${Number(item.hot).toFixed(2)}`
+                            : item.grand != null
+                            ? `₱${Number(item.grand).toFixed(2)}`
+                            : "—"}
                         </span>
                       </td>
 
@@ -438,7 +529,15 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                           {item.name}
                         </h4>
                         <span className="font-serif text-brand-green dark:text-emerald-400 text-sm font-bold shrink-0">
-                          ₱{item.price.toFixed(2)}
+                          {item.price != null
+                            ? `₱${Number(item.price).toFixed(2)}`
+                            : item.modest != null
+                            ? `₱${Number(item.modest).toFixed(2)}`
+                            : item.hot != null
+                            ? `₱${Number(item.hot).toFixed(2)}`
+                            : item.grand != null
+                            ? `₱${Number(item.grand).toFixed(2)}`
+                            : "—"}
                         </span>
                       </div>
 
@@ -525,7 +624,15 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="font-serif font-bold text-foreground text-base truncate">{item.name}</h4>
                       <span className="font-serif text-brand-green dark:text-emerald-400 font-bold text-sm shrink-0">
-                        ₱{item.price.toFixed(2)}
+                        {item.price != null
+                          ? `₱${Number(item.price).toFixed(2)}`
+                          : item.modest != null
+                          ? `₱${Number(item.modest).toFixed(2)}`
+                          : item.hot != null
+                          ? `₱${Number(item.hot).toFixed(2)}`
+                          : item.grand != null
+                          ? `₱${Number(item.grand).toFixed(2)}`
+                          : "—"}
                       </span>
                     </div>
                     <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">{item.description}</p>
@@ -668,13 +775,38 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                   </div>
 
                   {/* Price Display */}
-                  <div className="flex justify-between items-center rounded-xl bg-neutral-50 dark:bg-background-alt border border-neutral-200 dark:border-card-border p-3.5 shadow-sm">
-                    <span className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
-                      Price
-                    </span>
-                    <span className="font-serif text-brand-green dark:text-emerald-400 text-2xl font-bold">
-                      ₱{viewingItem.price.toFixed(2)}
-                    </span>
+                  <div className="rounded-xl bg-neutral-50 dark:bg-background-alt border border-neutral-200 dark:border-card-border p-3.5 shadow-sm space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">
+                        Base Price
+                      </span>
+                      <span className="font-serif text-brand-green dark:text-emerald-400 text-2xl font-bold">
+                        {viewingItem.price != null ? `₱${Number(viewingItem.price).toFixed(2)}` : "—"}
+                      </span>
+                    </div>
+
+                    {(viewingItem.hot || viewingItem.modest || viewingItem.grand) && (
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-neutral-200/60 dark:border-card-border/60">
+                        {viewingItem.hot !== undefined && viewingItem.hot !== null && (
+                          <div className="text-center p-1.5 rounded-lg bg-background/50">
+                            <span className="block text-[9px] font-bold text-neutral-400 uppercase">Hot</span>
+                            <span className="text-xs font-semibold text-foreground">₱{Number(viewingItem.hot).toFixed(2)}</span>
+                          </div>
+                        )}
+                        {viewingItem.modest !== undefined && viewingItem.modest !== null && (
+                          <div className="text-center p-1.5 rounded-lg bg-background/50">
+                            <span className="block text-[9px] font-bold text-neutral-400 uppercase">Modest</span>
+                            <span className="text-xs font-semibold text-foreground">₱{Number(viewingItem.modest).toFixed(2)}</span>
+                          </div>
+                        )}
+                        {viewingItem.grand !== undefined && viewingItem.grand !== null && (
+                          <div className="text-center p-1.5 rounded-lg bg-background/50">
+                            <span className="block text-[9px] font-bold text-neutral-400 uppercase">Grand</span>
+                            <span className="text-xs font-semibold text-foreground">₱{Number(viewingItem.grand).toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Description */}

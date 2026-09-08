@@ -91,6 +91,7 @@ export function CartReservationForm({
               className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-700 cursor-pointer"
             />
           </div>
+          <span className="text-[9px] text-zinc-500 pl-1 font-sans block">Venue reminder: standard 2500W power outlet needed</span>
           {errors.location && <span className="type-error block mt-1 text-xs text-red-500 font-sans">{errors.location}</span>}
         </div>
 
@@ -298,6 +299,9 @@ export function CartReservationPolicy() {
         <strong>Flavor Options included:</strong> Iced Latte, Iced/Hot Americano, 2 Any Flavored (Iced or Hot), and 2 Non-Coffee Over Ice. Package includes the mobile cart, 2 baristas, and a service duration of exactly <strong>3 hours</strong>.
       </p>
       <p className="text-[11px] text-zinc-500 leading-relaxed font-light">
+        <strong>Venue Requirement:</strong> Needs a standard power outlet (<strong>2500W</strong>). If your venue doesn't have one, please let us know ahead of time.
+      </p>
+      <p className="text-[11px] text-zinc-500 leading-relaxed font-light">
         <strong>Payment & Refund:</strong> Booking requires a <strong>10% downpayment</strong>. 100% refundable up to <strong>1 week before</strong> the scheduled booking date. Downpayment is <strong>non-refundable</strong> if cancelled less than 24 hours prior.
       </p>
     </div>
@@ -404,7 +408,7 @@ export function CartReservationReceipt({
       <div className="col-span-2 border-t border-zinc-200 dark:border-white/5 print:border-zinc-200 pt-3">
         <span className="font-sans text-[10px] uppercase tracking-wider text-zinc-500 print:text-zinc-500 block">Brew Buggy Coffee Cart Terms & Policies</span>
         <span className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400 print:text-zinc-700 font-light leading-relaxed block mt-1">
-          A 10% downpayment of ₱{downpayment.toLocaleString()} is required. 100% refundable if cancelled at least 1 week before the scheduled booking date. Downpayment is non-refundable if cancelled less than 24 hours prior. Service duration is 3 hours.
+          A 10% downpayment of ₱{downpayment.toLocaleString()} is required. 100% refundable if cancelled at least 1 week before the scheduled booking date. Downpayment is non-refundable if cancelled less than 24 hours prior. Service duration is 3 hours. Standard 2500W venue outlet required.
         </span>
       </div>
     </div>

@@ -12,7 +12,8 @@ import {
   CreditCard,
   RotateCcw,
   Maximize2,
-  Download
+  Download,
+  ArrowRight
 } from "lucide-react";
 import { FadeUp, PageTransition } from "@/components/animations";
 import Link from "next/link";
@@ -530,26 +531,37 @@ export function LoyaltyView() {
 
 
           {isGuest ? (
-            <FadeUp className="max-w-md mx-auto rounded-2xl border border-card-border bg-card p-8 md:p-10 text-center glassmorphism-green shadow-xl flex flex-col items-center">
-              <div className="rounded-full bg-[#2E5A44]/10 p-4 text-[#2E5A44] dark:text-emerald-400 mb-6">
-                <QrCode size={32} />
-              </div>
-              <h2 className="type-h3 text-foreground">Membership Access Required</h2>
-              <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-2 mb-8 max-w-xs">
-                To view your stamps, please log in with your Antonioni Grounds reserve credentials.
+            <FadeUp className="max-w-lg mx-auto text-center flex flex-col items-center py-8 sm:py-12">
+              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 font-bold block mb-2">
+                Loyalty Card
+              </span>
+              <h2 className="type-h2 text-foreground font-serif leading-tight">
+                Your Antonioni Grounds card, but digital.
+              </h2>
+              <p className="text-base font-medium text-emerald-600 dark:text-emerald-400 mt-2">
+                No more forgetting it at home.
               </p>
-              <div className="mt-8 w-full space-y-3">
+              <p className="type-body text-neutral-600 dark:text-zinc-400 mt-3 mb-8 max-w-md leading-relaxed text-sm sm:text-base">
+                Scan it every visit, collect your stamps. Every so often, we get to say thank you as more than just a discount code.
+              </p>
+              <div className="w-full max-w-xs space-y-3">
                 <Link
-                  href="/login"
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] py-3 text-sm font-semibold text-white hover:bg-[#234533] transition-colors shadow-[0_0_20px_rgba(46,90,68,0.25)] active:scale-95 cursor-pointer"
+                  href="/signup"
+                  className="type-ui group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#2E5A44] py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_25px_rgba(46,90,68,0.3)] active:scale-95 cursor-pointer"
                 >
-                  Sign In to Account
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
+                  <span className="relative flex items-center gap-1.5">
+                    <span>Get Your Card</span>
+                    <span className="max-w-0 -translate-x-2 opacity-0 overflow-hidden transition-all duration-300 ease-out group-hover:max-w-[20px] group-hover:translate-x-0 group-hover:opacity-100 flex items-center">
+                      <ArrowRight size={15} className="shrink-0 ml-1" />
+                    </span>
+                  </span>
                 </Link>
                 <Link
                   href="/login"
-                  className="w-full flex items-center justify-center gap-2 rounded-full border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-white/5 py-3 text-sm font-medium text-zinc-800 dark:text-white hover:bg-zinc-200 dark:hover:bg-white/10 transition-colors active:scale-95 cursor-pointer"
+                  className="inline-block text-xs font-medium text-neutral-500 dark:text-zinc-400 hover:text-foreground hover:underline transition-colors pt-2 cursor-pointer"
                 >
-                  Create a New Account
+                  Already have an account? Sign In
                 </Link>
               </div>
             </FadeUp>

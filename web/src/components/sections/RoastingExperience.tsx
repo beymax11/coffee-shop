@@ -13,17 +13,21 @@ interface Step {
   title: string;
   description: string;
   image: string;
+  ctaLink: string;
+  ctaLabel: string;
 }
 
 const STEPS: Step[] = [
   {
     id: "story",
     number: "01",
-    label: "Nice to Meet You",
-    title: "Named After Maru “Antonioni”",
+    label: "Who We Are",
+    title: "Nice to meet you!",
     description:
       "Antonioni Grounds is named after Maru “Antonioni,” a beloved son, brother, and friend. Every cup we make carries his love for brewed coffee, and the idea he always had: that coffee is best when it’s shared.",
     image: "/kape.jpg",
+    ctaLink: "/brew-buggy",
+    ctaLabel: "Meet the Brew Buggy",
   },
   {
     id: "blend",
@@ -34,6 +38,8 @@ const STEPS: Step[] = [
       "Our beans come from Batangas. Robusta + Excelsa. Antonioni’s favorite blend, still the one we use today.",
     image:
       "https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=1200&auto=format&fit=crop",
+    ctaLink: "/about",
+    ctaLabel: "About us",
   },
 ];
 
@@ -149,10 +155,10 @@ export const RoastingExperience: React.FC = () => {
             {/* CTA Button */}
             <FadeUp delay={0.1} className="pt-4 border-t border-card-border">
               <Link
-                href="/about"
+                href={activeStep.ctaLink}
                 className="inline-flex items-center gap-2 type-ui font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 group transition-colors duration-300"
               >
-                Read our story
+                {activeStep.ctaLabel}
                 <ArrowRight size={14} className="group-hover:translate-x-1.5 transition-transform duration-300" />
               </Link>
             </FadeUp>

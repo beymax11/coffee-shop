@@ -4,59 +4,71 @@ import React, { useState, useMemo, useEffect } from "react";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
 import { getCachedData } from "@/utils/cache";
-import {
-  Star,
-  Eye,
-  Search,
-  Compass,
-  Coffee,
-  CupSoda,
-  Sparkles,
-  Leaf,
-  Cookie,
-  Cake,
-  ArrowRight,
-  Film,
-  Award,
-  Layers,
-  X
-} from "lucide-react";
+import { Eye, Search, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QuickViewModal } from "@/components/menu/QuickViewModal";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { MenuItem } from "@/types";
 
-// Category Icons mapping
-const categoryIcons: Record<string, React.ComponentType<any>> = {
-  "All": Compass,
-  "Hot Coffee": Coffee,
-  "Cold Coffee": CupSoda,
-  "Signature Drinks": Sparkles,
-  "Non-Coffee": Leaf,
-  "Pastries": Cookie,
-  "Desserts": Cake
-};
-
-// Curated Category Descriptions
-const categoryDescriptions: Record<string, string> = {
-  "All": "Browse our complete archive of master-crafted brews, chilled tonics, and baked luxuries.",
-  "Hot Coffee": "Pure espresso extracted at precise pressure, paired with perfectly textured microfoam.",
-  "Cold Coffee": "Chilled elixirs, slow-steeped cold brews, and cold foam concoctions crafted for refreshing energy.",
-  "Signature Drinks": "Exclusive, house-crafted signature pairings blending rare single-origin beans with botanical infusions.",
-  "Non-Coffee": "Ceremonial-grade Japanese matcha, organic loose-leaf teas, and calming botanical blends.",
-  "Pastries": "Flaky pastries baked fresh daily using premium French butter.",
-  "Desserts": "Sophisticated desserts and gourmet sweet pairings, designed to complement our roast profiles."
-};
-
+const LEGACY_MOCK_CATEGORIES = [
+  "Hot Coffee",
+  "Cold Coffee",
+  "Signature Drinks",
+  "Non-Coffee",
+  "Pastries",
+  "Desserts",
+];
 
 export function MenuView() {
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
-  // Sync menu items from local database on mount & on storage update
+  // Sync menu categories from Supabase database (menu_categories table)
+  const fetchCategories = async () => {
+    try {
+      const data = await getCachedData("menu_categories", async () => {
+        if (supabase) {
+          const { data: dbData, error } = await supabase
+            .from("menu_categories")
+            .select("name")
+            .order("created_at", { ascending: true });
+          if (!error && dbData && dbData.length > 0) {
+            return dbData
+              .map((c: any) => c.name?.trim())
+              .filter((c: string) => !!c && !LEGACY_MOCK_CATEGORIES.includes(c));
+          } else if (error) {
+            console.warn("Supabase select menu_categories error:", error);
+          }
+        }
+        // Fallback to /api/menu/categories endpoint
+        const res = await fetch("/api/menu/categories");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.categories && Array.isArray(json.categories)) {
+            return json.categories
+              .map((c: any) => (typeof c === "string" ? c : c?.name)?.trim())
+              .filter((c: string) => !!c && !LEGACY_MOCK_CATEGORIES.includes(c));
+          }
+        }
+        return [];
+      });
+
+      if (data && data.length > 0) {
+        setDbCategories(data);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("menu_categories", JSON.stringify(data));
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch menu categories:", err);
+    }
+  };
+
+  // Sync menu items strictly from Supabase (no mock data fallback)
   const fetchMenuItems = async () => {
     try {
       const data = await getCachedData("menu_items", async () => {
@@ -68,53 +80,135 @@ export function MenuView() {
           if (!error && dbData) {
             return dbData as MenuItem[];
           } else if (error) {
-            console.error("Supabase select error:", error);
+            console.error("Supabase select menu_items error:", error);
           }
         }
-        return db.getMenuItems();
+        return [];
       });
-      setItems(data);
+      setItems(data || []);
     } catch (err) {
       console.error("Failed to fetch menu items:", err);
-      setItems(db.getMenuItems());
+      setItems([]);
     }
   };
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const storedCats = localStorage.getItem("menu_categories");
+        if (storedCats) {
+          const parsedCats = JSON.parse(storedCats);
+          if (Array.isArray(parsedCats)) {
+            const cleanedCats = parsedCats
+              .map((c: any) => (typeof c === "string" ? c : c?.name)?.trim())
+              .filter((c: string) => !!c && !LEGACY_MOCK_CATEGORIES.includes(c));
+            if (cleanedCats.length > 0) {
+              setDbCategories(cleanedCats);
+            }
+            if (cleanedCats.length !== parsedCats.length) {
+              localStorage.setItem("menu_categories", JSON.stringify(cleanedCats));
+            }
+          }
+        }
+      } catch (_) { }
+    }
+
     fetchMenuItems();
+    fetchCategories();
+
     const handleStorage = (e: Event) => {
       const storageEvent = e as StorageEvent;
-      if (storageEvent.key === undefined || storageEvent.key === "menu_items" || storageEvent.key === null) {
+      if (
+        storageEvent.key === undefined ||
+        storageEvent.key === "menu_items" ||
+        storageEvent.key === null
+      ) {
         fetchMenuItems();
+      }
+      if (
+        storageEvent.key === undefined ||
+        storageEvent.key === "menu_categories" ||
+        storageEvent.key === null
+      ) {
+        fetchCategories();
       }
     };
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener("menu_categories_updated", fetchCategories);
+    window.addEventListener("menu_items_updated", fetchMenuItems);
+
+    // Live realtime sync with Supabase for menu_categories and menu_items
+    let channel: any = null;
+    if (supabase) {
+      channel = supabase
+        .channel("public:menu_categories_and_items")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "menu_categories" },
+          () => {
+            fetchCategories();
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "menu_items" },
+          () => {
+            fetchMenuItems();
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("menu_categories_updated", fetchCategories);
+      window.removeEventListener("menu_items_updated", fetchMenuItems);
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
+  // Compute categories prioritizing Supabase menu_categories table
   const categories = useMemo(() => {
-    const defaultCats = [
-      "All",
-      "Hot Coffee",
-      "Cold Coffee",
-      "Signature Drinks",
-      "Non-Coffee",
-      "Pastries",
-      "Desserts"
-    ];
-    const customCats = items
-      .map((item) => item.category)
-      .filter((cat): cat is string => !!cat && !defaultCats.includes(cat));
-    return [...defaultCats, ...Array.from(new Set(customCats))];
-  }, [items]);
+    const list: string[] = ["All"];
+    const seen = new Set<string>(["all"]);
+
+    // 1. First add categories from Supabase menu_categories table (in order)
+    dbCategories.forEach((cat) => {
+      const trimmed = cat.trim();
+      const lower = trimmed.toLowerCase();
+      if (trimmed && !seen.has(lower)) {
+        seen.add(lower);
+        list.push(trimmed);
+      }
+    });
+
+    // 2. Also include any category from existing items that may not be in menu_categories
+    items.forEach((item) => {
+      const trimmed = item.category?.trim();
+      if (trimmed) {
+        const lower = trimmed.toLowerCase();
+        if (!seen.has(lower)) {
+          seen.add(lower);
+          list.push(trimmed);
+        }
+      }
+    });
+
+    return list;
+  }, [dbCategories, items]);
 
   // Filtering Logic
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      const matchesSearch =
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+      const matchesCategory =
+        selectedCategory === "All" ||
+        item.category?.trim().toLowerCase() === selectedCategory.trim().toLowerCase();
 
       return matchesSearch && matchesCategory;
     });
@@ -143,12 +237,15 @@ export function MenuView() {
         <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
 
           {/* Header Title Block */}
-          <div className="text-center max-w-3xl mx-auto mb-10 flex flex-col items-center">
-            <h1 className="text-3xl sm:text-4xl font-sans font-black text-foreground tracking-tight leading-tight uppercase mb-3">
-              Freshly Brewed Selections
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12 flex flex-col items-center">
+            <span className="text-[11px] font-sans font-bold tracking-[0.25em] text-[#2E5A44] dark:text-emerald-400 uppercase mb-2">
+              Antonioni Grounds
+            </span>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-sans font-black text-foreground tracking-tight leading-tight uppercase mb-3">
+              Menu
             </h1>
-            <p className="type-body text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed">
-              Explore our master-crafted hot brews, cold tonics, zero-proof signature cocktail pairings, and freshly baked luxury desserts, directed with absolute precision.
+            <p className="type-body text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed text-sm sm:text-base">
+              Here’s what’s pouring. Hot, iced, or somewhere in between. Modest and Grand are our size names, “medium” and “large” felt like someone else’s menu.
             </p>
           </div>
 
@@ -177,7 +274,7 @@ export function MenuView() {
                   />
                   <input
                     type="text"
-                    placeholder="Search cellar..."
+                    placeholder="Search menu..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full rounded-xl border border-card-border dark:border-zinc-800 bg-background-alt/30 dark:bg-zinc-900/35 py-3 pl-12 pr-12 type-field text-foreground outline-none focus:border-emerald-500/80 focus:ring-4 focus:ring-emerald-500/5 transition-all duration-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-655 shadow-inner"
@@ -206,7 +303,7 @@ export function MenuView() {
                         <motion.button
                           key={category}
                           onClick={() => setSelectedCategory(category)}
-                          className={`relative flex items-center gap-2 rounded-xl px-4 py-2 sm:px-5 sm:py-2.5 lg:px-4 lg:py-2.5 type-ui border text-[10px] tracking-wider transition-all duration-300 whitespace-nowrap cursor-pointer z-10 lg:w-full lg:justify-start ${isSelected
+                          className={`relative flex items-center justify-center lg:justify-start rounded-xl px-4 py-2 sm:px-5 sm:py-2.5 lg:px-4 lg:py-2.5 type-ui border text-[10px] tracking-wider transition-all duration-300 whitespace-nowrap cursor-pointer z-10 lg:w-full ${isSelected
                             ? "border-transparent text-white font-bold"
                             : "border-card-border bg-background-alt/20 dark:border-zinc-900 dark:bg-zinc-900/20 text-zinc-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white hover:border-emerald-500/30 hover:bg-background"
                             }`}
@@ -250,14 +347,19 @@ export function MenuView() {
               {/* Empty State */}
               {filteredItems.length === 0 ? (
                 <div className="text-center py-24 border border-dashed border-card-border dark:border-zinc-900 rounded-3xl max-w-md mx-auto">
-                  <Film size={28} className="text-emerald-500/45 mx-auto mb-4 animate-pulse" />
-                  <p className="type-body-sm text-zinc-500 dark:text-zinc-500 font-medium">No items found matching your filters.</p>
-                  <button
-                    onClick={() => { setSearchQuery(""); setSelectedCategory("All"); }}
-                    className="mt-4 type-ui text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors font-bold underline decoration-emerald-500/30"
-                  >
-                    Reset Filters
-                  </button>
+                  <p className="type-body-sm text-zinc-500 dark:text-zinc-500 font-medium">
+                    {items.length === 0
+                      ? "No menu items available at the moment."
+                      : "No items found matching your filters."}
+                  </p>
+                  {(searchQuery !== "" || selectedCategory !== "All") && (
+                    <button
+                      onClick={() => { setSearchQuery(""); setSelectedCategory("All"); }}
+                      className="mt-4 type-ui text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors font-bold underline decoration-emerald-500/30"
+                    >
+                      Reset Filters
+                    </button>
+                  )}
                 </div>
               ) : (
                 /* Items Grid */
@@ -320,8 +422,26 @@ export function MenuView() {
                             {/* Price */}
                             <div className="flex items-center justify-between border-t border-card-border dark:border-zinc-900 pt-2.5 mt-3 sm:pt-4 sm:mt-4">
                               <span className="text-xs sm:text-base font-sans font-extrabold text-[#2E5A44] dark:text-emerald-400">
-                                ₱{item.price.toFixed(2)}
+                                {item.price != null
+                                  ? `₱${Number(item.price).toFixed(2)}`
+                                  : item.modest != null
+                                  ? `₱${Number(item.modest).toFixed(2)}`
+                                  : item.hot != null
+                                  ? `₱${Number(item.hot).toFixed(2)}`
+                                  : item.grand != null
+                                  ? `₱${Number(item.grand).toFixed(2)}`
+                                  : "—"}
                               </span>
+
+                              {(item.modest != null || item.grand != null || item.hot != null) && (
+                                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+                                  {item.modest != null && item.grand != null
+                                    ? "Modest / Grand"
+                                    : item.hot != null
+                                    ? "Hot / Iced"
+                                    : "Sizes available"}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>

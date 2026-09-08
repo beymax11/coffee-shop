@@ -2,22 +2,43 @@
 
 import React, { useState } from "react";
 import {
-  Mail,
-  Phone,
   MapPin,
   Check,
   Send,
   Clock,
   User,
+  Mail,
   FileText,
   MessageSquare,
   ArrowRight,
+  Calendar,
 } from "lucide-react";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { SALON_LOCATIONS } from "@/lib/constants";
+
+// Social SVG Icons
+const InstagramIcon = ({ size = 18 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+);
+
+const FacebookIcon = ({ size = 18 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
+const TikTokIcon = ({ size = 18 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+  </svg>
+);
 
 export function ContactView() {
   const [formData, setFormData] = useState({
@@ -45,21 +66,31 @@ export function ContactView() {
 
   const contactChannels = [
     {
-      icon: Mail,
-      label: "Email",
-      value: "concierge@antonionigrounds.com",
-      href: "mailto:concierge@antonionigrounds.com",
+      icon: InstagramIcon,
+      label: "Instagram",
+      value: "@antonioni.grounds",
+      hint: "DM for bookings, questions, or just to say hi",
+      href: "https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg==",
     },
     {
-      icon: Phone,
-      label: "Phone",
-      value: primaryLocation.phone,
-      href: `tel:${primaryLocation.phone.replace(/\s/g, "")}`,
+      icon: FacebookIcon,
+      label: "Facebook",
+      value: "Antonioni Grounds",
+      hint: "Connect on our Facebook page",
+      href: "https://www.facebook.com/share/1KExdzaSt5/",
+    },
+    {
+      icon: TikTokIcon,
+      label: "TikTok",
+      value: "@antonioni.grounds",
+      hint: "Watch our coffee brews and behind-the-scenes",
+      href: "https://www.tiktok.com/@antonioni.grounds?_r=1&_t=ZS-98UmTZeZYwi",
     },
     {
       icon: Clock,
-      label: "Response Time",
-      value: "Within 12 hours",
+      label: "Opening Hours",
+      value: "9:00 AM – 9:00 PM",
+      hint: "Monday – Sunday, everyday",
       href: undefined,
     },
   ];
@@ -95,14 +126,23 @@ export function ContactView() {
           <FadeUp className="relative z-10 text-center max-w-2xl px-6 space-y-4">
             <div className="flex items-center justify-center gap-3">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span className="type-eyebrow tracking-[0.25em] text-emerald-600 dark:text-emerald-400">Antonioni Grounds</span>
+              <span className="type-eyebrow tracking-[0.25em] text-emerald-600 dark:text-emerald-400">Tiaong, Quezon</span>
             </div>
-            <h1 className="type-h1 text-foreground leading-tight">
+            <h1 className="type-h1 text-foreground leading-tight font-serif">
               Get in Touch
             </h1>
-            <div className="h-[1px] w-12 bg-brand-gold mx-auto" />
+            <div className="h-[1px] w-12 bg-[#2E5A44] mx-auto" />
             <p className="type-body text-neutral-600 dark:text-zinc-400 max-w-md mx-auto">
-              Questions about our menu, private events, or wholesale partnerships — our concierge team is here to help.
+              Fastest way to reach us: Instagram,{" "}
+              <a
+                href="https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg=="
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline"
+              >
+                @antonioni.grounds
+              </a>
+              . DM for bookings, questions, or just to say hi.
             </p>
           </FadeUp>
         </div>
@@ -112,13 +152,13 @@ export function ContactView() {
             {/* Left sidebar */}
             <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-8">
               <FadeUp>
-                <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Connect</span>
-                <h2 className="type-h2 text-foreground mt-2 leading-snug">
-                  Bespoke Sourcing Consultations
+                <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Antonioni Grounds</span>
+                <h2 className="type-h2 text-foreground mt-2 leading-snug font-serif">
+                  Tara, kape!
                 </h2>
-                <div className="w-16 h-[1px] bg-[#2E5A44]/40 mt-5 mb-5" />
-                <p className="type-body text-neutral-600 dark:text-zinc-400 leading-relaxed">
-                  For wholesale accounts, event cart staging, or general inquiries about our roast profiles — reach us directly or visit our Tiaong flagship.
+                <div className="w-16 h-[1px] bg-[#2E5A44]/40 mt-4 mb-4" />
+                <p className="type-body text-neutral-600 dark:text-zinc-400 leading-relaxed text-sm">
+                  A coffee shop in Tiaong. A cart that comes to you. Same care either way. Connect with us on Instagram, book the Brew Buggy for your celebration, or drop by our shop.
                 </p>
               </FadeUp>
 
@@ -126,15 +166,10 @@ export function ContactView() {
                 <div className="relative rounded-xl overflow-hidden border border-card-border shadow-[0_10px_35px_rgba(0,0,0,0.12)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.6)] aspect-[4/3] group">
                   <Image
                     src="/res.jpg"
-                    alt="Antonioni Grounds coffee house interior"
+                    alt="Antonioni Grounds coffee house"
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4">
-
-
-                  </div>
                 </div>
               </FadeUp>
 
@@ -146,9 +181,12 @@ export function ContactView() {
                       <div className="rounded-full bg-[#2E5A44]/10 p-2.5 text-[#2E5A44] dark:text-emerald-400 shrink-0">
                         <Icon size={16} />
                       </div>
-                      <div className="min-w-0">
-                        <span className="type-label text-zinc-500 block">{channel.label}</span>
-                        <span className="type-body-sm text-foreground truncate block">{channel.value}</span>
+                      <div className="min-w-0 flex-1">
+                        <span className="type-label text-zinc-500 block text-xs">{channel.label}</span>
+                        <span className="type-body-sm text-foreground font-semibold truncate block">{channel.value}</span>
+                        {channel.hint && (
+                          <span className="text-[11px] text-neutral-400 dark:text-zinc-500 block truncate">{channel.hint}</span>
+                        )}
                       </div>
                     </div>
                   );
@@ -156,7 +194,7 @@ export function ContactView() {
                   return (
                     <StaggerItem key={channel.label}>
                       {channel.href ? (
-                        <a href={channel.href} className="block">
+                        <a href={channel.href} target="_blank" rel="noopener noreferrer" className="block">
                           {inner}
                         </a>
                       ) : (
@@ -167,13 +205,20 @@ export function ContactView() {
                 })}
               </StaggerContainer>
 
-              <FadeUp delay={0.2}>
+              <FadeUp delay={0.2} className="flex flex-col gap-3">
+                <Link
+                  href="/reservations?type=cart"
+                  className="type-ui group inline-flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-6 py-3 text-white border border-[#2E5A44]/30 transition-all duration-300 shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)]"
+                >
+                  <Calendar size={14} className="transition-transform duration-300 group-hover:scale-110" />
+                  Book the Brew Buggy
+                  <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
                 <Link
                   href="/reservations"
-                  className="type-ui group inline-flex items-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-6 py-3 text-white border border-[#2E5A44]/30 transition-all duration-300 shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)] hover:text-white"
+                  className="type-ui group inline-flex items-center justify-center gap-2 rounded-full border border-card-border bg-card/80 hover:bg-neutral-100 dark:hover:bg-zinc-800 px-6 py-3 text-foreground transition-all duration-300 text-xs"
                 >
                   Reserve a Table
-                  <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
               </FadeUp>
             </div>
@@ -182,115 +227,88 @@ export function ContactView() {
             <div className="lg:col-span-8 space-y-12">
               {/* Inquiry form */}
               <FadeUp>
-                <div className="rounded-2xl p-8 md:p-10 shadow-[0_0_50px_rgba(0,0,0,0.04)] dark:shadow-[0_0_50px_rgba(0,0,0,0.6)] relative overflow-hidden glassmorphism-green">
-                  <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-emerald-500/30" />
-                  <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-emerald-500/30" />
-                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-emerald-500/30" />
-                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-emerald-500/30" />
-                  <div className="absolute -bottom-1/4 -right-1/4 w-72 h-72 bg-[#2E5A44]/5 blur-[90px] rounded-full pointer-events-none" />
-
+                <div className="rounded-2xl p-8 md:p-10 shadow-[0_0_50px_rgba(0,0,0,0.04)] dark:shadow-[0_0_50px_rgba(0,0,0,0.6)] relative overflow-hidden glassmorphism-green border border-card-border bg-card/60 backdrop-blur-md">
                   <div className="relative z-10 space-y-6">
                     <div className="border-b border-card-border pb-4">
-                      <h3 className="type-h3 text-foreground">Send an Inquiry</h3>
+                      <h3 className="type-h3 text-foreground font-serif">Send a Message</h3>
                       <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-1">
-                        We typically respond within 12 hours on business days.
+                        Questions about our drinks, orders, or booking? Drop us a note here.
                       </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
-                      {isSent && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 type-success text-emerald-400 flex items-center gap-2"
-                        >
-                          <Check size={16} />
-                          <span>Inquiry sent successfully. A concierge will respond shortly.</span>
-                        </motion.div>
-                      )}
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div className="space-y-2">
-                          <label className="type-label block pl-1 tracking-[0.2em] text-[#2E5A44]/90 dark:text-emerald-400">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="type-label text-foreground flex items-center gap-2 text-xs">
+                            <User size={13} className="text-emerald-500" />
                             Your Name
                           </label>
-                          <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-500 transition-colors">
-                              <User size={14} />
-                            </div>
-                            <input
-                              type="text"
-                              required
-                              placeholder="Your full name"
-                              value={formData.name}
-                              onChange={(e) => updateField("name", e.target.value)}
-                              className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="type-label block pl-1 tracking-[0.2em] text-[#2E5A44]/90 dark:text-emerald-400">
-                            Email Address
-                          </label>
-                          <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-500 transition-colors">
-                              <Mail size={14} />
-                            </div>
-                            <input
-                              type="email"
-                              required
-                              placeholder="concierge@example.com"
-                              value={formData.email}
-                              onChange={(e) => updateField("email", e.target.value)}
-                              className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="type-label block pl-1 tracking-[0.2em] text-[#2E5A44]/90 dark:text-emerald-400">
-                          Subject
-                        </label>
-                        <div className="relative group">
-                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500 group-focus-within:text-emerald-500 transition-colors">
-                            <MessageSquare size={14} />
-                          </div>
                           <input
                             type="text"
-                            placeholder="Microlot subscription query..."
-                            value={formData.subject}
-                            onChange={(e) => updateField("subject", e.target.value)}
-                            className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300 placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
+                            required
+                            placeholder="Juan Dela Cruz"
+                            value={formData.name}
+                            onChange={(e) => updateField("name", e.target.value)}
+                            className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-2.5 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="type-label text-foreground flex items-center gap-2 text-xs">
+                            <Mail size={13} className="text-emerald-500" />
+                            Email Address
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            placeholder="juan@example.com"
+                            value={formData.email}
+                            onChange={(e) => updateField("email", e.target.value)}
+                            className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-2.5 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="type-label block pl-1 tracking-[0.2em] text-[#2E5A44]/90 dark:text-emerald-400">
+                      <div className="space-y-1.5">
+                        <label className="type-label text-foreground flex items-center gap-2 text-xs">
+                          <FileText size={13} className="text-emerald-500" />
+                          Subject
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Event Booking / Table Inquiry / General Question"
+                          value={formData.subject}
+                          onChange={(e) => updateField("subject", e.target.value)}
+                          className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-2.5 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-neutral-400 dark:placeholder:text-zinc-600"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="type-label text-foreground flex items-center gap-2 text-xs">
+                          <MessageSquare size={13} className="text-emerald-500" />
                           Your Message
                         </label>
-                        <div className="relative group">
-                          <div className="absolute top-3.5 left-3.5 pointer-events-none text-zinc-500 group-focus-within:text-emerald-500 transition-colors">
-                            <FileText size={14} />
-                          </div>
-                          <textarea
-                            rows={4}
-                            required
-                            placeholder="Write your concierge request..."
-                            value={formData.message}
-                            onChange={(e) => updateField("message", e.target.value)}
-                            className="w-full rounded-lg border border-card-border bg-background-alt/50 pl-10 pr-3.5 py-3 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none placeholder:text-neutral-400 dark:placeholder:text-zinc-600 min-h-[120px]"
-                          />
-                        </div>
+                        <textarea
+                          required
+                          placeholder="Tell us what you need..."
+                          value={formData.message}
+                          onChange={(e) => updateField("message", e.target.value)}
+                          className="w-full rounded-lg border border-card-border bg-background-alt/50 px-3.5 py-2.5 font-sans text-sm text-foreground outline-none focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none placeholder:text-neutral-400 dark:placeholder:text-zinc-600 min-h-[120px]"
+                        />
                       </div>
+
+                      {isSent && (
+                        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
+                          <Check size={14} className="stroke-[3]" />
+                          <span>Thank you! Your message has been received. Tara, kape!</span>
+                        </div>
+                      )}
 
                       <motion.button
                         type="submit"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="type-ui group relative w-full flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)]"
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        className="type-ui group relative w-full flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] py-3.5 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] cursor-pointer"
                       >
                         <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
                         <span className="relative flex items-center gap-2">
@@ -303,26 +321,26 @@ export function ContactView() {
                 </div>
               </FadeUp>
 
-              {/* Coffee Concierge with Map */}
-              <div className="space-y-8">
+              {/* Coffee Shop Location with Map */}
+              <div className="space-y-6">
                 <FadeUp>
-                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
                     <div>
-                      <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Our Coffee Shop</span>
-                      <h1 className="type-h1 text-foreground leading-tight">
-                        Coffee Concierge
-                      </h1>
+                      <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Our Location</span>
+                      <h2 className="type-h2 text-foreground leading-tight font-serif mt-1">
+                        Visit Antonioni Grounds
+                      </h2>
                     </div>
                     <p className="type-body-sm text-neutral-500 dark:text-zinc-400 max-w-md">
-                      Visit our sensory flagship lounge for the full Antonioni experience.
+                      Drop by for a freshly brewed cup. Connection first, coffee second.
                     </p>
                   </div>
                 </FadeUp>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                  {/* Left Column: Location Details */}
+                  {/* Location Details Card */}
                   <div className="lg:col-span-5 h-full">
-                    <div className="group rounded-xl border border-card-border bg-card p-6 space-y-4 h-full flex flex-col justify-between transition-all duration-300 hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(46,90,68,0.12)] hover:-translate-y-0.5">
+                    <div className="group rounded-xl border border-card-border bg-card p-6 space-y-4 h-full flex flex-col justify-between transition-all duration-300 hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(46,90,68,0.12)]">
                       <div className="space-y-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="rounded-full bg-[#2E5A44]/10 p-2.5 text-[#2E5A44] dark:text-emerald-400 shrink-0">
@@ -332,28 +350,31 @@ export function ContactView() {
                         </div>
 
                         <div>
-                          <h4 className="type-subheading text-foreground">{primaryLocation.name}</h4>
+                          <h4 className="type-subheading text-foreground font-semibold">{primaryLocation.name}</h4>
                           <p className="type-body-sm text-neutral-600 dark:text-zinc-400 mt-2 leading-relaxed">{primaryLocation.address}</p>
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-2 pt-3 border-t border-card-border mt-auto">
-                        <span className="flex items-center gap-2 type-caption text-neutral-600 dark:text-zinc-500">
-                          <Phone size={11} className="text-emerald-500/70 shrink-0" />
-                          <a href={`tel:${primaryLocation.phone.replace(/\s/g, "")}`} className="hover:text-emerald-500 transition-colors">
-                            {primaryLocation.phone}
-                          </a>
+                      <div className="flex flex-col gap-2.5 pt-4 border-t border-card-border mt-auto">
+                        <span className="flex items-center gap-2 type-caption text-neutral-600 dark:text-zinc-400">
+                          <Clock size={12} className="text-emerald-500/80 shrink-0" />
+                          <span>9:00 AM – 9:00 PM (Monday – Sunday)</span>
                         </span>
-                        <span className="flex items-center gap-2 type-caption text-neutral-600 dark:text-zinc-500">
-                          <Clock size={11} className="text-emerald-500/70 shrink-0" />
-                          {primaryLocation.hours}
-                        </span>
+                        <a
+                          href="https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg=="
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 type-caption text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
+                        >
+                          <InstagramIcon size={12} />
+                          <span>DM us on Instagram (@antonioni.grounds)</span>
+                        </a>
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Column: Google Maps Embed */}
-                  <div className="lg:col-span-7 min-h-[300px] lg:min-h-full rounded-xl overflow-hidden border border-card-border shadow-[0_8px_30px_rgba(0,0,0,0.2)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
+                  {/* Google Maps Embed */}
+                  <div className="lg:col-span-7 min-h-[300px] lg:min-h-full rounded-xl overflow-hidden border border-card-border shadow-[0_8px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
                     <iframe
                       title="Antonioni Grounds Tiaong Flagship Map"
                       src="https://maps.google.com/maps?q=Antonioni%20Grounds,%20Tiaong,%20Quezon&t=&z=16&ie=UTF8&iwloc=&output=embed"

@@ -9,6 +9,7 @@ import { SignatureShowcase } from "@/components/sections/SignatureShowcase";
 import { EventShowcase } from "@/components/sections/EventShowcase";
 import { EventsUpdates } from "@/components/sections/EventsUpdates";
 import { LifestyleGrid } from "@/components/sections/LifestyleGrid";
+import { ClosingBand } from "@/components/sections/ClosingBand";
 import { QuickViewModal } from "@/components/menu/QuickViewModal";
 import { MenuItem } from "@/types";
 
@@ -30,6 +31,7 @@ export function HomeView() {
       <EventShowcase />
       <EventsUpdates />
       <LifestyleGrid />
+      <ClosingBand />
       <QuickViewModal
         isOpen={isQuickViewOpen}
         onClose={() => setIsQuickViewOpen(false)}

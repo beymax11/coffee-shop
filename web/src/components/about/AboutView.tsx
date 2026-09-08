@@ -1,226 +1,93 @@
 "use client";
 
 import React from "react";
-import { Coffee, Award, ShieldCheck, Heart, ArrowRight, Eye, Leaf, Target, Compass } from "lucide-react";
-import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import Link from "next/link";
+import { ArrowRight, Coffee } from "lucide-react";
+import { PageTransition } from "@/components/animations";
 
 export function AboutView() {
-  const values = [
-    {
-      title: "Direct Sourcing Ethics",
-      desc: "We skip intermediate auctions, dealing directly with individual family growers. Paying up to 80% above standard Fair Trade rates ensures sustainable livelihoods and exceptional bean care.",
-      icon: Leaf,
-    },
-    {
-      title: "Micro-Lot Roasting",
-      desc: "Each crop is roasted in small 5kg batches inside our custom copper roasters. High-frequency sensors track temperature adjustments, highlighting subtle floral profiles.",
-      icon: Coffee,
-    },
-    {
-      title: "Aesthetic Quietude",
-      desc: "Our global coffee houses are designed as sensory sanctuaries. Blending Japanese minimalism with matte-black glassmorphism, we provide a silent space to appreciate coffee.",
-      icon: ShieldCheck,
-    }
-  ];
-
-  const timeline = [
-    {
-      year: "2023",
-      title: "Grounds Zero: Tokyo",
-      desc: "Established our initial coffee studio in Aoyama, Tokyo, focusing exclusively on hand-poured geisha microlots."
-    },
-    {
-      year: "2024",
-      title: "The Roastery: Brooklyn",
-      desc: "Launched our state-of-the-art roasting headquarters, housing our custom sensory cupping lab."
-    },
-    {
-      year: "2025",
-      title: "Antonioni Privé Launch",
-      desc: "Introduced our bespoke mobile coffee cart catering services for gala events across New York, Paris, and Tokyo."
-    },
-    {
-      year: "2026",
-      title: "Boutique Expansion",
-      desc: "Releasing our signature Obsidian lifestyle merchandise and launching our global online bean reserve."
-    }
-  ];
-
-  const processes = [
-    {
-      step: "01",
-      title: "Micro-Lot Selection",
-      desc: "We cup over 300 samples annually, selecting only the top 1% scoring 88+ on the Specialty Coffee Association scale."
-    },
-    {
-      step: "02",
-      title: "Acoustic Cracking",
-      desc: "Our roasters roast strictly to the 'first crack', preserving fruit sugars and preventing any bitter carbon notes."
-    },
-    {
-      step: "03",
-      title: "Spherical Chilling",
-      desc: "Signature iced beverages are poured over artisanal spherical slow-melt ice, preserving espresso concentration."
-    }
-  ];
-
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background py-16 md:py-24 text-foreground transition-colors duration-500">
+      <div className="min-h-screen bg-background py-16 md:py-24 text-foreground transition-colors duration-500 relative overflow-hidden">
+        {/* Subtle ambient glows */}
+        <div className="absolute top-1/4 -left-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-1/3 -right-48 w-96 h-96 bg-[#2E5A44]/5 rounded-full filter blur-[120px] pointer-events-none" />
 
-        {/* Cinematic Header Section */}
-        <div className="relative h-[400px] w-full flex items-center justify-center overflow-hidden mb-20">
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-15 dark:opacity-30"
-            style={{
-              backgroundImage: "url('https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=1600&auto=format&fit=crop')",
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 dark:via-background/40 to-background/20 dark:to-black/60 transition-colors duration-500" />
-
-          <div className="relative z-10 text-center max-w-2xl px-6 space-y-4">
-            <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Antonioni Grounds Story</span>
+        <div className="mx-auto max-w-3xl px-6 md:px-8 text-center relative z-10 space-y-16">
+          {/* Header Section */}
+          <div className="space-y-4">
+            <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 font-bold block">
+              Antonioni Grounds
+            </span>
             <h1 className="type-h1 text-foreground leading-tight">
-              Our Heritage & Philosophy
+              Nice to meet you!
             </h1>
-            <p className="type-body text-neutral-600 dark:text-zinc-400 max-w-md mx-auto">
-              Coffee as a translation of volcanic soil. Handcrafted roasting executed with culinary precision and architectural restraint.
+            <div className="w-12 h-[1.5px] bg-[#2E5A44] dark:bg-emerald-500/60 mx-auto mt-4" />
+          </div>
+
+          {/* Maru Legacy & Connection */}
+          <div className="space-y-6 text-neutral-600 dark:text-zinc-300 type-body text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
+            <p>
+              Antonioni Grounds is named after Maru “Antonioni,” a beloved son, brother, and friend. Each cup made from these beans is a testament to his legacy, and his undying love for brewed coffee.
+            </p>
+            <p>
+              A cup of coffee is more than a morning pick me up. It’s an experience meant to be savored, shared, and celebrated. At Antonioni Grounds, we believe a shared cup of coffee brings people together. Connection first, coffee second. Or maybe it’s the other way around. Either way, tara, kape.
             </p>
           </div>
-        </div>
 
-        <div className="mx-auto max-w-7xl px-6 md:px-8 space-y-28">
+          {/* What we're about Section */}
+          <div className="pt-10 border-t border-card-border space-y-6 max-w-2xl mx-auto">
+            <span className="text-[10px] tracking-[0.25em] font-sans font-bold uppercase text-emerald-600 dark:text-emerald-400 block">
+              Our Philosophy
+            </span>
+            <h2 className="type-h2 text-foreground">
+              What we’re about
+            </h2>
 
-          {/* Section: Mission & Vision */}
-          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Mission Card */}
-            <StaggerItem className="rounded-xl border border-card-border bg-card p-8 space-y-4 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 dark:hover:shadow-none hover:-translate-y-1 transition-all duration-300">
-              <div className="rounded-full bg-[#2E5A44]/10 p-3 text-[#2E5A44] dark:text-emerald-400 w-fit">
-                <Target size={20} />
+            <p className="type-body text-neutral-600 dark:text-zinc-300 text-base leading-relaxed">
+              We do not craft coffee, we craft connection. That’s the whole philosophy, really. A barista remembering your tumbler, your order, your face when you walk in, that says more about us than anything we could write here.
+            </p>
+
+            {/* Beans Highlight (Clean, unboxed) */}
+            <div className="py-6 space-y-2">
+              <div className="flex items-center justify-center gap-2 text-emerald-700 dark:text-emerald-400">
+
+                <span className="font-serif italic font-medium text-base">Batangas Robusta + Excelsa</span>
               </div>
-              <h3 className="type-subheading text-foreground">Our Mission</h3>
-              <p className="type-body text-neutral-600 dark:text-zinc-400">
-                To elevate coffee from a daily routine into an extraordinary sensory ritual. We are dedicated to ethically sourcing the top 1% single-origin microlots directly from smallholder family farms, micro-roasting with scientific precision, and serving every cup in mindful, beautifully crafted spaces.
-              </p>
-            </StaggerItem>
-
-            {/* Vision Card */}
-            <StaggerItem className="rounded-xl border border-card-border bg-card p-8 space-y-4 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 dark:hover:shadow-none hover:-translate-y-1 transition-all duration-300">
-              <div className="rounded-full bg-[#2E5A44]/10 p-3 text-[#2E5A44] dark:text-emerald-400 w-fit">
-                <Compass size={20} />
-              </div>
-              <h3 className="type-subheading text-foreground">Our Vision</h3>
-              <p className="type-body text-neutral-600 dark:text-zinc-400">
-                To be the gold standard of modern luxury coffee culture globally—setting new benchmarks in direct-trade ethics, eco-conscious roasting, and architectural aesthetic quietude, while inspiring a deeper appreciation for the rich heritage behind every coffee origin.
-              </p>
-            </StaggerItem>
-          </StaggerContainer>
-
-          {/* Section 1: The Ritual Sourcing */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-6">
-              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Origin Matters</span>
-              <h2 className="type-h2 text-foreground leading-snug">
-                Tracing Volcanoes & Single-Family Farms
-              </h2>
-              <p className="type-body text-neutral-600 dark:text-zinc-400">
-                Every bean has a coordinates footprint. We source our coffee from single-family microlots nestled on high-altitude volcanic mountains. In Boquete, Panama, we partner with the Altieri family, whose Geisha crops benefit from dense volcanic soil and mist breezes. In Sidama, Ethiopia, we work with smallholder collectives who slow-dry cherries on raised bamboo beds.
-              </p>
-              <p className="type-body text-neutral-600 dark:text-zinc-400">
-                By purchasing direct and avoiding bulk trade, we preserve the unique genetic flavors of each estate—bringing you cup experiences that resemble orange jasmine blossom and sweet peach honey.
+              <p className="type-body-sm text-neutral-600 dark:text-zinc-400 max-w-lg mx-auto leading-relaxed">
+                Our beans come from Batangas. Robusta + Excelsa. Antonioni’s favorite blend, still the one we pour today.
               </p>
             </div>
 
-            <div className="relative h-[380px] rounded-2xl overflow-hidden border border-card-border shadow-xl group">
-              <img
-                src="https://images.unsplash.com/photo-1507133750040-4a8f57021571?q=80&w=800&auto=format&fit=crop"
-                alt="Coffee plantation cherry picking"
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-            </div>
+            {/* Tiaong & Mobile Cart Presence */}
+            <p className="type-body text-neutral-600 dark:text-zinc-300 text-base leading-relaxed">
+              Today, that’s a coffee shop in Tiaong, and a mobile cart, the Brew Buggy, that goes wherever the community needs us.
+            </p>
           </div>
 
-          {/* Section 2: Values Cards */}
-          <div className="space-y-12">
-            <div className="text-center max-w-xl mx-auto">
-              <span className="type-eyebrow font-sans text-emerald-600 dark:text-emerald-400">Corporate Ethics</span>
-              <h2 className="type-h2 text-foreground mt-1">Our Core Pillars</h2>
-            </div>
-
-            <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {values.map((v, i) => {
-                const Icon = v.icon;
-                return (
-                  <StaggerItem
-                    key={i}
-                    className="rounded-xl border border-card-border bg-card p-8 space-y-4 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 dark:hover:shadow-none hover:-translate-y-1 transition-all duration-300"
-                  >
-                    <div className="rounded-full bg-[#2E5A44]/10 p-3 text-[#2E5A44] dark:text-emerald-400 w-fit">
-                      <Icon size={20} />
-                    </div>
-                    <h3 className="type-subheading text-foreground">{v.title}</h3>
-                    <p className="type-body text-neutral-600 dark:text-zinc-400">{v.desc}</p>
-                  </StaggerItem>
-                );
-              })}
-            </StaggerContainer>
+          {/* Call to Action: Meet the Brew Buggy */}
+          <div className="pt-8 space-y-3 flex flex-col items-center">
+            <Link
+              href="/brew-buggy"
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-7 py-3.5 font-sans text-xs uppercase font-bold tracking-widest text-white border border-[#2E5A44]/40 shadow-[0_4px_20px_rgba(46,90,68,0.25)] hover:shadow-[0_4px_25px_rgba(46,90,68,0.4)] transition-all duration-300 active:scale-95"
+            >
+              <Coffee size={14} className="stroke-[2.5]" />
+              <span>Meet the Brew Buggy</span>
+              <span className="inline-flex items-center max-w-0 opacity-0 overflow-hidden group-hover:max-w-[20px] group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-300">
+                <ArrowRight size={14} className="stroke-[2.5]" />
+              </span>
+            </Link>
+            <span className="text-xs text-neutral-400 dark:text-zinc-500 italic">
+              (for the full story of how this all started)
+            </span>
           </div>
 
-          {/* Section 3: The Roasting Timeline */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-            <div className="space-y-6 lg:sticky lg:top-28">
-              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">The Chronicles</span>
-              <h2 className="type-h2 text-foreground">Chronological Growth</h2>
-              <p className="type-body text-neutral-600 dark:text-zinc-400">
-                From a private 4-seat espresso counter in Aoyama, Tokyo, to private fashion galas across Paris and a global roasting lab. Our path has always prioritized premium, slow curation over mass expansion.
-              </p>
-
-              <div className="pt-4">
-                <Link
-                  href="/menu"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-[#2E5A44] px-6 py-2.5 type-ui text-white hover:bg-[#234533] transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)]"
-                >
-                  Explore Current Menu
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
-            </div>
-
-            <div className="border-l-2 border-[#2E5A44]/20 dark:border-card-border pl-8 space-y-12">
-              {timeline.map((item, idx) => (
-                <div key={idx} className="relative space-y-2">
-                  {/* Dot */}
-                  <div className="absolute -left-[38px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-emerald-500 bg-background" />
-
-                  <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">{item.year}</span>
-                  <h4 className="type-subheading text-foreground">{item.title}</h4>
-                  <p className="type-body text-neutral-600 dark:text-zinc-400">{item.desc}</p>
-                </div>
-              ))}
-            </div>
+          {/* Sign-off */}
+          <div className="pt-4">
+            <h3 className="text-3xl md:text-4xl font-serif font-bold text-emerald-600 dark:text-emerald-400 tracking-wide">
+              Tara, kape!
+            </h3>
           </div>
-
-          {/* Section 4: Roasting Process steps */}
-          <div className="rounded-2xl p-8 md:p-12 relative overflow-hidden glassmorphism-green">
-            <div className="absolute -bottom-1/4 -left-1/4 w-80 h-80 bg-[#2E5A44]/5 blur-[90px] rounded-full pointer-events-none" />
-
-            <div className="text-center max-w-xl mx-auto mb-12">
-              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Sensory Science</span>
-              <h2 className="type-h2-alt text-foreground mt-1">The Coffee Ceremony</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {processes.map((p, idx) => (
-                <div key={idx} className="space-y-3 relative">
-                  <span className="type-step text-emerald-500/35 dark:text-emerald-500/20 block">{p.step}</span>
-                  <h4 className="type-subheading text-foreground mt-2">{p.title}</h4>
-                  <p className="type-body-sm text-neutral-600 dark:text-zinc-400">{p.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
         </div>
       </div>
     </PageTransition>

@@ -524,13 +524,13 @@ export function ReservationsView() {
   }[] = [
       {
         type: "Table Reservation",
-        title: "Lounge Table Reservation",
-        category: "In-House Café",
-        desc: "Reserve a private table in our luxury matte-black café. Perfect for premium coffee tastings, quiet meetings, or personal coffee rituals.",
+        title: "Table Reservation",
+        category: "Tiaong Coffee Shop",
+        desc: "Pick your date and party size, we’ll confirm you. Book here or directly through Instagram DM (@antonioni.grounds).",
         features: [
-          "1 - 4 guests capacity",
-          "₱3,500 fully consumable fee",
-          "3-hour table booking duration",
+          "1 – 4 guests capacity per table",
+          "₱3,500 consumable reservation fee",
+          "3 hours table booking duration",
           "100% refundable up to 24h prior"
         ],
         pricing: "₱3,500 / 3 Hours",
@@ -538,14 +538,14 @@ export function ReservationsView() {
       {
         type: "Coffee Cart Booking",
         title: '"Brew Buggy" Mobile Coffee Cart',
-        category: "Off-Site Sourcing",
-        desc: "Sponsor Antonioni Ground's exclusive Brew Buggy coffee cart, designed exclusively for special occasions.",
+        category: "Antonioni Grounds on Wheels",
+        desc: "Tell us the date, the headcount, and whether you’ve got a 2500W outlet ready. We’ll take it from there.",
         features: [
-          "Inclusions: Cart, 2 Baristas, 3 Hours Service",
-          "Flavor Options: Latte, Americano, +2 Flavors, +2 Non-Coffee",
-          "Price: 50 Pax (₱5,500) to 200 Pax (₱22,000)",
-          "10% Downpayment required to secure booking",
-          "100% Refundable up to 1 week before booking date"
+          "Cart, 2 baristas, 3 hours service",
+          "Latte, Americano, +2 Flavors, +2 Non-Coffee",
+          "50 Pax (₱5,500) to 200 Pax (₱22,000)",
+          "Needs a 2500W outlet ready at your venue",
+          "Custom event cups + stickers available"
         ],
         pricing: "From ₱5,500 / 3 Hours",
       },
@@ -1028,7 +1028,7 @@ export function ReservationsView() {
                       </span>
                     )}
                     <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-0">
-                      {step >= 2 ? "Select Date & Time" : "Secure Your Ritual"}
+                      {step >= 2 ? "Select Date & Time" : "Book with Us"}
                     </h1>
                     <div className="w-16 h-[1px] bg-brand-gold mt-4 mb-5" />
 
@@ -1448,8 +1448,8 @@ export function ReservationsView() {
                         >
                           <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
-                              <h3 className="text-xl font-serif text-foreground tracking-wide">Select Experience Type</h3>
-                              <p className="text-xs text-zinc-500 mt-1 font-light">Choose how you wish to spend your time with us.</p>
+                              <h3 className="text-xl font-serif text-foreground tracking-wide">Book a Table or Brew Buggy</h3>
+                              <p className="text-xs text-zinc-500 mt-1 font-light">Book right here or through Instagram DM (<a href="https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg==" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">@antonioni.grounds</a>). Whichever’s easier for you.</p>
                             </div>
                             <button
                               type="button"

@@ -290,7 +290,7 @@ export const auditLogger = {
           action: "CREATE",
           category: "menu",
           target: `Menu Offering: ${item.name}`,
-          details: `Published menu offering '${item.name}' priced at ₱${item.price.toFixed(2)} under category '${item.category}'.`,
+          details: `Published menu offering '${item.name}'${item.price != null ? ` priced at ₱${Number(item.price).toFixed(2)}` : ""} under category '${item.category}'.`,
           ipAddress: "192.168.1.10",
           severity: "info",
           metadata: {

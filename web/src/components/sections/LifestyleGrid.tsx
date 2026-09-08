@@ -357,12 +357,12 @@ export const LifestyleGrid: React.FC = () => {
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center max-w-xl mx-auto mb-8 md:mb-12">
-          <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Social Curation</span>
+          <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Community</span>
           <h2 className="type-h2 text-foreground mt-2 font-serif">
             Antonioni Grounds Lifestyle
           </h2>
           <p className="type-caption text-zinc-500 dark:text-zinc-500 mt-2">
-            Tag <span className="text-emerald-600 dark:text-emerald-400 font-bold">@antonioni_grounds</span> to be featured in our monthly selection.
+            Tag us <span className="text-emerald-600 dark:text-emerald-400 font-bold">#antonionigrounds #natorist</span>. We read every one, especially the ones where you tell us we remembered your order before you said it.
           </p>
         </div>
 
@@ -378,8 +378,8 @@ export const LifestyleGrid: React.FC = () => {
                 key={post.id}
                 delay={idx * 0.08}
                 className={`${isLarge
-                    ? "col-span-2 row-span-2 h-[350px] md:h-full min-h-[350px] md:min-h-[528px]"
-                    : "col-span-1 h-44 md:h-[252px]"
+                  ? "col-span-2 row-span-2 h-[350px] md:h-full min-h-[350px] md:min-h-[528px]"
+                  : "col-span-1 h-44 md:h-[252px]"
                   } relative rounded-2xl overflow-hidden group border border-card-border shadow-md hover:shadow-xl transition-all duration-500 bg-neutral-900 cursor-pointer`}
               >
                 <div className="w-full h-full" onClick={() => setSelectedPostIndex(idx)}>
@@ -448,12 +448,12 @@ export const LifestyleGrid: React.FC = () => {
               <p className="text-xs text-neutral-500 dark:text-zinc-500 font-sans">Share your coffee moments and stay in the loop.</p>
             </div>
             <a
-              href="https://instagram.com"
+              href="https://www.instagram.com/antonioni.grounds/"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#2E5A44] to-[#234533] hover:from-[#234533] hover:to-[#2E5A44] text-white font-sans text-xs font-bold tracking-wider uppercase rounded-lg shadow-md hover:shadow-emerald-500/10 transition-all duration-300 shrink-0 cursor-pointer"
             >
-              <InstagramIcon size={14} /> Follow @antonioni_grounds
+              <InstagramIcon size={14} /> Follow @antonioni.grounds
             </a>
           </div>
         </FadeUp>

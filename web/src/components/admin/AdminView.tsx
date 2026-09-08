@@ -11,6 +11,7 @@ import { getMaintenanceMode, setMaintenanceMode } from "@/utils/settings";
 import { formatPhoneNumber } from "@/utils/phone";
 import { notificationsService } from "@/utils/notifications";
 import { eraseCookie } from "@/utils/cookies";
+import { invalidateCache } from "@/utils/cache";
 
 // Import modular sub-components
 import { Sidebar } from "./sidebar/Sidebar";
@@ -65,7 +66,10 @@ export const AdminView: React.FC = () => {
   const [menuForm, setMenuForm] = useState<{
     name: string;
     description: string;
-    price: number;
+    price?: number | string;
+    hot?: number | string;
+    modest?: number | string;
+    grand?: number | string;
     category: string;
     image: string;
     tags: string;
@@ -73,8 +77,11 @@ export const AdminView: React.FC = () => {
   }>({
     name: "",
     description: "",
-    price: 0,
-    category: "Hot Coffee",
+    price: "",
+    hot: "",
+    modest: "",
+    grand: "",
+    category: "",
     image: "",
     tags: "",
     imageFile: null
@@ -237,18 +244,18 @@ export const AdminView: React.FC = () => {
 
         if (error) {
           console.error("Error fetching menu items from Supabase:", error);
-          setMenuItems(db.getMenuItems());
+          setMenuItems([]);
           return;
         }
         if (data) {
           setMenuItems(data as MenuItem[]);
         }
       } else {
-        setMenuItems(db.getMenuItems());
+        setMenuItems([]);
       }
     } catch (err) {
       console.error("Error loading menu items:", err);
-      setMenuItems(db.getMenuItems());
+      setMenuItems([]);
     }
   };
 
@@ -950,8 +957,12 @@ export const AdminView: React.FC = () => {
   // Menu Item
   const handleAddMenuSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!menuForm.category?.trim()) {
+      toast.error("Please select or enter a category for this menu item.");
+      return;
+    }
     const isEditing = !!editingMenuItem;
-    const uniqueId = `m-${crypto.randomUUID()}`;
+    const uniqueId = crypto.randomUUID();
     let finalImageUrl = menuForm.image || "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=600&auto=format&fit=crop";
 
     try {
@@ -978,11 +989,19 @@ export const AdminView: React.FC = () => {
           }
         }
 
+        const priceVal = menuForm.price !== "" && menuForm.price !== undefined && menuForm.price !== null ? Number(menuForm.price) : null;
+        const hotVal = menuForm.hot !== "" && menuForm.hot !== undefined && menuForm.hot !== null ? Number(menuForm.hot) : null;
+        const modestVal = menuForm.modest !== "" && menuForm.modest !== undefined && menuForm.modest !== null ? Number(menuForm.modest) : null;
+        const grandVal = menuForm.grand !== "" && menuForm.grand !== undefined && menuForm.grand !== null ? Number(menuForm.grand) : null;
+
         const newItem: MenuItem = {
           id: editingMenuItem ? editingMenuItem.id : uniqueId,
           name: menuForm.name,
           description: menuForm.description,
-          price: Number(menuForm.price),
+          price: priceVal,
+          hot: hotVal,
+          modest: modestVal,
+          grand: grandVal,
           rating: editingMenuItem ? editingMenuItem.rating : 5.0,
           image: finalImageUrl,
           category: menuForm.category,
@@ -996,6 +1015,9 @@ export const AdminView: React.FC = () => {
             name: newItem.name,
             description: newItem.description,
             price: newItem.price,
+            hot: newItem.hot,
+            modest: newItem.modest,
+            grand: newItem.grand,
             image: newItem.image,
             category: newItem.category,
             tags: newItem.tags
@@ -1007,11 +1029,19 @@ export const AdminView: React.FC = () => {
           db.saveMenuItem(newItem);
         }
       } else {
+        const priceVal = menuForm.price !== "" && menuForm.price !== undefined && menuForm.price !== null ? Number(menuForm.price) : null;
+        const hotVal = menuForm.hot !== "" && menuForm.hot !== undefined && menuForm.hot !== null ? Number(menuForm.hot) : null;
+        const modestVal = menuForm.modest !== "" && menuForm.modest !== undefined && menuForm.modest !== null ? Number(menuForm.modest) : null;
+        const grandVal = menuForm.grand !== "" && menuForm.grand !== undefined && menuForm.grand !== null ? Number(menuForm.grand) : null;
+
         const newItem: MenuItem = {
           id: editingMenuItem ? editingMenuItem.id : uniqueId,
           name: menuForm.name,
           description: menuForm.description,
-          price: Number(menuForm.price),
+          price: priceVal,
+          hot: hotVal,
+          modest: modestVal,
+          grand: grandVal,
           rating: editingMenuItem ? editingMenuItem.rating : 5.0,
           image: finalImageUrl,
           category: menuForm.category,
@@ -1021,17 +1051,33 @@ export const AdminView: React.FC = () => {
       }
     } catch (err) {
       console.error("Error in handleAddMenuSubmit Supabase path:", err);
+      const priceVal = menuForm.price !== "" && menuForm.price !== undefined && menuForm.price !== null ? Number(menuForm.price) : null;
+      const hotVal = menuForm.hot !== "" && menuForm.hot !== undefined && menuForm.hot !== null ? Number(menuForm.hot) : null;
+      const modestVal = menuForm.modest !== "" && menuForm.modest !== undefined && menuForm.modest !== null ? Number(menuForm.modest) : null;
+      const grandVal = menuForm.grand !== "" && menuForm.grand !== undefined && menuForm.grand !== null ? Number(menuForm.grand) : null;
+
       const newItem: MenuItem = {
         id: editingMenuItem ? editingMenuItem.id : uniqueId,
         name: menuForm.name,
         description: menuForm.description,
-        price: Number(menuForm.price),
+        price: priceVal,
+        hot: hotVal,
+        modest: modestVal,
+        grand: grandVal,
         rating: editingMenuItem ? editingMenuItem.rating : 5.0,
         image: finalImageUrl,
         category: menuForm.category,
         tags: menuForm.tags ? menuForm.tags.split(",").map(t => t.trim()) : []
       };
       db.saveMenuItem(newItem);
+    }
+
+    invalidateCache("menu_items");
+    invalidateCache("menu_categories");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("menu_items_updated"));
+      window.dispatchEvent(new Event("menu_categories_updated"));
+      window.dispatchEvent(new Event("storage"));
     }
 
     await loadAllData();
@@ -1042,7 +1088,7 @@ export const AdminView: React.FC = () => {
       action: isEditing ? "UPDATE" : "CREATE",
       category: "menu",
       target: `Menu Offering (${menuForm.name})`,
-      details: `${isEditing ? "Updated" : "Created"} menu offering '${menuForm.name}' priced at ₱${menuForm.price} in category '${menuForm.category}'.`,
+      details: `${isEditing ? "Updated" : "Created"} menu offering '${menuForm.name}' in category '${menuForm.category}'.`,
       severity: "info",
       metadata: { name: menuForm.name, price: menuForm.price, category: menuForm.category }
     });
@@ -1056,7 +1102,10 @@ export const AdminView: React.FC = () => {
     setMenuForm({
       name: item.name,
       description: item.description,
-      price: item.price,
+      price: item.price ?? "",
+      hot: item.hot ?? "",
+      modest: item.modest ?? "",
+      grand: item.grand ?? "",
       category: item.category,
       image: item.image,
       tags: item.tags ? item.tags.join(", ") : ""
@@ -1093,6 +1142,14 @@ export const AdminView: React.FC = () => {
           db.deleteMenuItem(id);
         }
 
+        invalidateCache("menu_items");
+        invalidateCache("menu_categories");
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("menu_items_updated"));
+          window.dispatchEvent(new Event("menu_categories_updated"));
+          window.dispatchEvent(new Event("storage"));
+        }
+
         await loadAllData();
         auditLogger.log({
           action: "DELETE",
@@ -1113,8 +1170,11 @@ export const AdminView: React.FC = () => {
     setMenuForm({
       name: "",
       description: "",
-      price: 0,
-      category: "Hot Coffee",
+      price: "",
+      hot: "",
+      modest: "",
+      grand: "",
+      category: "",
       image: "",
       tags: "",
       imageFile: null
@@ -1594,6 +1654,7 @@ export const AdminView: React.FC = () => {
         menuForm={menuForm}
         setMenuForm={setMenuForm}
         onSubmit={handleAddMenuSubmit}
+        existingMenuItems={menuItems}
       />
 
       <LoyaltyModal

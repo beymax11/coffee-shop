@@ -1,9 +1,12 @@
 "use client";
 
 import React from "react";
-import { X, Sparkles, UploadCloud, Trash2, Image as ImageIcon, Loader2 } from "lucide-react";
+import { X, Sparkles, UploadCloud, Trash2, Image as ImageIcon, Loader2, ChevronDown } from "lucide-react";
 import { MenuItem } from "@/types";
+import { db } from "@/utils/db";
+import { invalidateCache } from "@/utils/cache";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 interface MenuModalProps {
   isOpen: boolean;
@@ -12,7 +15,10 @@ interface MenuModalProps {
   menuForm: {
     name: string;
     description: string;
-    price: number;
+    price?: number | string;
+    hot?: number | string;
+    modest?: number | string;
+    grand?: number | string;
     category: string;
     image: string;
     tags: string;
@@ -22,7 +28,10 @@ interface MenuModalProps {
     React.SetStateAction<{
       name: string;
       description: string;
-      price: number;
+      price?: number | string;
+      hot?: number | string;
+      modest?: number | string;
+      grand?: number | string;
       category: string;
       image: string;
       tags: string;
@@ -31,6 +40,7 @@ interface MenuModalProps {
   >;
   onSubmit: (e: React.FormEvent) => void | Promise<void>;
   isLoading?: boolean;
+  existingMenuItems?: MenuItem[];
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -43,6 +53,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   setMenuForm,
   onSubmit,
   isLoading: externalIsLoading,
+  existingMenuItems,
 }) => {
   const [customCategory, setCustomCategory] = React.useState("");
   const [isAddingNew, setIsAddingNew] = React.useState(false);
@@ -61,6 +72,10 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
+    if (!menuForm.category?.trim()) {
+      toast.error("Please select or add a category first.");
+      return;
+    }
     try {
       setIsSubmitting(true);
       await onSubmit(e);
@@ -71,51 +86,239 @@ export const MenuModal: React.FC<MenuModalProps> = ({
     }
   };
 
-  const defaultCategories = React.useMemo(() => [
-    "Hot Coffee",
-    "Cold Coffee",
-    "Signature Drinks",
-    "Non-Coffee",
-    "Pastries",
-    "Desserts",
-  ], []);
-
-  const [categories, setCategories] = React.useState<string[]>(defaultCategories);
+  const [categories, setCategories] = React.useState<string[]>([]);
+  const [categoryCounts, setCategoryCounts] = React.useState<Record<string, number>>({});
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [deletingCategory, setDeletingCategory] = React.useState<string | null>(null);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    if (isOpen) {
-      const initialCats = [...defaultCategories];
-      const currentCat = menuForm.category;
-      if (currentCat && !initialCats.includes(currentCat)) {
-        initialCats.push(currentCat);
-      }
-      setCategories(initialCats);
-      setIsAddingNew(false);
-      setCustomCategory("");
-    }
-  }, [isOpen, menuForm.category, defaultCategories]);
-
-  const handleSaveCategory = () => {
-    const trimmed = customCategory.trim();
-    if (!trimmed) {
-      alert("Please enter a category name.");
+    if (!isOpen) {
+      setIsDropdownOpen(false);
       return;
     }
 
-    if (!categories.includes(trimmed)) {
-      setCategories(prev => [...prev, trimmed]);
+    let isMounted = true;
+
+    // Fast initial load from localStorage / existing items
+    let initialCats: string[] = [];
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("menu_categories");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const legacyDefaults = [
+              "Hot Coffee",
+              "Cold Coffee",
+              "Signature Drinks",
+              "Non-Coffee",
+              "Pastries",
+              "Desserts",
+            ];
+            initialCats = parsed.filter((cat) => !legacyDefaults.includes(cat));
+            if (initialCats.length !== parsed.length) {
+              localStorage.setItem("menu_categories", JSON.stringify(initialCats));
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse menu_categories:", e);
+        }
+      }
+    }
+
+    // Pull from existingMenuItems if any
+    if (existingMenuItems && existingMenuItems.length > 0) {
+      existingMenuItems.forEach((item) => {
+        if (item.category && !initialCats.includes(item.category)) {
+          initialCats.push(item.category);
+        }
+      });
+    }
+
+    const mergedCats = [...initialCats];
+    const currentCat = menuForm.category;
+    if (currentCat && !mergedCats.includes(currentCat)) {
+      mergedCats.push(currentCat);
+    }
+    setCategories(mergedCats);
+    setIsAddingNew(false);
+    setIsDropdownOpen(false);
+    setCustomCategory("");
+
+    // Fetch live categories and their item counts from Supabase backend
+    fetch("/api/menu/categories")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        if (data.categories && Array.isArray(data.categories)) {
+          const remoteNames: string[] = [];
+          const counts: Record<string, number> = {};
+
+          data.categories.forEach((c: any) => {
+            const name = typeof c === "string" ? c : c?.name;
+            if (name) {
+              remoteNames.push(name);
+              counts[name.trim().toLowerCase()] = Number(c.itemCount) || 0;
+            }
+          });
+
+          const itemCats = (existingMenuItems || [])
+            .map((item) => item.category?.trim())
+            .filter((c): c is string => !!c);
+
+          const combined = Array.from(
+            new Set([...remoteNames, ...itemCats, ...(menuForm.category ? [menuForm.category] : [])])
+          );
+          setCategories(combined);
+          setCategoryCounts(counts);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("menu_categories", JSON.stringify(combined));
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("Backend category fetch failed, fallback to local:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, menuForm.category, existingMenuItems]);
+
+  // Helper to count how many menu items belong to a category
+  const getCategoryItemCount = (catName: string): number => {
+    const norm = catName.trim().toLowerCase();
+
+    // 1. Check live menu items passed via props
+    if (existingMenuItems && existingMenuItems.length > 0) {
+      return existingMenuItems.filter(
+        (item) => item.category?.trim().toLowerCase() === norm
+      ).length;
+    }
+
+    // 2. Check local database items
+    try {
+      const localItems = db.getMenuItems();
+      if (Array.isArray(localItems) && localItems.length > 0) {
+        return localItems.filter(
+          (item) => item.category?.trim().toLowerCase() === norm
+        ).length;
+      }
+    } catch {
+      // ignore
+    }
+
+    // 3. Fallback to count returned by Supabase backend API
+    return categoryCounts[norm] || 0;
+  };
+
+  // Click outside to close category dropdown
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const handleSaveCategory = async () => {
+    const trimmed = customCategory.trim();
+    if (!trimmed) {
+      toast.error("Please enter a category name.");
+      return;
+    }
+
+    const updated = categories.includes(trimmed) ? categories : [...categories, trimmed];
+    setCategories(updated);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("menu_categories", JSON.stringify(updated));
+      invalidateCache("menu_categories");
+      window.dispatchEvent(new Event("menu_categories_updated"));
     }
 
     setMenuForm(prev => ({ ...prev, category: trimmed }));
     setIsAddingNew(false);
     setCustomCategory("");
+
+    // Persist to Supabase Backend
+    try {
+      const res = await fetch("/api/menu/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok && data.error) {
+        console.warn("Could not sync category to Supabase:", data.error);
+      } else {
+        toast.success(`Category "${trimmed}" saved to database.`);
+      }
+    } catch (err) {
+      console.warn("Network error saving category to backend:", err);
+    }
+  };
+
+  const handleDeleteCategory = async (catToDelete: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (deletingCategory) return;
+
+    // Check if category has any menu items
+    const itemCount = getCategoryItemCount(catToDelete);
+    if (itemCount > 0) {
+      toast.error(
+        `Hindi maaaring burahin ang "${catToDelete}" dahil may ${itemCount} menu item${
+          itemCount === 1 ? "" : "s"
+        } pa ito.`
+      );
+      return;
+    }
+
+    setDeletingCategory(catToDelete);
+
+    // Delete from Supabase Backend
+    try {
+      const res = await fetch(`/api/menu/categories?name=${encodeURIComponent(catToDelete)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok && data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const updated = categories.filter((c) => c !== catToDelete);
+      setCategories(updated);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("menu_categories", JSON.stringify(updated));
+        invalidateCache("menu_categories");
+        window.dispatchEvent(new Event("menu_categories_updated"));
+      }
+
+      if (menuForm.category === catToDelete) {
+        setMenuForm((prev) => ({ ...prev, category: updated[0] || "" }));
+      }
+
+      toast.success(`Category "${catToDelete}" deleted successfully.`);
+    } catch (err) {
+      console.warn("Network error deleting category from backend:", err);
+      toast.error(`Failed to delete "${catToDelete}".`);
+    } finally {
+      setDeletingCategory(null);
+    }
   };
 
   const handleCancelAddCategory = () => {
     setIsAddingNew(false);
     setCustomCategory("");
     if (!menuForm.category) {
-      setMenuForm(prev => ({ ...prev, category: categories[0] || "Hot Coffee" }));
+      setMenuForm(prev => ({ ...prev, category: categories[0] || "" }));
     }
   };
 
@@ -146,7 +349,7 @@ export const MenuModal: React.FC<MenuModalProps> = ({
   };
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
-      alert("Please upload an image file.");
+      toast.error("Please upload an image file.");
       return;
     }
     const reader = new FileReader();
@@ -203,30 +406,16 @@ export const MenuModal: React.FC<MenuModalProps> = ({
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">COFFEE NAME</label>
-                <input
-                  type="text"
-                  required
-                  disabled={loading}
-                  placeholder="e.g. Spanish Latté"
-                  value={menuForm.name}
-                  onChange={(e) => setMenuForm({ ...menuForm, name: e.target.value })}
-                  className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">PRICE (₱)</label>
+                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">COFFEE NAME</label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
                     required
                     disabled={loading}
-                    placeholder="180.00"
-                    value={menuForm.price || ""}
-                    onChange={(e) => setMenuForm({ ...menuForm, price: parseFloat(e.target.value) || 0 })}
+                    placeholder="e.g. Spanish Latté"
+                    value={menuForm.name}
+                    onChange={(e) => setMenuForm({ ...menuForm, name: e.target.value })}
                     className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-4 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50"
                   />
                 </div>
@@ -235,23 +424,117 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                   <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold">CATEGORY</label>
 
                   {!isAddingNew ? (
-                    <div className="flex gap-2">
-                      <select
-                        value={menuForm.category}
-                        disabled={loading}
-                        onChange={(e) => setMenuForm({ ...menuForm, category: e.target.value })}
-                        className="w-full rounded-xl border border-card-border bg-background/50 py-3 px-3 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50 cursor-pointer"
-                      >
-                        {categories.map((cat) => (
-                          <option key={cat} value={cat} className="bg-card text-foreground">
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
+                    <div className="flex gap-2 relative" ref={dropdownRef}>
+                      {/* Dropdown Trigger */}
                       <button
                         type="button"
                         disabled={loading}
-                        onClick={() => setIsAddingNew(true)}
+                        onClick={() => setIsDropdownOpen((prev) => !prev)}
+                        className="w-full min-w-0 rounded-xl border border-card-border bg-background/50 py-3 px-3 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50 cursor-pointer flex items-center justify-between text-left"
+                      >
+                        <span className="truncate pr-1">{menuForm.category || "Select category"}</span>
+                        <ChevronDown
+                          size={14}
+                          className={`text-neutral-400 transition-transform duration-200 shrink-0 ${
+                            isDropdownOpen ? "rotate-180 text-brand-green" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {/* Dropdown Menu Popover */}
+                      <AnimatePresence>
+                        {isDropdownOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                            transition={{ duration: 0.15, ease: EASE }}
+                            className="absolute left-0 top-[calc(100%+6px)] w-full rounded-xl border border-card-border bg-card/95 backdrop-blur-md shadow-2xl z-50 overflow-hidden py-1.5 max-h-52 overflow-y-auto"
+                          >
+                            {categories.length === 0 ? (
+                              <div className="px-4 py-4 text-center space-y-2">
+                                <p className="text-xs font-medium text-neutral-600 dark:text-zinc-400">
+                                  No categories available
+                                </p>
+                                <p className="text-[11px] text-neutral-400 dark:text-zinc-500">
+                                  Click the <span className="font-bold text-brand-green">&quot;+&quot;</span> button to create your first category
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsDropdownOpen(false);
+                                    setIsAddingNew(true);
+                                  }}
+                                  className="mt-1 inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-brand-green/10 text-brand-green hover:bg-brand-green/20 text-[11px] font-semibold transition-colors cursor-pointer"
+                                >
+                                  + Add Category
+                                </button>
+                              </div>
+                            ) : (
+                              categories.map((cat) => {
+                                const isSelected = menuForm.category === cat;
+                                const itemCount = getCategoryItemCount(cat);
+                                const hasItems = itemCount > 0;
+
+                                return (
+                                  <div
+                                    key={cat}
+                                    onClick={() => {
+                                      setMenuForm((prev) => ({ ...prev, category: cat }));
+                                      setIsDropdownOpen(false);
+                                    }}
+                                    className={`group flex items-center justify-between px-3 py-2 text-xs rounded-lg mx-1 cursor-pointer transition-colors duration-150 ${
+                                      isSelected
+                                        ? "bg-brand-green/15 text-brand-green font-semibold"
+                                        : "text-foreground hover:bg-foreground/5 hover:text-brand-green"
+                                    }`}
+                                  >
+                                    <span className="truncate pr-2 min-w-0">{cat}</span>
+
+                                    {/* Action on Right: Delete Button if 0 items, or Item Count badge if has items */}
+                                    {!hasItems ? (
+                                      <button
+                                        type="button"
+                                        disabled={deletingCategory === cat}
+                                        onClick={(e) => handleDeleteCategory(cat, e)}
+                                        title={`Delete empty category "${cat}"`}
+                                        className={`transition-opacity duration-150 p-1 rounded-md text-neutral-400 hover:text-rose-500 hover:bg-rose-500/15 shrink-0 cursor-pointer ${
+                                          deletingCategory === cat
+                                            ? "opacity-100"
+                                            : "opacity-0 group-hover:opacity-100"
+                                        }`}
+                                      >
+                                        {deletingCategory === cat ? (
+                                          <Loader2 size={13} className="animate-spin text-rose-500" />
+                                        ) : (
+                                          <Trash2 size={13} />
+                                        )}
+                                      </button>
+                                    ) : (
+                                      <span
+                                        title={`Cannot delete: contains ${itemCount} menu item${
+                                          itemCount === 1 ? "" : "s"
+                                        }`}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-[10px] text-neutral-400 dark:text-zinc-500 font-medium px-1.5 py-0.5 rounded bg-foreground/5 shrink-0 select-none cursor-not-allowed"
+                                      >
+                                        {itemCount} {itemCount === 1 ? "item" : "items"}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          setIsAddingNew(true);
+                        }}
                         className="rounded-xl border border-card-border bg-background/50 px-3 py-3 text-neutral-500 hover:text-brand-green hover:border-brand-green/50 transition-all duration-300 shrink-0 cursor-pointer disabled:opacity-40"
                         title="Add custom category"
                       >
@@ -287,6 +570,84 @@ export const MenuModal: React.FC<MenuModalProps> = ({
                       </button>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* 4 Prices: Price (Base), Hot, Modest, Grand */}
+              <div className="rounded-xl border border-card-border/80 bg-background/40 p-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="type-label block text-[9px] tracking-wider text-neutral-500 dark:text-zinc-400 font-bold uppercase">
+                    Pricing Matrix (₱)
+                  </label>
+                  <span className="text-[10px] text-neutral-400 dark:text-zinc-500">
+                    All prices and size variants are optional
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {/* Base Price */}
+                  <div className="space-y-1">
+                    <label className="block text-[9px] tracking-wider font-semibold text-neutral-600 dark:text-zinc-300 uppercase">
+                      Price (Base)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      disabled={loading}
+                      placeholder="180.00"
+                      value={menuForm.price ?? ""}
+                      onChange={(e) => setMenuForm({ ...menuForm, price: e.target.value === "" ? "" : parseFloat(e.target.value) })}
+                      className="w-full rounded-xl border border-card-border bg-background/60 py-2.5 px-3 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50"
+                    />
+                  </div>
+
+                  {/* Hot */}
+                  <div className="space-y-1">
+                    <label className="block text-[9px] tracking-wider font-semibold text-neutral-600 dark:text-zinc-300 uppercase">
+                      Hot (₱)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      disabled={loading}
+                      placeholder="160.00"
+                      value={menuForm.hot ?? ""}
+                      onChange={(e) => setMenuForm({ ...menuForm, hot: e.target.value === "" ? "" : parseFloat(e.target.value) })}
+                      className="w-full rounded-xl border border-card-border bg-background/60 py-2.5 px-3 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50"
+                    />
+                  </div>
+
+                  {/* Modest */}
+                  <div className="space-y-1">
+                    <label className="block text-[9px] tracking-wider font-semibold text-neutral-600 dark:text-zinc-300 uppercase">
+                      Modest (₱)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      disabled={loading}
+                      placeholder="180.00"
+                      value={menuForm.modest ?? ""}
+                      onChange={(e) => setMenuForm({ ...menuForm, modest: e.target.value === "" ? "" : parseFloat(e.target.value) })}
+                      className="w-full rounded-xl border border-card-border bg-background/60 py-2.5 px-3 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50"
+                    />
+                  </div>
+
+                  {/* Grand */}
+                  <div className="space-y-1">
+                    <label className="block text-[9px] tracking-wider font-semibold text-neutral-600 dark:text-zinc-300 uppercase">
+                      Grand (₱)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      disabled={loading}
+                      placeholder="210.00"
+                      value={menuForm.grand ?? ""}
+                      onChange={(e) => setMenuForm({ ...menuForm, grand: e.target.value === "" ? "" : parseFloat(e.target.value) })}
+                      className="w-full rounded-xl border border-card-border bg-background/60 py-2.5 px-3 type-field text-foreground outline-none transition-all duration-300 focus:border-brand-green/60 focus:bg-background focus:ring-1 focus:ring-brand-green/20 text-xs disabled:opacity-50"
+                    />
+                  </div>
                 </div>
               </div>
 

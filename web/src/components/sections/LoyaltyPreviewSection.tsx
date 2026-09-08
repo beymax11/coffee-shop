@@ -80,14 +80,14 @@ export function LoyaltyPreviewSection() {
               <FadeUp>
                 <div className="flex items-center justify-center gap-2">
                   <div className="h-[1px] w-8 bg-[#2E5A44]/30" />
-                  <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Digital Membership</span>
+                  <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Loyalty Club</span>
                   <div className="h-[1px] w-8 bg-[#2E5A44]/30" />
                 </div>
                 <h2 className="type-h2 text-foreground mt-2 leading-snug">
-                  The Antonioni Reserve Club
+                  Get Your Loyalty Card
                 </h2>
                 <p className="type-body text-neutral-500 dark:text-zinc-400 leading-relaxed max-w-xl mx-auto">
-                  Step into a world of curated coffee luxury. Sign up to receive your digital loyalty card, earn stamps on every pour, and unlock access to rare micro-lots and tasting masterclasses.
+                  Scan your card, collect your stamps. We already remember our regulars, this just makes it official.
                 </p>
               </FadeUp>
             </div>
@@ -96,10 +96,10 @@ export function LoyaltyPreviewSection() {
             <FadeUp delay={0.1} className="pt-4 border-t border-card-border">
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
-                  href="/login?view=page"
+                  href="/loyalty"
                   className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white px-6 py-3 font-semibold text-sm transition-all duration-300 active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(46,90,68,0.25)]"
                 >
-                  Join Loyalty Club
+                  Get Your Loyalty Card
                   <ArrowRight size={14} className="w-0 opacity-0 -translate-x-2 group-hover:w-3.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out shrink-0" />
                 </Link>
               </div>
@@ -113,14 +113,14 @@ export function LoyaltyPreviewSection() {
               <div className="space-y-4">
                 <FadeUp>
                   <div className="flex items-center gap-2">
-                    <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Digital Membership</span>
+                    <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Loyalty Club</span>
                     <div className="h-[1px] w-8 bg-[#2E5A44]/30" />
                   </div>
                   <h2 className="type-h2 text-foreground mt-2 leading-snug">
-                    The Antonioni Reserve Club
+                    Welcome back, {memberName.split(" ")[0]}
                   </h2>
                   <p className="type-body text-neutral-500 dark:text-zinc-400 leading-relaxed max-w-xl">
-                    Welcome back, {memberName.split(" ")[0]}. Here is your current membership status. Scan your digital QR code at any of our flagship locations to claim and add your active stamps.
+                    Scan your card every visit, collect your stamps. Every so often, we get to say thank you as more than just a discount code.
                   </p>
                 </FadeUp>
               </div>
@@ -132,7 +132,7 @@ export function LoyaltyPreviewSection() {
                     href="/loyalty"
                     className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white px-6 py-3 font-semibold text-sm transition-all duration-300 active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(46,90,68,0.25)]"
                   >
-                    Manage My Loyalty Card
+                    View Your Loyalty Card
                     <ArrowRight size={14} className="w-0 opacity-0 -translate-x-2 group-hover:w-3.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out shrink-0" />
                   </Link>
                 </div>

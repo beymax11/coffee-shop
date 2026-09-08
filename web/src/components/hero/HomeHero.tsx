@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Calendar, CreditCard } from "lucide-react";
+import { Calendar, ClipboardList, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { getHeroConfig, getSyncHeroConfig, DEFAULT_HERO_CONFIG, HomeHeroConfig } from "@/utils/heroSettings";
 
@@ -72,35 +72,23 @@ export const HomeHero: React.FC = () => {
 
   return (
     <section className="relative -mt-[72px] lg:mt-0 min-h-[100dvh] h-[100dvh] lg:h-auto lg:min-h-[calc(100vh-80px)] w-full flex items-center overflow-hidden bg-[#0B0B0B] pt-[72px] lg:pt-0 pb-6 sm:pb-0">
-      {/* Background with slow Ken Burns (Desktop & Tablet vs Mobile) */}
-      <div className="absolute inset-0 opacity-100 dark:opacity-80 transition-opacity duration-500">
+      {/* Background (Desktop & Tablet vs Mobile) */}
+      <div className="absolute inset-0">
         {/* Desktop & Tablet View (>= 768px) */}
-        <motion.div
+        <div
           key={`desktop-${displayConfig.bgImageUrl}`}
           className="hidden md:block absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: `url('${displayConfig.bgImageUrl || "/hero.png"}')`,
           }}
-          initial={{ scale: 1.02, opacity: 0 }}
-          animate={{ scale: [1.0, 1.03, 1.0], opacity: 1 }}
-          transition={{
-            opacity: { duration: 1.4, ease: EASE },
-            scale: { duration: 22, repeat: Infinity, ease: "linear" },
-          }}
         />
 
         {/* Mobile View (< 768px) */}
-        <motion.div
+        <div
           key={`mobile-${displayConfig.bgImageUrlMobile || displayConfig.bgImageUrl}`}
           className="md:hidden block absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: `url('${displayConfig.bgImageUrlMobile || displayConfig.bgImageUrl || "/hero.png"}')`,
-          }}
-          initial={{ scale: 1.02, opacity: 0 }}
-          animate={{ scale: [1.0, 1.03, 1.0], opacity: 1 }}
-          transition={{
-            opacity: { duration: 1.4, ease: EASE },
-            scale: { duration: 22, repeat: Infinity, ease: "linear" },
           }}
         />
       </div>
@@ -156,10 +144,15 @@ export const HomeHero: React.FC = () => {
             className="type-display text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] font-serif leading-[1.12] tracking-tight"
             variants={heroItem}
           >
-            {displayConfig.headlineMain || "Where Every Cup"}{" "}
-            <span className="text-emerald-400 italic block sm:inline-block">
-              {displayConfig.headlineHighlight || "Finds Its Story"}
-            </span>
+            {displayConfig.headlineMain || "Where Every Cup"}
+            {displayConfig.headlineHighlight?.trim() ? (
+              <>
+                {" "}
+                <span className="text-emerald-400 italic block sm:inline-block">
+                  {displayConfig.headlineHighlight.trim()}
+                </span>
+              </>
+            ) : null}
           </motion.h1>
 
           {/* Subcopy */}
@@ -177,13 +170,14 @@ export const HomeHero: React.FC = () => {
           >
             <motion.div whileHover={ctaHover} whileTap={ctaTap}>
               <Link
-                href="/loyalty"
+                href="/menu"
                 className="type-ui group relative flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-6 sm:px-8 py-3 sm:py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_30px_rgba(46,90,68,0.25)] text-xs"
               >
                 <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
                 <span className="relative flex items-center gap-2">
-                  Digital Loyalty Card
-                  <CreditCard size={14} className="transition-transform duration-300 group-hover:scale-110" />
+                  <ClipboardList size={14} className="transition-transform duration-300 group-hover:scale-110" />
+                  Tara, kape!
+                  <ArrowRight size={14} className="w-0 opacity-0 -translate-x-2 group-hover:w-3.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out shrink-0" />
                 </span>
               </Link>
             </motion.div>
@@ -197,7 +191,11 @@ export const HomeHero: React.FC = () => {
                   size={14}
                   className="text-emerald-500 transition-transform duration-300 group-hover:scale-110"
                 />
-                Reserve Event Cart
+                Book the Brew Buggy
+                <ArrowRight
+                  size={14}
+                  className="w-0 opacity-0 -translate-x-2 group-hover:w-3.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out shrink-0 text-emerald-400"
+                />
               </Link>
             </motion.div>
           </motion.div>

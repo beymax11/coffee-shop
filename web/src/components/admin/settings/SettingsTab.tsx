@@ -234,7 +234,7 @@ export const SettingsTab: React.FC = () => {
       const cfg = await getHeroConfig(true);
       setHeroEyebrow(cfg.eyebrowText);
       setHeroHeadlineMain(cfg.headlineMain);
-      setHeroHeadlineHighlight(cfg.headlineHighlight);
+      setHeroHeadlineHighlight(cfg.headlineHighlight ?? "");
       setHeroSubcopy(cfg.subcopy);
       setHeroBgImageUrl(cfg.bgImageUrl);
       setHeroBgImageUrlMobile(cfg.bgImageUrlMobile || "");
@@ -264,7 +264,7 @@ export const SettingsTab: React.FC = () => {
       const updatedConfig = {
         eyebrowText: heroEyebrow,
         headlineMain: heroHeadlineMain,
-        headlineHighlight: heroHeadlineHighlight,
+        headlineHighlight: heroHeadlineHighlight.trim(),
         subcopy: heroSubcopy,
         bgImageUrl: heroBgImageUrl,
         bgImageUrlMobile: heroBgImageUrlMobile,
@@ -378,7 +378,7 @@ export const SettingsTab: React.FC = () => {
         action: "TOGGLE",
         category: "settings",
         target: "Maintenance Mode",
-        details: active 
+        details: active
           ? "Activated system maintenance mode. Restricted customer website access."
           : "Deactivated maintenance mode. Restored full customer website access.",
         severity: active ? "warning" : "info",
@@ -472,7 +472,7 @@ export const SettingsTab: React.FC = () => {
     <div className="space-y-8 max-w-6xl animate-in fade-in slide-in-from-bottom-2 duration-300 pb-12">
       {/* Main Grid Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* Left Column: Admin Profile Settings (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
           <div className="rounded-3xl border border-card-border bg-card/60 backdrop-blur-xl p-6 md:p-7 relative overflow-hidden shadow-md flex flex-col">
@@ -683,13 +683,12 @@ export const SettingsTab: React.FC = () => {
 
         {/* Right Column: Maintenance Control & Store Preferences (7 Cols) */}
         <div className="lg:col-span-7 space-y-6">
-          
+
           {/* Maintenance Mode Card */}
-          <div className={`rounded-3xl border transition-all duration-300 p-6 md:p-7 relative overflow-hidden shadow-md ${
-            isMaintenanceActive 
-              ? "bg-gradient-to-br from-amber-500/10 via-card/70 to-card/90 border-amber-500/30" 
-              : "bg-card/60 border-card-border"
-          }`}>
+          <div className={`rounded-3xl border transition-all duration-300 p-6 md:p-7 relative overflow-hidden shadow-md ${isMaintenanceActive
+            ? "bg-gradient-to-br from-amber-500/10 via-card/70 to-card/90 border-amber-500/30"
+            : "bg-card/60 border-card-border"
+            }`}>
             <div className="flex items-start justify-between gap-4 pb-5 border-b border-card-border">
               <div className="flex items-center gap-3">
                 <div className={`p-3 rounded-2xl ${isMaintenanceActive ? "bg-amber-500/20 text-amber-500" : "bg-neutral-500/10 text-neutral-500"}`}>
@@ -706,11 +705,10 @@ export const SettingsTab: React.FC = () => {
               </div>
 
               {/* Live Switch Status Indicator */}
-              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                isMaintenanceActive
-                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 animate-pulse"
-                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-              }`}>
+              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isMaintenanceActive
+                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 animate-pulse"
+                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                }`}>
                 {isMaintenanceActive ? "Mode Active" : "Operational"}
               </span>
             </div>
@@ -720,11 +718,10 @@ export const SettingsTab: React.FC = () => {
                 When activated, logged-in customers will be presented with a stylish <strong>Brewing Improvements</strong> maintenance screen when accessing reservation or loyalty card features. Administrators retain full access to the admin console.
               </p>
 
-              <div className={`p-4 rounded-2xl border text-xs leading-relaxed flex items-start gap-3 ${
-                isMaintenanceActive
-                  ? "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300"
-                  : "bg-background-alt/60 border-card-border text-neutral-500 dark:text-zinc-400"
-              }`}>
+              <div className={`p-4 rounded-2xl border text-xs leading-relaxed flex items-start gap-3 ${isMaintenanceActive
+                ? "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300"
+                : "bg-background-alt/60 border-card-border text-neutral-500 dark:text-zinc-400"
+                }`}>
                 <AlertTriangle size={16} className={`shrink-0 mt-0.5 ${isMaintenanceActive ? "text-amber-500" : "text-neutral-400"}`} />
                 <div>
                   <span className="font-semibold block mb-0.5">
@@ -749,11 +746,10 @@ export const SettingsTab: React.FC = () => {
                 type="button"
                 onClick={handleMaintenanceToggle}
                 disabled={isTogglingMaintenance}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-semibold shadow-md transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${
-                  isMaintenanceActive
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
-                    : "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20"
-                }`}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-semibold shadow-md transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${isMaintenanceActive
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                  : "bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20"
+                  }`}
               >
                 {isTogglingMaintenance ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -820,16 +816,18 @@ export const SettingsTab: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-zinc-500">
-                    Headline Highlight (Green Italic)
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-zinc-500 flex items-center justify-between">
+                    <span>Headline Highlight (Green Italic)</span>
+                    <span className="text-[9px] font-normal text-neutral-400">Optional</span>
                   </label>
                   <input
                     type="text"
                     value={heroHeadlineHighlight}
                     onChange={(e) => setHeroHeadlineHighlight(e.target.value)}
-                    placeholder="Finds Its Story"
+                    placeholder=""
                     className="w-full bg-white dark:bg-background-alt border border-card-border rounded-xl py-2.5 px-3.5 text-xs text-foreground placeholder:text-neutral-500 outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/30 transition-all"
                   />
+
                 </div>
               </div>
 
@@ -863,11 +861,10 @@ export const SettingsTab: React.FC = () => {
                     onDragLeave={handleDragDesktop}
                     onDragOver={handleDragDesktop}
                     onDrop={handleDropDesktop}
-                    className={`relative border-2 border-dashed rounded-2xl p-3 text-center transition-all cursor-pointer overflow-hidden ${
-                      isDragActiveDesktop
-                        ? "border-brand-green bg-brand-green/10 scale-[1.01]"
-                        : "border-card-border hover:border-brand-green/60 bg-white/50 dark:bg-background-alt/50"
-                    }`}
+                    className={`relative border-2 border-dashed rounded-2xl p-3 text-center transition-all cursor-pointer overflow-hidden ${isDragActiveDesktop
+                      ? "border-brand-green bg-brand-green/10 scale-[1.01]"
+                      : "border-card-border hover:border-brand-green/60 bg-white/50 dark:bg-background-alt/50"
+                      }`}
                   >
                     <input
                       type="file"
@@ -923,11 +920,10 @@ export const SettingsTab: React.FC = () => {
                     onDragLeave={handleDragMobile}
                     onDragOver={handleDragMobile}
                     onDrop={handleDropMobile}
-                    className={`relative border-2 border-dashed rounded-2xl p-3 text-center transition-all cursor-pointer overflow-hidden ${
-                      isDragActiveMobile
-                        ? "border-brand-green bg-brand-green/10 scale-[1.01]"
-                        : "border-card-border hover:border-brand-green/60 bg-white/50 dark:bg-background-alt/50"
-                    }`}
+                    className={`relative border-2 border-dashed rounded-2xl p-3 text-center transition-all cursor-pointer overflow-hidden ${isDragActiveMobile
+                      ? "border-brand-green bg-brand-green/10 scale-[1.01]"
+                      : "border-card-border hover:border-brand-green/60 bg-white/50 dark:bg-background-alt/50"
+                      }`}
                   >
                     <input
                       type="file"

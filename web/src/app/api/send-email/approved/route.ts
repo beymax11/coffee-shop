@@ -56,7 +56,14 @@ function getDownpaymentAmount(
   };
 }
 
+import { requireStaff } from "@/lib/auth-server";
+
 export async function POST(req: NextRequest) {
+  const check = await requireStaff(req);
+  if ("response" in check) {
+    return check.response;
+  }
+
   try {
     const body = await req.json();
     const { reservation } = body as {

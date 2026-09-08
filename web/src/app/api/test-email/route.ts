@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail } from "@/lib/resend";
+import { requireAdmin } from "@/lib/auth-server";
 
 export async function GET(req: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Test email endpoint is disabled in production." },
+      { status: 403 }
+    );
+  }
+
+  const check = await requireAdmin(req);
+  if ("response" in check) {
+    return check.response;
+  }
+
   const email = req.nextUrl.searchParams.get("to");
   if (!email) {
     return NextResponse.json(

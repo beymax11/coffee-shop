@@ -61,7 +61,14 @@ export async function GET() {
   }
 }
 
+import { requireAdmin } from "@/lib/auth-server";
+
 export async function POST(request: NextRequest) {
+  const check = await requireAdmin(request);
+  if ("response" in check) {
+    return check.response;
+  }
+
   if (!supabaseAdmin) {
     return NextResponse.json(
       { error: "Database not configured" },
@@ -99,6 +106,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const check = await requireAdmin(request);
+  if ("response" in check) {
+    return check.response;
+  }
+
   if (!supabaseAdmin) {
     return NextResponse.json(
       { error: "Database not configured" },

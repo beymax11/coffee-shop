@@ -646,7 +646,13 @@ export const AdminView: React.FC = () => {
     );
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const { supabase } = await import("@/utils/supabase");
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    } catch (_) {}
     localStorage.removeItem("admin_session");
     localStorage.removeItem("admin_profile");
     eraseCookie("admin_session");
@@ -874,20 +880,27 @@ export const AdminView: React.FC = () => {
   // --- USER MANAGEMENT HANDLERS ---
   const handleUpdateUserRole = async (userId: string, newRole: "admin" | "barista" | "customer") => {
     try {
-      const { supabase } = await import("@/utils/supabase");
-      if (supabase) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ role: newRole })
-          .eq("id", userId);
+      const res = await fetch("/api/users/role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, newRole }),
+      });
 
-        if (error) {
-          console.error("Supabase user role update error:", error);
-          toast.error("Failed to update user role in database.");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Server role update error:", errData);
+        // Fallback for mock mode if API returned error
+        const mockUsers = db.getMockUsers();
+        const user = mockUsers.find(u => u.id === userId);
+        if (user) {
+          user.role = newRole;
+          db.saveMockUser(user);
+        } else {
+          toast.error(errData.error || "Failed to update user role.");
           return;
         }
       } else {
-        // Mock mode update
+        // Keep mock user synced if present
         const mockUsers = db.getMockUsers();
         const user = mockUsers.find(u => u.id === userId);
         if (user) {

@@ -39,7 +39,14 @@ function getDownpaymentAmount(
   };
 }
 
-export async function GET() {
+import { requireStaff } from "@/lib/auth-server";
+
+export async function GET(req: NextRequest) {
+  const check = await requireStaff(req);
+  if ("response" in check) {
+    return check.response;
+  }
+
   if (!supabaseAdmin) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }

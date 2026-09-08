@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSecuredEmailHtml } from "@/lib/emails/reservation-templates";
 import { sendEmail } from "@/lib/resend";
+import { requireStaff } from "@/lib/auth-server";
 
 export async function POST(req: NextRequest) {
+  const check = await requireStaff(req);
+  if ("response" in check) {
+    return check.response;
+  }
+
   try {
     const body = await req.json();
     const { reservation } = body as {

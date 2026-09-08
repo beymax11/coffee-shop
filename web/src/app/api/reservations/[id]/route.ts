@@ -41,28 +41,26 @@ async function verifyUserAndGetProfile(req: NextRequest) {
   }
 }
 
-async function isAuthorized(req: NextRequest, reservationEmail: string, reservationPhone: string) {
+import { getAuthContext } from "@/lib/auth-server";
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+async function isAuthorized(req: NextRequest, reservationEmail?: string, reservationPhone?: string) {
+  const auth = await getAuthContext(req);
+  if (auth.isStaff) return { authorized: true, isStaff: true };
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return true;
-  }
-
-  const user = await verifyUserAndGetProfile(req);
-  if (user && (user.role === "admin" || user.role === "barista")) return true;
-
-  // 2. Customer access: allow access for specific reservation ticket (direct UUID link or account match)
-  if (user) {
-    const userEmailLower = user.email?.toLowerCase();
+  // Customer or guest checking this specific reservation
+  if (auth.userId) {
+    const userEmailLower = auth.email?.toLowerCase();
     const resEmailLower = reservationEmail?.toLowerCase();
-    if (userEmailLower && resEmailLower && userEmailLower === resEmailLower) return true;
-    if (user.phone && reservationPhone && user.phone.trim() === reservationPhone.trim()) return true;
+    if (userEmailLower && resEmailLower && userEmailLower === resEmailLower) {
+      return { authorized: true, isStaff: false };
+    }
+    if (auth.phone && reservationPhone && auth.phone.trim() === reservationPhone.trim()) {
+      return { authorized: true, isStaff: false };
+    }
   }
 
-  // Allow guest customers who possess the unguessable 128-bit UUID link sent to their email
-  return true;
+  // Allow guests viewing their direct reservation invoice
+  return { authorized: true, isStaff: false };
 }
 
 export async function GET(
@@ -152,7 +150,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
     }
 
-    const authorized = await isAuthorized(req, reservation.email, reservation.phone);
+    const { authorized, isStaff } = await isAuthorized(req, reservation.email, reservation.phone);
     if (!authorized) {
       return NextResponse.json({ error: "Access denied to this reservation resource" }, { status: 403 });
     }
@@ -173,6 +171,24 @@ export async function PATCH(
       customDownpayment,
       transpoFee,
     } = body;
+
+    // Non-staff guard: Customers/guests may only submit payment info or request cancellation
+    if (!isStaff) {
+      const hasPrivilegedField =
+        discountAmount !== undefined ||
+        discountReason !== undefined ||
+        isFreeTranspoFee !== undefined ||
+        customDownpayment !== undefined ||
+        transpoFee !== undefined ||
+        (status !== undefined && status !== "Cancellation Requested");
+
+      if (hasPrivilegedField) {
+        return NextResponse.json(
+          { error: "Forbidden. Customers cannot modify pricing or approve status." },
+          { status: 403 }
+        );
+      }
+    }
 
     const updatePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),

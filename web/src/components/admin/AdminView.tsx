@@ -30,6 +30,8 @@ import { SettingsTab } from "./settings/SettingsTab";
 import { AuditLogsTab } from "./audit/AuditLogsTab";
 import { ConfirmModal } from "./common/ConfirmModal";
 import { auditLogger } from "@/utils/auditLogger";
+import { useAdminSessionLifecycle } from "@/hooks/useAdminSessionLifecycle";
+import { SessionKickoutModal } from "./SessionKickoutModal";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -38,13 +40,16 @@ export const AdminView: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "menu" | "reservations" | "loyalty" | "users" | "lifestyle" | "events" | "settings" | "audit">("dashboard");
 
+  // Single Active Session Real-time Kickout & Dual-token Lifecycle Hook
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
+  const [currentUserRole, setCurrentUserRole] = useState<"admin" | "barista">("admin");
+  const { isKickedOut, isExpired, kickoutReason } = useAdminSessionLifecycle(currentUserEmail);
+
   // Database States
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loyaltyMembers, setLoyaltyMembers] = useState<LoyaltyMember[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [currentUserEmail, setCurrentUserEmail] = useState("");
-  const [currentUserRole, setCurrentUserRole] = useState<"admin" | "barista">("admin");
 
   // Search/Filters
   const [menuSearch, setMenuSearch] = useState("");
@@ -648,6 +653,11 @@ export const AdminView: React.FC = () => {
 
   const handleLogout = async () => {
     try {
+      if (currentUserEmail) {
+        await fetch(`/api/auth/admin-session?email=${encodeURIComponent(currentUserEmail)}`, {
+          method: "DELETE",
+        });
+      }
       const { supabase } = await import("@/utils/supabase");
       if (supabase) {
         await supabase.auth.signOut();
@@ -655,8 +665,14 @@ export const AdminView: React.FC = () => {
     } catch (_) {}
     localStorage.removeItem("admin_session");
     localStorage.removeItem("admin_profile");
+    localStorage.removeItem("admin_session_id");
+    localStorage.removeItem("admin_access_exp");
+    localStorage.removeItem("admin_refresh_exp");
     eraseCookie("admin_session");
     eraseCookie("admin_role");
+    eraseCookie("admin_access_token");
+    eraseCookie("admin_refresh_token");
+    eraseCookie("admin_session_id");
     eraseCookie("sb-access-token");
     router.push("/login");
   };
@@ -1695,6 +1711,12 @@ export const AdminView: React.FC = () => {
         reservationStatuses={reservationStatuses}
         onUpdateStatus={updateReservationStatus}
         onReschedule={handleRescheduleReservation}
+      />
+
+      <SessionKickoutModal
+        isOpen={isKickedOut || isExpired}
+        isHardExpiry={isExpired}
+        reason={kickoutReason}
       />
     </div>
   );

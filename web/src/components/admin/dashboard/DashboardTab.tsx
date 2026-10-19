@@ -136,19 +136,18 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       </p>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-[8px] font-bold type-ui tracking-wider border shrink-0 transition-all ${
-                        status === "Completed"
+                      className={`px-3 py-1 rounded-full text-[8px] font-bold type-ui tracking-wider border shrink-0 transition-all ${status === "Completed"
                           ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
                           : status === "Approved"
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                          : status === "Pre-Approved"
-                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
-                          : status === "Cancellation Requested"
-                          ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 animate-pulse"
-                          : status === "Cancelled"
-                          ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-                          : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
-                      }`}
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                            : status === "Pre-Approved"
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                              : status === "Cancellation Requested"
+                                ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 animate-pulse"
+                                : status === "Cancelled"
+                                  ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+                                  : "bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border-zinc-500/20"
+                        }`}
                     >
                       {status}
                     </span>
@@ -170,7 +169,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           className="rounded-2xl border border-card-border bg-card/60 backdrop-blur-sm p-6 shadow-2xl flex flex-col justify-between relative overflow-hidden h-full"
         >
           <div className="absolute bottom-0 right-0 w-32 h-32 bg-brand-green/5 blur-[40px] rounded-full pointer-events-none" />
-          
+
           <div>
             <span className="type-eyebrow text-[9px] text-brand-green dark:text-emerald-400 tracking-[0.2em] font-semibold">ADMIN CONTROLS</span>
             <h3 className="type-h3 text-foreground font-serif font-bold tracking-tight mt-0.5 mb-2">Quick Operations</h3>

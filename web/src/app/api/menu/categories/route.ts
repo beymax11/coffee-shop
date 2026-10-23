@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/utils/supabase";
+import { requireAdmin } from "@/lib/auth-server";
+import { createCategorySchema } from "@/lib/validation";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Prefer service role client for administrative table mutations, fallback to public client
-const supabaseAdmin = supabaseUrl && serviceRoleKey
-  ? createClient(supabaseUrl, serviceRoleKey)
-  : supabase;
+const supabaseAdmin =
+  supabaseUrl && serviceRoleKey
+    ? createClient(supabaseUrl, serviceRoleKey)
+    : supabase;
 
 export async function GET() {
   if (!supabaseAdmin) {
     return NextResponse.json(
-      { error: "Supabase client is not configured", categories: [] },
-      { status: 200 }
+      { error: "Supabase client is not configured.", categories: [] },
+      { status: 503 }
     );
   }
 
@@ -25,43 +28,44 @@ export async function GET() {
       .order("created_at", { ascending: true });
 
     if (catError) {
-      console.warn("Could not fetch categories from Supabase:", catError.message);
-      return NextResponse.json({ error: catError.message, categories: [] }, { status: 200 });
+      console.warn("[Menu Categories GET] Fetch error:", catError.message);
+      return NextResponse.json({ error: "Failed to load categories.", categories: [] }, { status: 500 });
     }
 
-    // Fetch item counts from menu_items table
-    const { data: itemsData } = await supabaseAdmin
-      .from("menu_items")
-      .select("category");
+    const categories = catData || [];
 
-    const countMap: Record<string, number> = {};
-    if (itemsData && Array.isArray(itemsData)) {
-      itemsData.forEach((it: any) => {
-        if (it?.category) {
-          const catKey = it.category.trim().toLowerCase();
-          countMap[catKey] = (countMap[catKey] || 0) + 1;
+    // Efficient count query: execute HEAD count per category without downloading all menu_items rows
+    const categoriesWithCounts = await Promise.all(
+      categories.map(async (cat: any) => {
+        try {
+          const { count, error } = await supabaseAdmin!
+            .from("menu_items")
+            .select("id", { count: "exact", head: true })
+            .ilike("category", cat.name);
+
+          return {
+            id: cat.id,
+            name: cat.name,
+            created_at: cat.created_at,
+            itemCount: error ? 0 : (count || 0),
+          };
+        } catch {
+          return {
+            id: cat.id,
+            name: cat.name,
+            created_at: cat.created_at,
+            itemCount: 0,
+          };
         }
-      });
-    }
-
-    const categoriesWithCounts = (catData || []).map((cat: any) => {
-      const norm = (cat.name || "").trim().toLowerCase();
-      return {
-        id: cat.id,
-        name: cat.name,
-        created_at: cat.created_at,
-        itemCount: countMap[norm] || 0,
-      };
-    });
+      })
+    );
 
     return NextResponse.json({ categories: categoriesWithCounts });
   } catch (err: any) {
-    console.error("GET /api/menu/categories unexpected error:", err);
-    return NextResponse.json({ error: err.message, categories: [] }, { status: 500 });
+    console.error("[GET /api/menu/categories Exception]:", err);
+    return NextResponse.json({ error: "Internal server error.", categories: [] }, { status: 500 });
   }
 }
-
-import { requireAdmin } from "@/lib/auth-server";
 
 export async function POST(request: NextRequest) {
   const check = await requireAdmin(request);
@@ -71,21 +75,21 @@ export async function POST(request: NextRequest) {
 
   if (!supabaseAdmin) {
     return NextResponse.json(
-      { error: "Database not configured" },
+      { error: "Database service unavailable." },
       { status: 503 }
     );
   }
 
   try {
-    const body = await request.json();
-    const name = body?.name?.trim();
+    const rawBody = await request.json();
+    const validation = createCategorySchema.safeParse(rawBody);
 
-    if (!name) {
-      return NextResponse.json(
-        { error: "Category name is required" },
-        { status: 400 }
-      );
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message || "Invalid category name.";
+      return NextResponse.json({ error: firstError }, { status: 400 });
     }
+
+    const { name } = validation.data;
 
     const { data, error } = await supabaseAdmin
       .from("menu_categories")
@@ -94,14 +98,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Supabase insert category error:", error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error("[Menu Categories POST Error]:", error.message);
+      return NextResponse.json({ error: "Failed to save category." }, { status: 400 });
     }
 
     return NextResponse.json({ success: true, category: data }, { status: 201 });
   } catch (err: any) {
-    console.error("POST /api/menu/categories unexpected error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("[POST /api/menu/categories Exception]:", err);
+    return NextResponse.json({ error: "Internal server error occurred." }, { status: 500 });
   }
 }
 
@@ -113,7 +117,7 @@ export async function DELETE(request: NextRequest) {
 
   if (!supabaseAdmin) {
     return NextResponse.json(
-      { error: "Database not configured" },
+      { error: "Database service unavailable." },
       { status: 503 }
     );
   }
@@ -126,13 +130,13 @@ export async function DELETE(request: NextRequest) {
         const body = await request.json();
         name = body?.name?.trim();
       } catch {
-        // body might be empty if using search params
+        // body might be empty if query string used
       }
     }
 
     if (!name) {
       return NextResponse.json(
-        { error: "Category name is required for deletion" },
+        { error: "Category name is required for deletion." },
         { status: 400 }
       );
     }
@@ -144,11 +148,11 @@ export async function DELETE(request: NextRequest) {
       .ilike("category", name);
 
     if (countError) {
-      console.warn("Could not check menu_items count:", countError.message);
+      console.warn("[Menu Categories DELETE] Count check warning:", countError.message);
     } else if (count !== null && count > 0) {
       return NextResponse.json(
         {
-          error: `Hindi maaaring burahin ang category na "${name}" dahil mayroon pa itong ${count} menu item${count === 1 ? "" : "s"}.`,
+          error: `Cannot delete category "${name}" because it still contains ${count} item${count === 1 ? "" : "s"}.`,
           itemCount: count,
         },
         { status: 400 }
@@ -162,13 +166,13 @@ export async function DELETE(request: NextRequest) {
       .ilike("name", name);
 
     if (error) {
-      console.error("Supabase delete category error:", error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error("[Menu Categories DELETE Error]:", error.message);
+      return NextResponse.json({ error: "Failed to delete category." }, { status: 400 });
     }
 
     return NextResponse.json({ success: true, deleted: name }, { status: 200 });
   } catch (err: any) {
-    console.error("DELETE /api/menu/categories unexpected error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("[DELETE /api/menu/categories Exception]:", err);
+    return NextResponse.json({ error: "Internal server error occurred." }, { status: 500 });
   }
 }

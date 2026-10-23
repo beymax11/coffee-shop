@@ -149,10 +149,14 @@ function StatusBadge({
 function PaymentForm({
   reservationId,
   pricing,
+  customerEmail,
+  customerPhone,
   onSuccess,
 }: {
   reservationId: string;
   pricing: { downpayment: number };
+  customerEmail?: string;
+  customerPhone?: string;
   onSuccess: (data: { paymentMethod: string; referenceNumber: string; proofOfPayment: string }) => void;
 }) {
   const [paymentMethod, setPaymentMethod] = useState<"GCash" | "Bank Transfer" | "QRPh">("GCash");
@@ -164,7 +168,17 @@ function PaymentForm({
   const handleSubmit = async () => {
     const errs: Record<string, string> = {};
     if (!referenceNumber.trim()) errs.referenceNumber = "Reference number is required";
-    if (!proofFile) errs.proofFile = "Please upload your proof of payment";
+    if (!proofFile) {
+      errs.proofFile = "Please upload your proof of payment";
+    } else {
+      if (proofFile.size > 5 * 1024 * 1024) {
+        errs.proofFile = "File size must not exceed 5MB.";
+      }
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/jpg"];
+      if (!allowedTypes.includes(proofFile.type.toLowerCase())) {
+        errs.proofFile = "Only image files (JPG, PNG, WEBP, HEIC) are accepted.";
+      }
+    }
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     
     const file = proofFile;
@@ -221,6 +235,8 @@ function PaymentForm({
           paymentMethod,
           referenceNumber,
           proofOfPayment: finalProofUrl,
+          clientEmail: customerEmail,
+          clientPhone: customerPhone,
         }),
       });
 
@@ -482,6 +498,8 @@ export default function ReservationDetailView({ reservationId }: { reservationId
         body: JSON.stringify({
           status: "Cancellation Requested",
           cancellationReason: cancelReason.trim(),
+          clientEmail: reservation?.email,
+          clientPhone: reservation?.phone,
         }),
       });
 
@@ -668,6 +686,8 @@ export default function ReservationDetailView({ reservationId }: { reservationId
                 <PaymentForm
                   reservationId={reservation.id}
                   pricing={pricing}
+                  customerEmail={reservation.email}
+                  customerPhone={reservation.phone}
                   onSuccess={(data) => {
                     setIsPaid(true);
                     setPaidData(data);

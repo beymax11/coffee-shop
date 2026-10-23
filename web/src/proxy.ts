@@ -6,12 +6,14 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isAdminPage = pathname.startsWith("/admin");
-  const isProtectedEmailRoute =
+  const isProtectedApiRoute =
     pathname.startsWith("/api/send-email/approved") ||
     pathname.startsWith("/api/send-email/completed") ||
-    pathname.startsWith("/api/send-email/secured");
+    pathname.startsWith("/api/send-email/secured") ||
+    pathname.startsWith("/api/users/role") ||
+    pathname.startsWith("/api/loyalty");
 
-  if (isAdminPage || isProtectedEmailRoute) {
+  if (isAdminPage || isProtectedApiRoute) {
     const auth = await getAuthContext(request);
 
     if (!auth.isStaff) {
@@ -21,10 +23,17 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
       } else {
         return NextResponse.json(
-          { error: "Unauthorized access to protected resource" },
+          { error: "Unauthorized access to protected staff endpoints." },
           { status: 401 }
         );
       }
+    }
+
+    if (pathname.startsWith("/api/users/role") && !auth.isAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden. Administrator privileges required." },
+        { status: 403 }
+      );
     }
   }
 
@@ -37,5 +46,7 @@ export const config = {
     "/api/send-email/approved",
     "/api/send-email/completed",
     "/api/send-email/secured",
+    "/api/users/role",
+    "/api/loyalty",
   ],
 };

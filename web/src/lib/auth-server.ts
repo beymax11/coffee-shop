@@ -33,9 +33,12 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext> {
       const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
       if (!userError && user) {
-        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
-        const emailMatchesAdmin =
-          user.email && user.email.toLowerCase() === adminEmail.toLowerCase();
+        const configuredAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+        const emailMatchesAdmin = Boolean(
+          configuredAdminEmail &&
+            user.email &&
+            user.email.toLowerCase() === configuredAdminEmail.toLowerCase()
+        );
 
         // Check role in profiles table
         let role: "admin" | "barista" | "customer" = "customer";
@@ -69,17 +72,16 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext> {
     }
   }
 
-  // 2. Development / Mock Mode Fallback
-  // If Supabase is not configured or in development fallback, check session cookie
+  // 2. Development / Mock Mode Fallback (Strictly prohibited in production)
   const isDev = process.env.NODE_ENV !== "production";
   const adminSession = req.cookies.get("admin_session")?.value;
   const adminRoleCookie = req.cookies.get("admin_role")?.value;
 
-  if (adminSession === "true" && (!supabaseUrl || isDev)) {
+  if (isDev && adminSession === "true") {
     const role = adminRoleCookie === "barista" ? "barista" : "admin";
     return {
       userId: "mock-admin-id",
-      email: process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com",
+      email: process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@agshop.lat",
       phone: null,
       role,
       isStaff: true,

@@ -8,6 +8,7 @@ import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
 import { formatPhoneNumber } from "@/utils/phone";
 import { setCookie, eraseCookie } from "@/utils/cookies";
+import { initAdminClientSession } from "@/utils/admin-session-client";
 
 export interface LoginDrawerProps {
   isOpen: boolean;
@@ -75,7 +76,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
 
     // --- FALLBACK MOCK AUTHENTICATION (if Supabase is not configured) ---
     if (!supabase) {
-      setTimeout(() => {
+      setTimeout(async () => {
         setIsSubmitting(false);
 
         // Sign In mock flow
@@ -126,6 +127,14 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
             setCookie("admin_session", "true", 7);
             setCookie("admin_role", userRole, 7);
             eraseCookie("sb-access-token");
+
+            // Initialize single active session and 15m/7d dual-tokens
+            await initAdminClientSession({
+              userId: "mock-admin-id",
+              email: userEmail,
+              role: userRole as "admin" | "barista",
+              name: userName,
+            });
           } else if (matchedMockUser && password === "customer123") {
             setSuccessMessage("Welcome back. Logging you in...");
             setIsSuccess(true);
@@ -183,9 +192,10 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
         setIsSuccess(true);
         localStorage.setItem("admin_session", "true");
         const adminName = profile?.name || user.user_metadata?.name || (actualRole === "admin" ? "Admin User" : "Barista Staff");
+        const userEmail = user.email || "";
         localStorage.setItem("admin_profile", JSON.stringify({
           name: adminName,
-          email: user.email || "",
+          email: userEmail,
           role: actualRole
         }));
         localStorage.removeItem("customer_session");
@@ -194,6 +204,14 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
         if (data.session?.access_token) {
           setCookie("sb-access-token", data.session.access_token, 7);
         }
+
+        // Initialize single active session and 15m/7d dual-tokens
+        await initAdminClientSession({
+          userId: user.id,
+          email: userEmail,
+          role: actualRole,
+          name: adminName,
+        });
       } else {
         // Customer Sign In
         setSuccessMessage("Welcome back. Redirecting to reserve account...");

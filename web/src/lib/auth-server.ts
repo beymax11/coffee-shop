@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { verifyToken, isSessionActive } from "./admin-auth";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -13,18 +14,72 @@ export interface AuthContext {
   isStaff: boolean;
   isAdmin: boolean;
   isMock: boolean;
+  sessionId?: string;
 }
 
 /**
  * Validates the caller's identity and role on the server side.
- * Supports both real Supabase sessions and local mock development sessions.
+ * Supports:
+ * 1. Admin 15-minute access token with single active session verification.
+ * 2. Supabase JWT auth session.
+ * 3. Development / Mock mode fallback.
  */
 export async function getAuthContext(req: NextRequest): Promise<AuthContext> {
+  // 1. Check for 15-minute Admin Access Token
+  const adminAccessToken =
+    req.cookies.get("admin_access_token")?.value ||
+    req.headers.get("x-admin-access-token") ||
+    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+
+  if (adminAccessToken) {
+    const verified = verifyToken(adminAccessToken);
+    if (verified.valid && verified.payload && verified.payload.type === "access") {
+      const { userId, email, role, sessionId } = verified.payload;
+
+      // Verify that this session has NOT been superseded by another login (Single Active Session)
+      const active = isSessionActive(email, sessionId);
+      if (active) {
+        return {
+          userId,
+          email,
+          phone: null,
+          role,
+          isStaff: role === "admin" || role === "barista",
+          isAdmin: role === "admin",
+          isMock: false,
+          sessionId,
+        };
+      } else {
+        console.warn(`[Auth Server] Rejected token for ${email}: Session ${sessionId} has been superseded.`);
+        return {
+          userId: null,
+          email: null,
+          phone: null,
+          role: null,
+          isStaff: false,
+          isAdmin: false,
+          isMock: false,
+        };
+      }
+    } else {
+      console.warn(`[Auth Server] Invalid or expired admin token: ${verified.error}`);
+      return {
+        userId: null,
+        email: null,
+        phone: null,
+        role: null,
+        isStaff: false,
+        isAdmin: false,
+        isMock: false,
+      };
+    }
+  }
+
+  // 2. Real Supabase Authentication
   const token =
     req.cookies.get("sb-access-token")?.value ||
     req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
-  // 1. Real Supabase Authentication
   if (supabaseUrl && (serviceKey || supabaseAnonKey) && token) {
     try {
       const activeKey = serviceKey || supabaseAnonKey!;
@@ -72,7 +127,7 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext> {
     }
   }
 
-  // 2. Development / Mock Mode Fallback (Strictly prohibited in production)
+  // 3. Development / Mock Mode Fallback (Strictly prohibited in production)
   const isDev = process.env.NODE_ENV !== "production";
   const adminSession = req.cookies.get("admin_session")?.value;
   const adminRoleCookie = req.cookies.get("admin_role")?.value;

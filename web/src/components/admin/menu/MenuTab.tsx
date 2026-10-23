@@ -53,14 +53,14 @@ export const MenuTab: React.FC<MenuTabProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-const LEGACY_MOCK_CATEGORIES = [
-  "Hot Coffee",
-  "Cold Coffee",
-  "Signature Drinks",
-  "Non-Coffee",
-  "Pastries",
-  "Desserts",
-];
+  const LEGACY_MOCK_CATEGORIES = [
+    "Hot Coffee",
+    "Cold Coffee",
+    "Signature Drinks",
+    "Non-Coffee",
+    "Pastries",
+    "Desserts",
+  ];
 
   // Sync categories from database / local cache
   const [dbCategories, setDbCategories] = useState<string[]>([]);
@@ -209,7 +209,7 @@ const LEGACY_MOCK_CATEGORIES = [
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      
+
       {/* 1. SEARCH, FILTERS & ACTION TOOLBAR (AUDIT LOGS STYLE) */}
       <div className="rounded-2xl border border-neutral-200 dark:border-card-border bg-white dark:bg-card/60 backdrop-blur-md p-3.5 sm:p-4 space-y-3 sm:space-y-4 shadow-sm">
         <div className="flex items-center justify-between gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
@@ -239,11 +239,10 @@ const LEGACY_MOCK_CATEGORIES = [
             onClick={() => setShowMobileFilters((prev) => !prev)}
             aria-label="Toggle filter tabs"
             title="Toggle Category Filters"
-            className={`sm:hidden flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer shrink-0 ${
-              showMobileFilters || menuCatFilter !== "All"
+            className={`sm:hidden flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer shrink-0 ${showMobileFilters || menuCatFilter !== "All"
                 ? "bg-brand-green/10 border-brand-green/40 text-brand-green dark:bg-brand-green/20"
                 : "bg-white dark:bg-background-alt border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/30"
-            }`}
+              }`}
           >
             <Filter size={15} className={menuCatFilter !== "All" ? "text-brand-green" : ""} />
             {menuCatFilter !== "All" && (
@@ -256,9 +255,8 @@ const LEGACY_MOCK_CATEGORIES = [
             <div className="relative group">
               <button
                 onClick={() => setViewMode("table")}
-                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
-                  viewMode === "table" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
-                }`}
+                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${viewMode === "table" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
+                  }`}
                 aria-label="Table View"
               >
                 <List size={15} />
@@ -271,9 +269,8 @@ const LEGACY_MOCK_CATEGORIES = [
             <div className="relative group">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${
-                  viewMode === "grid" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
-                }`}
+                className={`p-2 rounded-lg text-xs flex items-center justify-center cursor-pointer transition-colors ${viewMode === "grid" ? "bg-brand-green text-white" : "text-neutral-600 dark:text-neutral-400 hover:text-foreground"
+                  }`}
                 aria-label="Grid View"
               >
                 <LayoutGrid size={15} />
@@ -313,9 +310,8 @@ const LEGACY_MOCK_CATEGORIES = [
 
         {/* Categories & Sorting Toolbar (Hidden on mobile by default, toggleable via Filters button, always visible on sm+) */}
         <div
-          className={`${
-            showMobileFilters ? "flex" : "hidden sm:flex"
-          } flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200/60 dark:border-card-border/60 animate-in fade-in slide-in-from-top-1 duration-200`}
+          className={`${showMobileFilters ? "flex" : "hidden sm:flex"
+            } flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-neutral-200/60 dark:border-card-border/60 animate-in fade-in slide-in-from-top-1 duration-200`}
         >
           {/* Category Pill Filters */}
           <div className="flex flex-wrap items-center gap-1.5">
@@ -325,11 +321,10 @@ const LEGACY_MOCK_CATEGORIES = [
                 <button
                   key={cat}
                   onClick={() => setMenuCatFilter(cat)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all duration-200 ${
-                    isActive
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all duration-200 ${isActive
                       ? "bg-brand-green text-white shadow-sm font-semibold"
                       : "bg-neutral-100 dark:bg-background-alt text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-card-border"
-                  }`}
+                    }`}
                 >
                   {cat}
                 </button>
@@ -462,12 +457,12 @@ const LEGACY_MOCK_CATEGORIES = [
                           {item.price != null
                             ? `₱${Number(item.price).toFixed(2)}`
                             : item.modest != null
-                            ? `₱${Number(item.modest).toFixed(2)}`
-                            : item.hot != null
-                            ? `₱${Number(item.hot).toFixed(2)}`
-                            : item.grand != null
-                            ? `₱${Number(item.grand).toFixed(2)}`
-                            : "—"}
+                              ? `₱${Number(item.modest).toFixed(2)}`
+                              : item.hot != null
+                                ? `₱${Number(item.hot).toFixed(2)}`
+                                : item.grand != null
+                                  ? `₱${Number(item.grand).toFixed(2)}`
+                                  : "—"}
                         </span>
                       </td>
 
@@ -532,12 +527,12 @@ const LEGACY_MOCK_CATEGORIES = [
                           {item.price != null
                             ? `₱${Number(item.price).toFixed(2)}`
                             : item.modest != null
-                            ? `₱${Number(item.modest).toFixed(2)}`
-                            : item.hot != null
-                            ? `₱${Number(item.hot).toFixed(2)}`
-                            : item.grand != null
-                            ? `₱${Number(item.grand).toFixed(2)}`
-                            : "—"}
+                              ? `₱${Number(item.modest).toFixed(2)}`
+                              : item.hot != null
+                                ? `₱${Number(item.hot).toFixed(2)}`
+                                : item.grand != null
+                                  ? `₱${Number(item.grand).toFixed(2)}`
+                                  : "—"}
                         </span>
                       </div>
 
@@ -627,12 +622,12 @@ const LEGACY_MOCK_CATEGORIES = [
                         {item.price != null
                           ? `₱${Number(item.price).toFixed(2)}`
                           : item.modest != null
-                          ? `₱${Number(item.modest).toFixed(2)}`
-                          : item.hot != null
-                          ? `₱${Number(item.hot).toFixed(2)}`
-                          : item.grand != null
-                          ? `₱${Number(item.grand).toFixed(2)}`
-                          : "—"}
+                            ? `₱${Number(item.modest).toFixed(2)}`
+                            : item.hot != null
+                              ? `₱${Number(item.hot).toFixed(2)}`
+                              : item.grand != null
+                                ? `₱${Number(item.grand).toFixed(2)}`
+                                : "—"}
                       </span>
                     </div>
                     <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-2">{item.description}</p>
@@ -753,7 +748,7 @@ const LEGACY_MOCK_CATEGORIES = [
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent md:bg-gradient-to-t md:from-black/40 md:via-transparent md:to-transparent" />
-                
+
                 {/* Category Badge */}
                 <div className="absolute bottom-4 left-4 md:top-4 md:bottom-auto">
                   <span className="rounded-xl bg-brand-green px-3 py-1 text-[10px] uppercase font-mono font-bold tracking-wider text-white shadow-lg shadow-brand-green/20 border border-white/20">

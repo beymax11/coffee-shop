@@ -1,23 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 
 interface RateLimitRecord {
-  count: number;
-  resetTime: number;
+  timestamps: number[];
 }
 
-// In-memory sliding window cache
-const ipRateLimitStore = new Map<string, RateLimitRecord>();
+const ipRequestMap = new Map<string, RateLimitRecord>();
 
-// Cleanup stale entries every 5 minutes to prevent memory leak
-if (typeof setInterval !== "undefined") {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, record] of ipRateLimitStore.entries()) {
-      if (now > record.resetTime) {
-        ipRateLimitStore.delete(key);
-      }
+// Periodic cleanup every 5 minutes to prevent memory leak
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+let lastCleanup = Date.now();
+
+function cleanupExpired(windowMs: number) {
+  const now = Date.now();
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+  lastCleanup = now;
+
+  const threshold = now - windowMs;
+  for (const [key, record] of ipRequestMap.entries()) {
+    const valid = record.timestamps.filter((ts) => ts > threshold);
+    if (valid.length === 0) {
+      ipRequestMap.delete(key);
+    } else {
+      record.timestamps = valid;
     }
-  }, 5 * 60 * 1000).unref?.();
+  }
+}
+
+export interface RateLimitOptions {
+  windowMs: number; // Duration of window in ms
+  max: number;      // Max allowed hits within window
+}
+
+export interface RateLimitResult {
+  success: boolean;
+  limit: number;
+  remaining: number;
+  reset: number;
+  resetSeconds: number;
 }
 
 /**
@@ -39,48 +58,59 @@ export function getClientIp(req: NextRequest): string {
 }
 
 /**
- * Applies an in-memory rate limit for a specific key/prefix.
- * @param key Unique key (e.g. `signup:${ip}`)
- * @param maxRequests Maximum requests allowed within window
- * @param windowSeconds Window length in seconds
+ * Checks and records a rate limit hit for a given identifier (e.g. IP address).
+ * Supports both options object or (maxRequests, windowSeconds) signature.
  */
 export function checkRateLimit(
-  key: string,
-  maxRequests: number,
-  windowSeconds: number
-): { success: boolean; remaining: number; reset: number } {
-  const now = Date.now();
-  const windowMs = windowSeconds * 1000;
-  const existing = ipRateLimitStore.get(key);
+  identifier: string,
+  optionsOrMax?: RateLimitOptions | number,
+  windowSeconds?: number
+): RateLimitResult {
+  let max = 5;
+  let windowMs = 10 * 60 * 1000;
 
-  if (!existing || now > existing.resetTime) {
-    const record: RateLimitRecord = {
-      count: 1,
-      resetTime: now + windowMs,
-    };
-    ipRateLimitStore.set(key, record);
-    return {
-      success: true,
-      remaining: maxRequests - 1,
-      reset: Math.ceil(windowMs / 1000),
-    };
+  if (typeof optionsOrMax === "number") {
+    max = optionsOrMax;
+    windowMs = (windowSeconds ?? 60) * 1000;
+  } else if (optionsOrMax && typeof optionsOrMax === "object") {
+    max = optionsOrMax.max;
+    windowMs = optionsOrMax.windowMs;
   }
 
-  if (existing.count >= maxRequests) {
-    const secondsRemaining = Math.max(1, Math.ceil((existing.resetTime - now) / 1000));
+  cleanupExpired(windowMs);
+
+  const now = Date.now();
+  const threshold = now - windowMs;
+
+  const record = ipRequestMap.get(identifier) || { timestamps: [] };
+  const activeTimestamps = record.timestamps.filter((ts) => ts > threshold);
+
+  if (activeTimestamps.length >= max) {
+    const oldestTimestamp = activeTimestamps[0] || (now - windowMs);
+    const resetMs = Math.max(1000, oldestTimestamp + windowMs - now);
+    const secondsRemaining = Math.max(1, Math.ceil(resetMs / 1000));
     return {
       success: false,
+      limit: max,
       remaining: 0,
       reset: secondsRemaining,
+      resetSeconds: secondsRemaining,
     };
   }
 
-  existing.count += 1;
-  const secondsRemaining = Math.max(1, Math.ceil((existing.resetTime - now) / 1000));
+  activeTimestamps.push(now);
+  ipRequestMap.set(identifier, { timestamps: activeTimestamps });
+
+  const oldestTimestamp = activeTimestamps[0];
+  const resetMs = Math.max(1000, oldestTimestamp + windowMs - now);
+  const secondsRemaining = Math.max(1, Math.ceil(resetMs / 1000));
+
   return {
     success: true,
-    remaining: maxRequests - existing.count,
+    limit: max,
+    remaining: Math.max(0, max - activeTimestamps.length),
     reset: secondsRemaining,
+    resetSeconds: secondsRemaining,
   };
 }
 
@@ -102,15 +132,15 @@ export function enforceRateLimit(
     return NextResponse.json(
       {
         error: "Too many requests. Please slow down and try again later.",
-        retryAfter: result.reset,
+        retryAfter: result.resetSeconds,
       },
       {
         status: 429,
         headers: {
-          "Retry-After": String(result.reset),
+          "Retry-After": String(result.resetSeconds),
           "X-RateLimit-Limit": String(maxRequests),
           "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": String(result.reset),
+          "X-RateLimit-Reset": String(result.resetSeconds),
         },
       }
     );

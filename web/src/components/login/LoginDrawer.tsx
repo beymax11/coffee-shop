@@ -211,6 +211,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
           email: userEmail,
           role: actualRole,
           name: adminName,
+          accessToken: data.session?.access_token,
         });
       } else {
         // Customer Sign In

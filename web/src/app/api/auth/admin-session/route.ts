@@ -54,7 +54,7 @@ async function broadcastKickout(email: string, newSessionId: string) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId, email, role } = body;
+    const { userId, email, role, accessToken: bodyToken } = body;
 
     if (!email || !role) {
       return NextResponse.json(
@@ -64,6 +64,103 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    let validatedRole: "admin" | "barista" = role === "barista" ? "barista" : "admin";
+    let validatedUserId = userId || "admin-user";
+
+    // 0. Security Verification: Ensure the requester possesses an authentic session and staff permissions
+    const isProduction = process.env.NODE_ENV === "production";
+    const token =
+      bodyToken ||
+      req.cookies.get("sb-access-token")?.value ||
+      req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+
+    if (supabaseUrl && (serviceKey || supabaseAnonKey)) {
+      if (token) {
+        const activeKey = serviceKey || supabaseAnonKey!;
+        const supabase = createClient(supabaseUrl, activeKey);
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+        if (userError || !user) {
+          return NextResponse.json(
+            { error: "Unauthorized. Invalid or expired authentication session." },
+            { status: 401 }
+          );
+        }
+
+        // Verify token matches requested email
+        if (user.email && user.email.toLowerCase().trim() !== normalizedEmail) {
+          return NextResponse.json(
+            { error: "Forbidden. Email mismatch with authentication session." },
+            { status: 403 }
+          );
+        }
+
+        validatedUserId = user.id;
+
+        // Verify staff role in profiles table or admin email config
+        const configuredAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+        const emailMatchesAdmin = Boolean(
+          configuredAdminEmail &&
+            user.email &&
+            user.email.toLowerCase() === configuredAdminEmail.toLowerCase()
+        );
+
+        let userRole: "admin" | "barista" | null = null;
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.role === "admin" || profile?.role === "barista") {
+          userRole = profile.role;
+        } else if (emailMatchesAdmin) {
+          userRole = "admin";
+        } else if (user.app_metadata?.role === "admin" || user.app_metadata?.role === "barista") {
+          userRole = user.app_metadata.role;
+        }
+
+        if (!userRole) {
+          return NextResponse.json(
+            { error: "Forbidden. This account is not authorized for staff access." },
+            { status: 403 }
+          );
+        }
+
+        validatedRole = userRole;
+      } else {
+        // No token provided: strictly forbid in production
+        if (isProduction) {
+          return NextResponse.json(
+            { error: "Unauthorized. Active authentication session is required." },
+            { status: 401 }
+          );
+        }
+
+        // Development mock mode fallback
+        const configuredAdminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "antonioni.grounds@gmail.com";
+        const isMockStaff =
+          normalizedEmail === configuredAdminEmail.toLowerCase() ||
+          normalizedEmail === "barista@coffee.com" ||
+          normalizedEmail === "admin@agshop.lat" ||
+          normalizedEmail === "admin@coffee.com" ||
+          req.cookies.get("admin_session")?.value === "true";
+
+        if (!isMockStaff) {
+          return NextResponse.json(
+            { error: "Forbidden. Staff account required." },
+            { status: 403 }
+          );
+        }
+      }
+    } else if (isProduction) {
+      return NextResponse.json(
+        { error: "Database configuration unavailable." },
+        { status: 503 }
+      );
+    }
+
     const sessionId = crypto.randomUUID();
     const clientIp = getClientIp(req);
     const userAgent = req.headers.get("user-agent") || undefined;
@@ -76,9 +173,9 @@ export async function POST(req: NextRequest) {
 
     // 3. Generate 15-minute access token and 7-day refresh token
     const tokens = generateAdminTokens({
-      userId: userId || "admin-user",
+      userId: validatedUserId,
       email: normalizedEmail,
-      role: role === "barista" ? "barista" : "admin",
+      role: validatedRole,
       sessionId,
     });
 
@@ -92,7 +189,6 @@ export async function POST(req: NextRequest) {
     });
 
     // 4. Set secure cookies
-    const isProduction = process.env.NODE_ENV === "production";
     const secureFlag = isProduction ? "; Secure" : "";
 
     // 15-minute access token (900 seconds)

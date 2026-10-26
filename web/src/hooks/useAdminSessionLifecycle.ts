@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 import { eraseCookie, getCookie } from "@/utils/cookies";
 
@@ -15,7 +14,6 @@ export interface SessionLifecycleState {
 }
 
 export function useAdminSessionLifecycle(currentUserEmail?: string): SessionLifecycleState {
-  const router = useRouter();
   const [isKickedOut, setIsKickedOut] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [kickoutReason, setKickoutReason] = useState("");
@@ -24,7 +22,10 @@ export function useAdminSessionLifecycle(currentUserEmail?: string): SessionLife
 
   const isRefreshingRef = useRef(false);
   const currentEmailRef = useRef(currentUserEmail);
-  currentEmailRef.current = currentUserEmail;
+
+  useEffect(() => {
+    currentEmailRef.current = currentUserEmail;
+  }, [currentUserEmail]);
 
   // Cleanup helper
   const performLocalLogout = useCallback(() => {

@@ -22,7 +22,7 @@ export const formatPhoneNumber = (rawPhone: string): string => {
  */
 export const formatDisplayPhone = (phone?: string): string => {
   if (!phone) return "n/a";
-  let cleaned = phone.trim().replace(/\s+/g, "");
+  const cleaned = phone.trim().replace(/\s+/g, "");
   if (cleaned.startsWith("+63")) {
     return "0" + cleaned.substring(3);
   }

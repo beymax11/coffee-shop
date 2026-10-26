@@ -19,7 +19,7 @@ export function calculateAccurateDistance(
   city: string = "",
   province: string = ""
 ): DistanceResult {
-  let s = street.trim().toLowerCase();
+  const s = street.trim().toLowerCase();
   let b = barangay.trim().toLowerCase();
   let c = city.trim().toLowerCase();
   let p = province.trim().toLowerCase();

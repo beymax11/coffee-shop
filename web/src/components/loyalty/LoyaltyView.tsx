@@ -469,11 +469,13 @@ export function LoyaltyView() {
       let guestState = true;
 
       if (sessionEmail) {
+        let supabaseChecked = false;
         // Try to fetch latest profile from Supabase to ensure real-time sync of stamps/member_id
         try {
           const { supabase } = await import("@/utils/supabase");
           if (!active) return;
           if (supabase) {
+            supabaseChecked = true;
             // Verify authenticated user identity via Supabase Auth session to prevent localStorage session spoofing
             const {
               data: { session: activeSession },
@@ -512,7 +514,6 @@ export function LoyaltyView() {
                 );
                 let memberIdToUse =
                   loyaltyCard?.id ||
-                  existing?.id ||
                   (await generateUniqueLoyaltyCardId(
                     supabase,
                     members.map((m) => m.id)
@@ -527,8 +528,8 @@ export function LoyaltyView() {
                   username: profile.username || existing?.username || "",
                   email: isEmail ? sessionEmail : (profile.email || ""),
                   phone: isEmail ? (profile.phone || "") : sessionEmail,
-                  stamps: loyaltyCard?.stamps ?? existing?.stamps ?? 0,
-                  points: loyaltyCard?.points ?? existing?.points ?? 0,
+                  stamps: loyaltyCard?.stamps ?? 0,
+                  points: loyaltyCard?.points ?? 0,
                   joinedAt: profile.created_at
                     ? new Date(profile.created_at).toISOString().split("T")[0]
                     : existing?.joinedAt || new Date().toISOString().split("T")[0]
@@ -537,6 +538,15 @@ export function LoyaltyView() {
                 db.saveLoyaltyMember(updatedMember);
                 current = updatedMember;
                 guestState = false;
+              } else {
+                // Account was deleted from Supabase — purge stale local cache on this device
+                const cleaned = members.filter(
+                  (m) =>
+                    (!m.email || m.email.toLowerCase() !== sessionEmail!.toLowerCase()) &&
+                    (!m.phone || m.phone.trim() !== sessionEmail!.trim())
+                );
+                localStorage.setItem("loyalty_members", JSON.stringify(cleaned));
+                localStorage.removeItem("customer_session");
               }
             }
           }
@@ -544,7 +554,7 @@ export function LoyaltyView() {
           console.error("Error syncing profile with Supabase on mount:", err);
         }
 
-        if (guestState && active && sessionEmail) {
+        if (!supabaseChecked && guestState && active && sessionEmail) {
           const found = members.find(
             (m) => (m.email && m.email.toLowerCase() === sessionEmail!.toLowerCase()) ||
               (m.phone && m.phone.trim() === sessionEmail!.trim())

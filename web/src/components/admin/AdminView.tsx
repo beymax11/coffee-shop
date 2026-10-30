@@ -416,24 +416,11 @@ export const AdminView: React.FC = () => {
             };
           });
 
-          // Merge local members that do NOT exist in Supabase (e.g. offline walk-in members that aren't synced yet)
-          const mergedMembers = [...supabaseMembers];
-          localMembers.forEach((local) => {
-            const alreadyExists = mergedMembers.some((s) => {
-              if (local.email && s.email) {
-                return s.email.toLowerCase() === local.email.toLowerCase();
-              }
-              if (local.phone && s.phone) {
-                return s.phone.trim() === local.phone.trim();
-              }
-              return false;
-            });
-            if (!alreadyExists) {
-              mergedMembers.push(local);
-            }
-          });
-
-          setLoyaltyMembers(mergedMembers);
+          // Keep localStorage synced with Supabase (single source of truth) so deleted records don't reappear on other devices
+          if (typeof window !== "undefined") {
+            localStorage.setItem("loyalty_members", JSON.stringify(supabaseMembers));
+          }
+          setLoyaltyMembers(supabaseMembers);
         }
       } else {
         setLoyaltyMembers(localMembers);

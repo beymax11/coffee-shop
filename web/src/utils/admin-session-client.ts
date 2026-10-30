@@ -7,15 +7,22 @@ export async function initAdminClientSession(params: {
   email: string;
   role: "admin" | "barista";
   name: string;
+  accessToken?: string;
 }) {
   try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (params.accessToken) {
+      headers["Authorization"] = `Bearer ${params.accessToken}`;
+    }
+
     const res = await fetch("/api/auth/admin-session", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         userId: params.userId || "admin-user",
         email: params.email,
         role: params.role,
+        accessToken: params.accessToken,
       }),
     });
 

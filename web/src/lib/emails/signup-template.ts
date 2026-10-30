@@ -14,7 +14,8 @@ export function getSignupEmailHtml({
   isPreview = false,
 }: SignupEmailProps): string {
   const companyName = "Antonioni Grounds";
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://agshop.lat").replace(/\/$/, "");
+  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const baseUrl = (configuredUrl && !configuredUrl.includes("localhost") ? configuredUrl : "https://agshop.lat").replace(/\/$/, "");
   const logoSrc = isPreview ? "/logo.png" : `${baseUrl}/logo.png`;
   const heroSrc = isPreview ? "/hero.png" : `${baseUrl}/hero.png`;
 

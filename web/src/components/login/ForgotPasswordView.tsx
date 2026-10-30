@@ -22,25 +22,19 @@ export function ForgotPasswordView() {
 
     const trimmedEmail = email.trim();
 
-    // --- MOCK MODE (Supabase not configured) ---
-    if (!supabase) {
-      setTimeout(() => {
-        setIsSubmitting(false);
-        setIsSent(true);
-      }, 900);
-      return;
-    }
-
-    // --- REAL SUPABASE RESET ---
+    // --- SEND VIA RESEND RECOVERY API ---
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-        redirectTo:
-          typeof window !== "undefined"
-            ? `${window.location.origin}/login/reset`
-            : undefined,
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
       });
 
-      if (error) throw error;
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Unable to send the reset link. Please try again.");
+      }
 
       setIsSent(true);
     } catch (err: unknown) {

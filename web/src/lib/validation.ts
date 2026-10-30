@@ -32,6 +32,18 @@ export const signupSchema = z.object({
 });
 
 /**
+ * Validation schema for forgot password request (/api/auth/forgot-password)
+ */
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("A valid email address is required.")
+    .max(255, "Email is too long."),
+});
+
+/**
  * Validation schema for creating a new reservation (/api/reservations - POST)
  */
 export const createReservationSchema = z.object({

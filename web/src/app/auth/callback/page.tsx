@@ -17,12 +17,52 @@ export default function CallbackPage() {
       }
 
       try {
-        // Wait a brief moment for the Supabase client to parse the URL hash/query
-        const { data: { session }, error } = await supabase.auth.getSession();
+        let session = null;
 
-        if (error) throw error;
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const tokenHash = params.get("token_hash");
+          const type = (params.get("type") as "signup" | "email" | "recovery" | null) || "signup";
+          const code = params.get("code");
+
+          // 1. Direct token_hash verification
+          if (tokenHash) {
+            const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+              token_hash: tokenHash,
+              type: type === "recovery" ? "recovery" : type === "email" ? "email" : "signup",
+            });
+            if (verifyError) {
+              console.error("verifyOtp error:", verifyError.message);
+            } else {
+              session = verifyData.session;
+            }
+          } else if (code) {
+            // 2. PKCE code exchange
+            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            if (exchangeError) {
+              console.warn("exchangeCodeForSession error:", exchangeError.message);
+            } else {
+              session = exchangeData.session;
+            }
+          }
+        }
+
+        // 3. Fallback to getSession() (handles hash fragments like #access_token=...)
+        if (!session) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) throw sessionError;
+          session = sessionData.session;
+        }
 
         if (session) {
+          if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("type") === "recovery") {
+              router.replace("/login/reset");
+              return;
+            }
+          }
+
           // Fetch user profile to determine their role
           const { data: profile } = await supabase
             .from("profiles")

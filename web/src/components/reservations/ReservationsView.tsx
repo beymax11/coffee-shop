@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText, Printer, Check, Search, Eye, Loader2, X, ExternalLink, Navigation } from "lucide-react";
+import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText, Printer, Check, Search, Eye, Loader2, X, ExternalLink, Navigation, Sparkles } from "lucide-react";
+import { AvailableSoon } from "@/components/shared/AvailableSoon";
+
+// Set to false when ready to launch reservations
+const SHOW_AVAILABLE_SOON = true;
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
@@ -38,6 +42,7 @@ import { PaymentMethod } from "./PaymentMethod";
 import { SuccessDocket } from "./SuccessDocket";
 
 export function ReservationsView() {
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
@@ -931,8 +936,45 @@ export function ReservationsView() {
     }
   };
 
+  if (SHOW_AVAILABLE_SOON && !isPreviewMode) {
+    return (
+      <PageTransition>
+        <AvailableSoon
+          featureName="Table & Cart Reservations"
+          badge="Available Soon"
+          title="This Feature is Available Soon"
+          description="We are refining our online table reservation and Brew Buggy booking experience to ensure a seamless booking flow. This feature will be available soon."
+          icon={<CalendarIcon size={32} />}
+          highlights={[
+            {
+              title: "Table Reservations",
+              desc: "Reserve intimate tables and lounge seating for your visits.",
+            },
+            {
+              title: "Brew Buggy Cart Booking",
+              desc: "Book our coffee cart packages with custom coffee menus for your events.",
+            },
+          ]}
+          onPreview={() => setIsPreviewMode(true)}
+        />
+      </PageTransition>
+    );
+  }
+
   return (
     <PageTransition>
+      {isPreviewMode && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 py-2.5 px-4 text-center text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center justify-center gap-2">
+          <Sparkles size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+          <span>Notice: This feature is available soon. You are currently viewing in preview mode.</span>
+          <button
+            onClick={() => setIsPreviewMode(false)}
+            className="underline font-semibold hover:text-amber-900 dark:hover:text-amber-200 ml-2 cursor-pointer"
+          >
+            Back to Available Soon
+          </button>
+        </div>
+      )}
       <div className="min-h-screen bg-background pt-8 pb-16 md:pt-12 md:pb-24 text-foreground relative overflow-hidden font-sans print:bg-white print:text-black transition-colors duration-500">
         {/* Inject print-specific styles to hide main navbar and footer if present */}
         <style dangerouslySetInnerHTML={{

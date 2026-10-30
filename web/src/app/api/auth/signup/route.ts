@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
 
     const { email, password, name, username } = validation.data;
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://agshop.lat";
+    const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    const baseUrl = (configuredUrl && !configuredUrl.includes("localhost") ? configuredUrl : "https://agshop.lat").replace(/\/$/, "");
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const isProduction = process.env.NODE_ENV === "production";
@@ -173,7 +174,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const actionLink = linkData.properties.action_link;
+    const hashedToken = linkData.properties.hashed_token;
+    // Always route directly to official agshop.lat domain with token_hash
+    const actionLink = hashedToken
+      ? `${baseUrl}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}&type=signup`
+      : linkData.properties.action_link;
 
     // 9. Send branded confirmation email
     try {

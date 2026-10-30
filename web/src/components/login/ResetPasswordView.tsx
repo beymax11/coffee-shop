@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { supabase } from "@/utils/supabase";
 
 export function ResetPasswordView() {
@@ -15,6 +16,114 @@ export function ResetPasswordView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [hasValidSession, setHasValidSession] = useState(false);
+  const [tokenVerified, setTokenVerified] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkRecoverySession() {
+      if (!supabase) {
+        if (isMounted) {
+          setIsVerifying(false);
+          setHasValidSession(true);
+        }
+        return;
+      }
+
+      try {
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const tokenHash = params.get("token_hash");
+          const code = params.get("code");
+
+          // 1. If token_hash is present (from our custom direct email link)
+          if (tokenHash) {
+            const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+              token_hash: tokenHash,
+              type: "recovery",
+            });
+
+            if (verifyError) {
+              console.error("verifyOtp error:", verifyError.message);
+              if (isMounted) {
+                setErrorMsg(verifyError.message || "Invalid or expired recovery link.");
+                setIsVerifying(false);
+              }
+              return;
+            }
+
+            if (verifyData.session && isMounted) {
+              setHasValidSession(true);
+              setTokenVerified(true);
+              setIsVerifying(false);
+              toast.success("Security link verified! Please enter your new password.");
+              return;
+            }
+          }
+
+          // 2. Check for PKCE 'code' in query params
+          if (code) {
+            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            if (exchangeError) {
+              console.warn("PKCE code exchange error:", exchangeError.message);
+            } else if (exchangeData.session && isMounted) {
+              setHasValidSession(true);
+              setTokenVerified(true);
+              setIsVerifying(false);
+              toast.success("Security link verified! Please enter your new password.");
+              return;
+            }
+          }
+        }
+
+        // 2. Check for active session (either from code exchange or parsed URL hash)
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          if (isMounted) {
+            setHasValidSession(true);
+            setIsVerifying(false);
+          }
+          return;
+        }
+
+        // 3. Listen to auth state changes in case hash fragment parsing takes a split second
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
+          if (newSession && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")) {
+            if (isMounted) {
+              setHasValidSession(true);
+              setIsVerifying(false);
+            }
+          }
+        });
+
+        // 4. Fallback timeout to stop loader
+        const timer = setTimeout(() => {
+          if (isMounted) {
+            setIsVerifying(false);
+          }
+        }, 1200);
+
+        return () => {
+          authListener?.subscription?.unsubscribe();
+          clearTimeout(timer);
+        };
+      } catch (err) {
+        console.error("Recovery session initialization error:", err);
+        if (isMounted) {
+          setIsVerifying(false);
+        }
+      }
+    }
+
+    checkRecoverySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +160,7 @@ export function ResetPasswordView() {
       if (error) throw error;
 
       setIsSuccess(true);
+      toast.success("Password updated successfully! You can now sign in.");
     } catch (err: unknown) {
       console.error("Password update error:", err);
       const message =
@@ -88,7 +198,34 @@ export function ResetPasswordView() {
           </p>
         </div>
 
-        {isSuccess ? (
+        {isVerifying ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Loader2 className="animate-spin text-emerald-500 h-8 w-8" />
+            <span className="type-caption text-zinc-500 text-xs tracking-wider">Verifying security token...</span>
+          </div>
+        ) : !hasValidSession ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center text-center py-10"
+          >
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-500">
+              <AlertCircle size={24} strokeWidth={1.75} />
+            </div>
+            <h2 className="type-h3 text-foreground mt-5">Reset Link Expired or Invalid</h2>
+            <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-2 leading-relaxed max-w-sm">
+              This password reset link is invalid or has expired. Password recovery links can only be used once.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/login/forgot")}
+              className="type-ui group relative mt-8 flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-3.5 text-white font-sans font-bold tracking-wider border border-[#2E5A44]/30 transition-all duration-300 hover:bg-[#234533] shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_30px_rgba(46,90,68,0.4)] active:scale-[0.98] cursor-pointer"
+            >
+              <ArrowLeft size={15} />
+              <span>Request New Reset Link</span>
+            </button>
+          </motion.div>
+        ) : isSuccess ? (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -104,7 +241,7 @@ export function ResetPasswordView() {
             </p>
             <button
               type="button"
-              onClick={() => router.push("/login?view=page")}
+              onClick={() => router.push("/login?view=page&reset=success")}
               className="type-ui group relative mt-8 flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-3.5 text-white font-sans font-bold tracking-wider border border-[#2E5A44]/30 transition-all duration-300 hover:bg-[#234533] shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_30px_rgba(46,90,68,0.4)] active:scale-[0.98] cursor-pointer"
             >
               <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
@@ -116,6 +253,22 @@ export function ResetPasswordView() {
           </motion.div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5 pt-6">
+            {tokenVerified && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-emerald-400 text-xs flex items-center gap-3 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 shrink-0">
+                  <CheckCircle2 size={16} />
+                </div>
+                <div>
+                  <p className="font-semibold text-emerald-300 text-sm">Security Link Verified</p>
+                  <p className="text-emerald-400/80 mt-0.5">Your identity has been confirmed. Please enter and confirm your new password below.</p>
+                </div>
+              </motion.div>
+            )}
+
             {!supabase && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 type-caption text-amber-500 dark:text-amber-400 leading-normal text-xs">
                 <strong>Notice:</strong> Operating in mock auth mode. Password will be updated locally only.

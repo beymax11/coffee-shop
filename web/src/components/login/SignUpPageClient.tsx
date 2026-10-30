@@ -2,19 +2,16 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, Loader2, UserRound, UserPlus, AtSign, Phone, Check, ArrowLeft } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, UserRound, UserPlus, AtSign, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
-import { formatPhoneNumber } from "@/utils/phone";
 
 export function SignUpPageClient() {
   const router = useRouter();
 
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
-  const [phone, setPhone] = useState("");
-  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -38,22 +35,12 @@ export function SignUpPageClient() {
     setIsSuccess(false);
 
     try {
-      const activeEmail = authMethod === "email" ? email.trim() : "";
-      const activePhone = authMethod === "phone" ? formatPhoneNumber(phone) : "";
+      const activeEmail = email.trim();
 
       // 1. Validation
-      if (authMethod === "email") {
-        if (!activeEmail) throw new Error("Email address is required.");
-        if (!name.trim()) throw new Error("Full name is required.");
-        if (!username.trim()) throw new Error("Username is required.");
-      } else {
-        if (!activePhone) throw new Error("Phone number is required.");
-        if (!activePhone.startsWith("+") || activePhone.length < 10) {
-          throw new Error("Invalid phone number format. Please start with country code (e.g., +639171234567).");
-        }
-        if (!name.trim()) throw new Error("Full name is required.");
-        if (!username.trim()) throw new Error("Username is required.");
-      }
+      if (!activeEmail) throw new Error("Email address is required.");
+      if (!name.trim()) throw new Error("Full name is required.");
+      if (!username.trim()) throw new Error("Username is required.");
 
       // Check username syntax
       const trimmedUsername = username.trim();
@@ -74,7 +61,7 @@ export function SignUpPageClient() {
           name: name.trim(),
           username: trimmedUsername,
           email: activeEmail,
-          phone: activePhone,
+          phone: "",
           stamps: 0,
           points: 0,
           joinedAt: new Date().toISOString().split("T")[0],
@@ -83,50 +70,6 @@ export function SignUpPageClient() {
         setSuccessMessage("Account created successfully! Redirecting to sign in...");
         setIsSuccess(true);
         
-        setTimeout(() => {
-          router.replace("/login?view=page");
-        }, 1500);
-        return;
-      }
-
-      // Route registrations based on authMethod
-      if (authMethod === "phone") {
-        const { data, error } = await supabase.auth.signUp({
-          phone: activePhone,
-          password,
-          options: {
-            data: {
-              name: name.trim(),
-              username: username.trim().toLowerCase(),
-              role: "customer",
-            },
-          },
-        });
-
-        if (error) throw error;
-
-        const user = data.user;
-        if (user) {
-          const userPhone = user.phone || activePhone;
-          const members = db.getLoyaltyMembers();
-          const existingMember = members.find((m) => m.phone && userPhone && m.phone.trim() === userPhone.trim());
-
-          if (!existingMember) {
-            db.saveLoyaltyMember({
-              id: randomId,
-              name: name.trim(),
-              username: username.trim().toLowerCase(),
-              email: user.email || "",
-              phone: userPhone,
-              stamps: 0,
-              points: 0,
-              joinedAt: new Date().toISOString().split("T")[0],
-            });
-          }
-        }
-
-        setSuccessMessage("Account created successfully! Redirecting to sign in...");
-        setIsSuccess(true);
         setTimeout(() => {
           router.replace("/login?view=page");
         }, 1500);
@@ -164,7 +107,7 @@ export function SignUpPageClient() {
           name: name.trim(),
           username: username.trim().toLowerCase(),
           email: activeEmail,
-          phone: activePhone,
+          phone: "",
           stamps: 0,
           points: 0,
           joinedAt: new Date().toISOString().split("T")[0],
@@ -217,7 +160,6 @@ export function SignUpPageClient() {
       >
         {/* Header Block */}
         <div className="flex flex-col items-center text-center pb-6 border-b border-card-border/40 relative">
-          
           <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 uppercase tracking-widest text-[10px] font-bold">
             Antonioni Grounds
           </span>
@@ -261,45 +203,6 @@ export function SignUpPageClient() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Auth Method Selector */}
-          <div className="flex p-1 rounded-full bg-background-alt/50 border border-card-border/60 relative">
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMethod("email");
-                setErrorMsg("");
-              }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-full transition-all duration-300 relative z-10 cursor-pointer ${
-                authMethod === "email"
-                  ? "text-white"
-                  : "text-zinc-400 hover:text-foreground"
-              }`}
-            >
-              Email Sign Up
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMethod("phone");
-                setErrorMsg("");
-              }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-full transition-all duration-300 relative z-10 cursor-pointer ${
-                authMethod === "phone"
-                  ? "text-white"
-                  : "text-zinc-400 hover:text-foreground"
-              }`}
-            >
-              Phone Sign Up
-            </button>
-            
-            {/* Background slide element */}
-            <div
-              className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#2E5A44] rounded-full transition-all duration-300 ease-[0.16,1,0.3,1] ${
-                authMethod === "email" ? "left-1" : "left-[calc(50%+2px)]"
-              }`}
-            />
-          </div>
 
           {/* Full Name Field */}
           <div className="space-y-1">
@@ -347,73 +250,28 @@ export function SignUpPageClient() {
             </div>
           </div>
 
-          {/* Email (Email mode only) */}
-          <AnimatePresence initial={false}>
-            {authMethod === "email" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-1 overflow-hidden"
-              >
-                <label htmlFor="signup-email" className="type-label block text-xs">
-                  Email Address
-                </label>
-                <div className="group relative">
-                  <Mail
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none transition-colors duration-300 group-focus-within:text-emerald-500"
-                    size={16}
-                  />
-                  <input
-                    id="signup-email"
-                    type="email"
-                    required={authMethod === "email"}
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isSubmitting || isSuccess}
-                    className="w-full rounded-lg border border-card-border bg-background-alt/50 py-2.5 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 text-sm disabled:opacity-50"
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Phone (Phone mode only) */}
-          <AnimatePresence initial={false}>
-            {authMethod === "phone" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-1 overflow-hidden"
-              >
-                <label htmlFor="signup-phone" className="type-label block text-xs">
-                  Phone Number
-                </label>
-                <div className="group relative">
-                  <Phone
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none transition-colors duration-300 group-focus-within:text-emerald-500"
-                    size={16}
-                  />
-                  <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm font-sans font-semibold text-zinc-400 select-none group-focus-within:text-foreground transition-colors">
-                    +63
-                  </span>
-                  <span className="absolute left-16 top-[28%] bottom-[28%] w-px bg-card-border/60 group-focus-within:bg-emerald-500/40 transition-colors" />
-                  <input
-                    id="signup-phone"
-                    type="tel"
-                    required={authMethod === "phone"}
-                    placeholder="9171234567"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    disabled={isSubmitting || isSuccess}
-                    className="w-full rounded-lg border border-card-border bg-background-alt/50 py-2.5 pl-[4.75rem] pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 text-sm disabled:opacity-50"
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Email */}
+          <div className="space-y-1">
+            <label htmlFor="signup-email" className="type-label block text-xs">
+              Email Address
+            </label>
+            <div className="group relative">
+              <Mail
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none transition-colors duration-300 group-focus-within:text-emerald-500"
+                size={16}
+              />
+              <input
+                id="signup-email"
+                type="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting || isSuccess}
+                className="w-full rounded-lg border border-card-border bg-background-alt/50 py-2.5 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 text-sm disabled:opacity-50"
+              />
+            </div>
+          </div>
 
           {/* Password Fields in Side-by-Side (or stacked on mobile) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

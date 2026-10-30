@@ -2,11 +2,10 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Mail, Lock, Eye, EyeOff, LogIn, Check, Loader2, UserRound, UserPlus, AtSign, Phone } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, LogIn, Check, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
-import { formatPhoneNumber } from "@/utils/phone";
 import { setCookie, eraseCookie } from "@/utils/cookies";
 import { initAdminClientSession } from "@/utils/admin-session-client";
 
@@ -18,8 +17,6 @@ export interface LoginDrawerProps {
 export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
   const router = useRouter();
 
-  const [phone, setPhone] = useState("");
-  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -39,20 +36,17 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) return;
-    if (authMethod === "email" && !email) return;
-    if (authMethod === "phone" && !phone) return;
+    if (!password || !email) return;
 
     setIsSubmitting(true);
     setErrorMsg("");
     setIsSuccess(false);
 
-    const formattedPhone = authMethod === "phone" ? formatPhoneNumber(phone) : "";
     const trimmedEmail = email.trim();
     let loginEmail = trimmedEmail;
 
-    // --- RESOLVE USERNAME TO EMAIL (email mode only) ---
-    if (supabase && authMethod === "email") {
+    // --- RESOLVE USERNAME TO EMAIL ---
+    if (supabase) {
       try {
         const { data: profile } = await supabase
           .from("profiles")
@@ -66,7 +60,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
       } catch (err) {
         // Fall back to input text if no matching username profile found
       }
-    } else if (!supabase && authMethod === "email") {
+    } else {
       // Mock mode fallback for 'admin' username
       const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
       if (trimmedEmail.toLowerCase() === "admin") {
@@ -79,75 +73,54 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
       setTimeout(async () => {
         setIsSubmitting(false);
 
-        // Sign In mock flow
-        if (authMethod === "phone") {
-          const mockUsers = db.getMockUsers();
-          const matchedMockUser = mockUsers.find(
-            (u) => u.phone && u.phone.trim() === formattedPhone
-          );
-          if (matchedMockUser) {
-            setSuccessMessage("Welcome back. Logging you in...");
-            setIsSuccess(true);
-            localStorage.setItem("customer_session", matchedMockUser.email || matchedMockUser.phone || "");
-            localStorage.removeItem("admin_session");
-            localStorage.removeItem("admin_profile");
-            eraseCookie("admin_session");
-            eraseCookie("admin_role");
-            eraseCookie("sb-access-token");
-          } else {
-            setErrorMsg("No account found with this phone number (Mock).");
-            return;
-          }
+        // Email mock flow
+        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
+        const isAdmin = loginEmail.toLowerCase() === adminEmail.toLowerCase() && password === "admin123";
+        const isBarista = loginEmail.toLowerCase() === "barista@coffee.com" && password === "barista123";
+
+        const mockUsers = db.getMockUsers();
+        const matchedMockUser = mockUsers.find(
+          (u) => u.email.toLowerCase() === loginEmail.toLowerCase()
+        );
+        const isCustomStaff = matchedMockUser && (matchedMockUser.role === "admin" || matchedMockUser.role === "barista") && password === "staff123";
+
+        if (isAdmin || isBarista || isCustomStaff) {
+          const userRole = isAdmin ? "admin" : isBarista ? "barista" : (matchedMockUser?.role || "customer");
+          const userName = isAdmin ? "Antonioni Grounds Admin" : isBarista ? "Barista Staff" : (matchedMockUser?.name || "Staff");
+          const userEmail = isAdmin ? adminEmail : isBarista ? "barista@coffee.com" : (matchedMockUser?.email || "");
+
+          setSuccessMessage("Access granted. Redirecting to admin panel (Mock)...");
+          setIsSuccess(true);
+          localStorage.setItem("admin_session", "true");
+          localStorage.setItem("admin_profile", JSON.stringify({
+            name: userName,
+            email: userEmail,
+            role: userRole
+          }));
+          localStorage.removeItem("customer_session");
+          setCookie("admin_session", "true", 7);
+          setCookie("admin_role", userRole, 7);
+          eraseCookie("sb-access-token");
+
+          // Initialize single active session and 15m/7d dual-tokens
+          await initAdminClientSession({
+            userId: "mock-admin-id",
+            email: userEmail,
+            role: userRole as "admin" | "barista",
+            name: userName,
+          });
+        } else if (matchedMockUser && password === "customer123") {
+          setSuccessMessage("Welcome back. Logging you in...");
+          setIsSuccess(true);
+          localStorage.setItem("customer_session", matchedMockUser.email);
+          localStorage.removeItem("admin_session");
+          localStorage.removeItem("admin_profile");
+          eraseCookie("admin_session");
+          eraseCookie("admin_role");
+          eraseCookie("sb-access-token");
         } else {
-          // Email mock flow
-          const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
-          const isAdmin = loginEmail.toLowerCase() === adminEmail.toLowerCase() && password === "admin123";
-          const isBarista = loginEmail.toLowerCase() === "barista@coffee.com" && password === "barista123";
-
-          const mockUsers = db.getMockUsers();
-          const matchedMockUser = mockUsers.find(
-            (u) => u.email.toLowerCase() === loginEmail.toLowerCase()
-          );
-          const isCustomStaff = matchedMockUser && (matchedMockUser.role === "admin" || matchedMockUser.role === "barista") && password === "staff123";
-
-          if (isAdmin || isBarista || isCustomStaff) {
-            const userRole = isAdmin ? "admin" : isBarista ? "barista" : (matchedMockUser?.role || "customer");
-            const userName = isAdmin ? "Antonioni Grounds Admin" : isBarista ? "Barista Staff" : (matchedMockUser?.name || "Staff");
-            const userEmail = isAdmin ? adminEmail : isBarista ? "barista@coffee.com" : (matchedMockUser?.email || "");
-
-            setSuccessMessage("Access granted. Redirecting to admin panel (Mock)...");
-            setIsSuccess(true);
-            localStorage.setItem("admin_session", "true");
-            localStorage.setItem("admin_profile", JSON.stringify({
-              name: userName,
-              email: userEmail,
-              role: userRole
-            }));
-            localStorage.removeItem("customer_session");
-            setCookie("admin_session", "true", 7);
-            setCookie("admin_role", userRole, 7);
-            eraseCookie("sb-access-token");
-
-            // Initialize single active session and 15m/7d dual-tokens
-            await initAdminClientSession({
-              userId: "mock-admin-id",
-              email: userEmail,
-              role: userRole as "admin" | "barista",
-              name: userName,
-            });
-          } else if (matchedMockUser && password === "customer123") {
-            setSuccessMessage("Welcome back. Logging you in...");
-            setIsSuccess(true);
-            localStorage.setItem("customer_session", matchedMockUser.email);
-            localStorage.removeItem("admin_session");
-            localStorage.removeItem("admin_profile");
-            eraseCookie("admin_session");
-            eraseCookie("admin_role");
-            eraseCookie("sb-access-token");
-          } else {
-            setErrorMsg("Invalid credentials (Mock). Try 'admin' / 'admin123' or 'customer123'.");
-            return;
-          }
+          setErrorMsg("Invalid credentials (Mock). Try 'admin' / 'admin123' or 'customer123'.");
+          return;
         }
 
         const hasAdminSession = !!localStorage.getItem("admin_session");
@@ -164,12 +137,11 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
 
     // --- REAL SUPABASE AUTHENTICATION ---
     try {
-      // Sign In with Supabase using resolved loginEmail / phone
-      const signInCredentials = authMethod === "email"
-        ? { email: loginEmail, password }
-        : { phone: formattedPhone, password };
-
-      const { data, error } = await supabase.auth.signInWithPassword(signInCredentials);
+      // Sign In with Supabase using resolved loginEmail
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password,
+      });
 
       if (error) throw error;
 
@@ -220,7 +192,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
         eraseCookie("admin_role");
         localStorage.removeItem("admin_session");
         localStorage.removeItem("admin_profile");
-        const customerIdent = user.email || profile?.phone || formattedPhone || user.id || "customer_active";
+        const customerIdent = user.email || user.id || "customer_active";
         localStorage.setItem("customer_session", customerIdent);
         setCookie("customer_session", "true", 7);
         if (data.session?.access_token) {
@@ -228,10 +200,8 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
         }
 
         const members = db.getLoyaltyMembers();
-        const userPhone = user.phone || formattedPhone;
         const existingMember = members.find(
-          (m) => (m.email && user.email && m.email.toLowerCase() === user.email.toLowerCase()) ||
-                 (m.phone && userPhone && m.phone.trim() === userPhone.trim())
+          (m) => m.email && user.email && m.email.toLowerCase() === user.email.toLowerCase()
         );
 
         const rawCard = profile?.loyalty_cards;
@@ -261,12 +231,11 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
             existingMember.points = loyaltyCard?.points ?? existingMember.points;
             existingMember.name = profile.name ?? existingMember.name;
             existingMember.username = profile.username ?? existingMember.username;
-            existingMember.phone = profile.phone ?? existingMember.phone;
             db.saveLoyaltyMember(existingMember);
           }
-          localStorage.setItem("customer_session", existingMember.email || existingMember.phone || "");
+          localStorage.setItem("customer_session", existingMember.email || "");
         } else {
-          const displayName = profile?.name || user.email?.split("@")[0] || profile?.phone || formattedPhone;
+          const displayName = profile?.name || user.email?.split("@")[0] || "Member";
           const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
           let memberIdToUse = loyaltyCard?.id;
           if (!memberIdToUse || memberIdToUse.length > 20) {
@@ -290,14 +259,14 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
             name: capitalizedName,
             username: profile?.username || "",
             email: user.email || "",
-            phone: profile?.phone || formattedPhone || "",
+            phone: "",
             stamps: loyaltyCard?.stamps || 0,
             points: loyaltyCard?.points || 0,
             joinedAt: profile?.created_at
               ? new Date(profile.created_at).toISOString().split("T")[0]
               : new Date().toISOString().split("T")[0],
           });
-          localStorage.setItem("customer_session", user.email || profile?.phone || formattedPhone || "");
+          localStorage.setItem("customer_session", user.email || "");
         }
       }
 
@@ -317,8 +286,6 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
       setIsSubmitting(false);
     }
   };
-
-
 
   return (
     <AnimatePresence>
@@ -416,114 +383,29 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
                     )}
                   </AnimatePresence>
 
-                  {/* Auth Method Selector */}
-                  <div className="flex p-1 rounded-full bg-background-alt/50 border border-card-border/60 relative">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMethod("email");
-                        setErrorMsg("");
-                      }}
-                      className={`flex-1 py-2.5 text-xs font-semibold rounded-full transition-all duration-300 relative z-10 cursor-pointer ${
-                        authMethod === "email"
-                          ? "text-white"
-                          : "text-zinc-400 hover:text-foreground"
-                      }`}
-                    >
-                      Email / Username
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMethod("phone");
-                        setErrorMsg("");
-                      }}
-                      className={`flex-1 py-2.5 text-xs font-semibold rounded-full transition-all duration-300 relative z-10 cursor-pointer ${
-                        authMethod === "phone"
-                          ? "text-white"
-                          : "text-zinc-400 hover:text-foreground"
-                      }`}
-                    >
-                      Phone Number
-                    </button>
-                    
-                    {/* Background slide element */}
-                    <div
-                      className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#2E5A44] rounded-full transition-all duration-300 ease-[0.16,1,0.3,1] ${
-                        authMethod === "email" ? "left-1" : "left-[calc(50%+2px)]"
-                      }`}
-                    />
+                  {/* Email / Username Field */}
+                  <div className="space-y-2">
+                    <label htmlFor="drawer-login-email" className="type-label block text-xs">
+                      Email Address or Username
+                    </label>
+                    <div className="group relative">
+                      <Mail
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none transition-colors duration-300 group-focus-within:text-emerald-500"
+                        size={16}
+                      />
+                      <input
+                        id="drawer-login-email"
+                        type="text"
+                        required
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isSubmitting || isSuccess}
+                        className="w-full rounded-lg border border-card-border bg-background-alt/50 py-3 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 disabled:opacity-50"
+                      />
+                    </div>
                   </div>
-
-                  {/* Email / Username Field (Email mode only) */}
-                  <AnimatePresence initial={false}>
-                    {authMethod === "email" && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-2 overflow-hidden"
-                      >
-                        <label htmlFor="drawer-login-email" className="type-label block text-xs">
-                          Email Address or Username
-                        </label>
-                        <div className="group relative">
-                          <Mail
-                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none transition-colors duration-300 group-focus-within:text-emerald-500"
-                            size={16}
-                          />
-                          <input
-                            id="drawer-login-email"
-                            type="text"
-                            required={authMethod === "email"}
-                            autoComplete="email"
-                            placeholder="you@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            disabled={isSubmitting || isSuccess}
-                            className="w-full rounded-lg border border-card-border bg-background-alt/50 py-3 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 disabled:opacity-50"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Phone Number Field (Phone mode only) */}
-                  <AnimatePresence initial={false}>
-                    {authMethod === "phone" && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-2 overflow-hidden"
-                      >
-                        <label htmlFor="drawer-login-phone" className="type-label block text-xs">
-                          Phone Number
-                        </label>
-                        <div className="group relative">
-                          <Phone
-                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none transition-colors duration-300 group-focus-within:text-emerald-500"
-                            size={16}
-                          />
-                          <span className="absolute left-9 top-1/2 -translate-y-1/2 text-sm font-sans font-semibold text-zinc-400 select-none group-focus-within:text-foreground transition-colors">
-                            +63
-                          </span>
-                          <span className="absolute left-16 top-[28%] bottom-[28%] w-px bg-card-border/60 group-focus-within:bg-emerald-500/40 transition-colors" />
-                          <input
-                            id="drawer-login-phone"
-                            type="tel"
-                            required={authMethod === "phone"}
-                            autoComplete="tel"
-                            placeholder="9171234567"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            disabled={isSubmitting || isSuccess}
-                            className="w-full rounded-lg border border-card-border bg-background-alt/50 py-3 pl-[4.75rem] pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 disabled:opacity-50"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
 
                   {/* Password Field */}
                   <div className="space-y-2">

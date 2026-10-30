@@ -542,7 +542,7 @@ export function LoyaltyView() {
                 No more forgetting it at home.
               </p>
               <p className="type-body text-neutral-600 dark:text-zinc-400 mt-3 mb-8 max-w-md leading-relaxed text-sm sm:text-base">
-                Scan it every visit, collect your stamps. Every so often, we get to say thank you as more than just a discount code.
+                Scan it every visit and collect your stamps. Every so often, we'll get to say thank you with more than just a discount code.
               </p>
               <div className="w-full max-w-xs space-y-3">
                 <Link

@@ -4,10 +4,17 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 export function VerifiedView() {
   const router = useRouter();
   const [countdown, setCountdown] = useState(4);
+
+  useEffect(() => {
+    toast.success("Email verified successfully! Welcome to Antonioni Grounds.", {
+      duration: 5000,
+    });
+  }, []);
 
   // Countdown timer effect
   useEffect(() => {

@@ -148,6 +148,32 @@ export const patchLoyaltySchema = z
   });
 
 /**
+ * Validation schema for walk-in loyalty member creation (/api/loyalty - POST)
+ */
+export const createLoyaltyMemberSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, "Member name must be at least 2 characters.")
+      .max(120, "Member name is too long."),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email("Invalid email address.")
+      .max(255)
+      .optional()
+      .or(z.literal("")),
+    phone: z.string().trim().max(30).optional().or(z.literal("")),
+    stamps: z.number().int().min(0).max(10).optional().default(0),
+    existingIds: z.array(z.string()).optional(),
+  })
+  .refine((data) => Boolean(data.email || data.phone), {
+    message: "Either an email address or a phone number is required.",
+  });
+
+/**
  * Validation schema for user role change (/api/users/role - POST)
  */
 export const changeUserRoleSchema = z.object({

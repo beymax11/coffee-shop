@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
 
     const res = NextResponse.json({
       success: true,
+      role: payload.role,
       accessToken: newAccessToken,
       accessExpiresAt,
       refreshExpiresAt: payload.exp, // The hard 7-day limit from original login
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
     // Update the 15-minute access token cookie
     res.headers.append(
       "Set-Cookie",
-      `admin_access_token=${newAccessToken}; Path=/; Max-Age=900; SameSite=Lax${secureFlag}`
+      `admin_access_token=${newAccessToken}; Path=/; Max-Age=900; HttpOnly; SameSite=Lax${secureFlag}`
     );
 
     return res;

@@ -462,7 +462,7 @@ export function LoyaltyView() {
   useEffect(() => {
     let active = true;
     const syncFromDb = async () => {
-      const sessionEmail = localStorage.getItem("customer_session");
+      let sessionEmail = localStorage.getItem("customer_session");
       const members = db.getLoyaltyMembers();
 
       let current = members.find((m) => m.id === "AG-882-901"); // default fallback
@@ -474,60 +474,80 @@ export function LoyaltyView() {
           const { supabase } = await import("@/utils/supabase");
           if (!active) return;
           if (supabase) {
-            const isEmail = sessionEmail.includes("@");
-            const query = supabase.from("profiles").select("*, loyalty_cards(*)");
-            const { data: profile } = isEmail
-              ? await query.eq("email", sessionEmail.toLowerCase()).single()
-              : await query.eq("phone", sessionEmail).single();
+            // Verify authenticated user identity via Supabase Auth session to prevent localStorage session spoofing
+            const {
+              data: { session: activeSession },
+            } = await supabase.auth.getSession();
+            const authUser = activeSession?.user ?? null;
 
             if (!active) return;
 
-            if (profile) {
-              const rawCard = profile.loyalty_cards;
-              const loyaltyCard = Array.isArray(rawCard) ? rawCard[0] : rawCard;
+            if (authUser) {
+              const verifiedIdent = authUser.email || authUser.phone;
+              if (verifiedIdent && verifiedIdent.toLowerCase() !== sessionEmail.toLowerCase()) {
+                sessionEmail = verifiedIdent;
+                localStorage.setItem("customer_session", verifiedIdent);
+              }
+            }
 
-              // Find or create local loyalty member representation
-              let existing = members.find(
-                (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
-                  (m.phone && m.phone.trim() === sessionEmail.trim())
-              );
-              let memberIdToUse =
-                loyaltyCard?.id ||
-                existing?.id ||
-                (await generateUniqueLoyaltyCardId(
-                  supabase,
-                  members.map((m) => m.id)
-                ));
+            if (sessionEmail) {
+              const isEmail = sessionEmail.includes("@");
+              const query = supabase.from("profiles").select("*, loyalty_cards(*)");
+              const { data: profile } = authUser?.id
+                ? await query.eq("id", authUser.id).single()
+                : isEmail
+                  ? await query.eq("email", sessionEmail.toLowerCase()).single()
+                  : await query.eq("phone", sessionEmail).single();
 
-              // NOTE: Do NOT upsert loyalty_cards here — that's the admin/signup's responsibility.
-              // Writing stamps from here risks overwriting fresher data from the admin.
+              if (!active) return;
 
-              const updatedMember = {
-                id: memberIdToUse,
-                name: profile.name || existing?.name || (isEmail ? sessionEmail.split("@")[0] : sessionEmail),
-                username: profile.username || existing?.username || "",
-                email: isEmail ? sessionEmail : (profile.email || ""),
-                phone: isEmail ? (profile.phone || "") : sessionEmail,
-                stamps: loyaltyCard?.stamps ?? existing?.stamps ?? 0,
-                points: loyaltyCard?.points ?? existing?.points ?? 0,
-                joinedAt: profile.created_at
-                  ? new Date(profile.created_at).toISOString().split("T")[0]
-                  : existing?.joinedAt || new Date().toISOString().split("T")[0]
-              };
+              if (profile) {
+                const rawCard = profile.loyalty_cards;
+                const loyaltyCard = Array.isArray(rawCard) ? rawCard[0] : rawCard;
 
-              db.saveLoyaltyMember(updatedMember);
-              current = updatedMember;
-              guestState = false;
+                // Find or create local loyalty member representation
+                let existing = members.find(
+                  (m) => (m.email && m.email.toLowerCase() === sessionEmail!.toLowerCase()) ||
+                    (m.phone && m.phone.trim() === sessionEmail!.trim())
+                );
+                let memberIdToUse =
+                  loyaltyCard?.id ||
+                  existing?.id ||
+                  (await generateUniqueLoyaltyCardId(
+                    supabase,
+                    members.map((m) => m.id)
+                  ));
+
+                // NOTE: Do NOT upsert loyalty_cards here — that's the admin/signup's responsibility.
+                // Writing stamps from here risks overwriting fresher data from the admin.
+
+                const updatedMember = {
+                  id: memberIdToUse,
+                  name: profile.name || existing?.name || (isEmail ? sessionEmail.split("@")[0] : sessionEmail),
+                  username: profile.username || existing?.username || "",
+                  email: isEmail ? sessionEmail : (profile.email || ""),
+                  phone: isEmail ? (profile.phone || "") : sessionEmail,
+                  stamps: loyaltyCard?.stamps ?? existing?.stamps ?? 0,
+                  points: loyaltyCard?.points ?? existing?.points ?? 0,
+                  joinedAt: profile.created_at
+                    ? new Date(profile.created_at).toISOString().split("T")[0]
+                    : existing?.joinedAt || new Date().toISOString().split("T")[0]
+                };
+
+                db.saveLoyaltyMember(updatedMember);
+                current = updatedMember;
+                guestState = false;
+              }
             }
           }
         } catch (err) {
           console.error("Error syncing profile with Supabase on mount:", err);
         }
 
-        if (guestState && active) {
+        if (guestState && active && sessionEmail) {
           const found = members.find(
-            (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
-              (m.phone && m.phone.trim() === sessionEmail.trim())
+            (m) => (m.email && m.email.toLowerCase() === sessionEmail!.toLowerCase()) ||
+              (m.phone && m.phone.trim() === sessionEmail!.trim())
           );
           if (found) {
             current = found;
@@ -585,11 +605,19 @@ export function LoyaltyView() {
       const supabaseClient = supabase;
       // We fetch the profile UUID to use as a reliable filter for the loyalty_cards real-time subscription
       const setupRealtimeChannel = async () => {
+        const {
+          data: { session: activeSession },
+        } = await supabaseClient.auth.getSession();
+        const authUser = activeSession?.user ?? null;
+        if (!active) return;
+
         const isEmail = sessionEmail.includes("@");
         const query = supabaseClient.from("profiles").select("id, email, loyalty_cards(id)");
-        const { data: profileData } = isEmail
-          ? await query.eq("email", sessionEmail.toLowerCase()).single()
-          : await query.eq("phone", sessionEmail).single();
+        const { data: profileData } = authUser?.id
+          ? await query.eq("id", authUser.id).single()
+          : isEmail
+            ? await query.eq("email", sessionEmail.toLowerCase()).single()
+            : await query.eq("phone", sessionEmail).single();
 
         if (!active) return;
 
@@ -736,6 +764,17 @@ export function LoyaltyView() {
         stamps: 0,
         points: newPoints
       });
+    }
+
+    if (supabase && memberId) {
+      supabase
+        .from("loyalty_cards")
+        .update({ stamps: 0, points: newPoints })
+        .eq("id", memberId)
+        .gte("stamps", 10)
+        .then(({ error }) => {
+          if (error) console.error("Error syncing reward claim:", error);
+        });
     }
   };
 

@@ -270,47 +270,46 @@ export const db = {
     setLocalStorageItem("loyalty_members", members);
     if (isBrowser) window.dispatchEvent(new Event("storage"));
 
-    // Sync updates to Supabase database in background
+    // Sync profile metadata updates to Supabase in background (only for the authenticated user; never overwrite stamps/points from client)
     if (isBrowser) {
-      import("./supabase").then(({ supabase }) => {
-        if (supabase) {
-          supabase
+      import("./supabase").then(async ({ supabase }) => {
+        if (!supabase) return;
+        try {
+          const {
+            data: { user: authUser },
+          } = await supabase.auth.getUser();
+          if (!authUser) return;
+
+          if (
+            authUser.email &&
+            member.email &&
+            authUser.email.toLowerCase() !== member.email.toLowerCase()
+          ) {
+            return;
+          }
+
+          // 1. Update non-privileged profile fields for the authenticated user only
+          await supabase
             .from("profiles")
-            .select("id")
-            .eq("email", member.email.toLowerCase())
-            .single()
-            .then(({ data: profile, error: profileErr }) => {
-              if (profileErr || !profile) {
-                console.error("Error fetching user profile for loyalty sync:", profileErr);
-                return;
-              }
+            .update({
+              name: member.name,
+              username: member.username,
+              phone: member.phone,
+            })
+            .eq("id", authUser.id);
 
-              // 1. Update profiles table
-              supabase
-                .from("profiles")
-                .update({
-                  name: member.name,
-                  username: member.username,
-                  phone: member.phone
-                })
-                .eq("id", profile.id)
-                .then(({ error: uError }) => {
-                  if (uError) console.error("Error updating profile fields:", uError);
-                });
-
-              // 2. Upsert loyalty card details
-              supabase
-                .from("loyalty_cards")
-                .upsert({
-                  id: member.id,
-                  user_id: profile.id,
-                  stamps: member.stamps,
-                  points: member.points
-                }, { onConflict: "user_id" })
-                .then(({ error: lError }) => {
-                  if (lError) console.error("Error updating loyalty_card fields:", lError);
-                });
-            });
+          // 2. Ensure a baseline loyalty card exists without overwriting existing stamps/points
+          await supabase.from("loyalty_cards").upsert(
+            {
+              id: member.id,
+              user_id: authUser.id,
+              stamps: 0,
+              points: 0,
+            },
+            { onConflict: "user_id", ignoreDuplicates: true }
+          );
+        } catch (err) {
+          console.error("Error syncing profile metadata:", err);
         }
       });
     }
@@ -321,23 +320,6 @@ export const db = {
     const filtered = members.filter((m) => m.id !== id);
     setLocalStorageItem("loyalty_members", filtered);
     if (isBrowser) window.dispatchEvent(new Event("storage"));
-
-    // Sync deletion to Supabase
-    if (isBrowser) {
-      import("./supabase").then(({ supabase }) => {
-        if (supabase) {
-          supabase
-            .from("loyalty_cards")
-            .delete()
-            .eq("id", id)
-            .then(({ error }) => {
-              if (error) {
-                console.error("Error syncing loyalty card deletion to Supabase:", error);
-              }
-            });
-        }
-      });
-    }
   },
 
   // --- MOCK USERS (for offline console management) ---

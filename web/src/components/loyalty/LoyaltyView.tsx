@@ -13,7 +13,12 @@ import {
   RotateCcw,
   Maximize2,
   Download,
-  ArrowRight
+  ArrowRight,
+  History,
+  Calendar,
+  Clock,
+  Sparkles,
+  MinusCircle
 } from "lucide-react";
 import { FadeUp, PageTransition } from "@/components/animations";
 import Link from "next/link";
@@ -21,13 +26,28 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { getTierInfo } from "@/utils/loyalty";
+import { generateUniqueLoyaltyCardId } from "@/lib/id-generator";
+import { notificationsService } from "@/utils/notifications";
+import { auditLogger } from "@/utils/auditLogger";
 import QRCode from "qrcode";
 import { supabase } from "@/utils/supabase";
+
+export interface StampHistoryEntry {
+  id: string;
+  type: "earned" | "redeemed" | "revoked";
+  title: string;
+  description: string;
+  stampNumber?: number;
+  totalStamps?: number;
+  timestamp: string;
+}
 
 export function LoyaltyView() {
   const [memberId, setMemberId] = useState<string>("AG-882-901");
   const [memberName, setMemberName] = useState<string>("Alexander Vance");
   const [memberUsername, setMemberUsername] = useState<string>("");
+  const [memberEmail, setMemberEmail] = useState<string>("");
+  const [memberJoinedAt, setMemberJoinedAt] = useState<string>("10/24");
   const [isGuest, setIsGuest] = useState<boolean>(true);
 
   const [stamps, setStamps] = useState<number>(1);
@@ -40,10 +60,14 @@ export function LoyaltyView() {
   const [isQrExpanded, setIsQrExpanded] = useState<boolean>(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [stampHistory, setStampHistory] = useState<StampHistoryEntry[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<"all" | "earned" | "redeemed">("all");
   const confettiFiringRef = React.useRef<boolean>(false);
 
   const isLoadedRef = React.useRef(isLoaded);
   const isGuestRef = React.useRef(isGuest);
+  const memberIdRef = React.useRef(memberId);
+  const memberEmailRef = React.useRef(memberEmail);
 
   useEffect(() => {
     isLoadedRef.current = isLoaded;
@@ -52,6 +76,242 @@ export function LoyaltyView() {
   useEffect(() => {
     isGuestRef.current = isGuest;
   }, [isGuest]);
+
+  useEffect(() => {
+    memberIdRef.current = memberId;
+  }, [memberId]);
+
+  useEffect(() => {
+    memberEmailRef.current = memberEmail;
+  }, [memberEmail]);
+
+  const getLocalHistory = (cardId: string): StampHistoryEntry[] => {
+    if (typeof window === "undefined" || !cardId) return [];
+    try {
+      const raw = localStorage.getItem(`loyalty_stamp_history_${cardId}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const saveLocalHistory = (cardId: string, entries: StampHistoryEntry[]) => {
+    if (typeof window === "undefined" || !cardId) return;
+    try {
+      localStorage.setItem(`loyalty_stamp_history_${cardId}`, JSON.stringify(entries.slice(0, 50)));
+    } catch (e) {
+      console.error("Failed to save stamp history:", e);
+    }
+  };
+
+  const appendLocalHistoryEntry = (cardId: string, entry: StampHistoryEntry) => {
+    const existing = getLocalHistory(cardId);
+    const updated = [entry, ...existing];
+    saveLocalHistory(cardId, updated);
+    return updated;
+  };
+
+  const formatHistoryDate = (isoStr: string) => {
+    try {
+      const date = new Date(isoStr);
+      if (isNaN(date.getTime())) return "Recent";
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return "Recent";
+    }
+  };
+
+  const formatHistoryTime = (isoStr: string) => {
+    try {
+      const date = new Date(isoStr);
+      if (isNaN(date.getTime())) return "--:--";
+      return date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return "--:--";
+    }
+  };
+
+  const loadStampHistory = React.useCallback(
+    async (cardId: string, email: string, currentStamps: number, fallbackDateStr?: string) => {
+      if (!cardId) return;
+
+      const localEntries = getLocalHistory(cardId);
+      const fromNotifications: StampHistoryEntry[] = [];
+
+      if (email) {
+        try {
+          const notifs = await notificationsService.fetchNotifications(email);
+          notifs.forEach((n) => {
+            const titleLower = (n.title || "").toLowerCase();
+            const isLoyaltyNotif =
+              n.type === "loyalty" ||
+              titleLower.includes("stamp") ||
+              titleLower.includes("loyalty") ||
+              titleLower.includes("reward");
+
+            if (!isLoyaltyNotif) return;
+
+            const matchCount = (n.message || "").match(/\((\d+)\s*\/\s*10/);
+            const parsedCount = matchCount ? parseInt(matchCount[1], 10) : undefined;
+
+            let entryType: "earned" | "redeemed" | "revoked" = "earned";
+            let entryTitle = n.title || "Stamp Earned";
+
+            if (titleLower.includes("redeem") || titleLower.includes("claim")) {
+              entryType = "redeemed";
+              entryTitle = "Free Drink Reward Claimed";
+            } else if (titleLower.includes("revok") || titleLower.includes("remov")) {
+              entryType = "revoked";
+              entryTitle = "Stamp Adjusted";
+            } else if (parsedCount) {
+              entryTitle = `Stamp #${parsedCount} Collected`;
+            }
+
+            fromNotifications.push({
+              id: `notif-${n.id}`,
+              type: entryType,
+              title: entryTitle,
+              description: n.message,
+              stampNumber: entryType === "earned" ? parsedCount : undefined,
+              totalStamps: parsedCount ?? (entryType === "redeemed" ? 0 : undefined),
+              timestamp: n.created_at || new Date().toISOString(),
+            });
+          });
+        } catch (err) {
+          console.warn("Failed to load loyalty notifications for stamp history:", err);
+        }
+      }
+
+      // Also check audit logs if available locally
+      const fromAudit: StampHistoryEntry[] = [];
+      try {
+        const logs = auditLogger.getAuditLogs();
+        logs.forEach((log) => {
+          if (log.category !== "loyalty") return;
+          const matchesMember =
+            log.metadata?.memberId === cardId ||
+            (email && log.metadata?.email?.toLowerCase() === email.toLowerCase());
+          if (!matchesMember) return;
+
+          if (log.action === "AWARD") {
+            const count = log.metadata?.newStamps ?? log.metadata?.stamps;
+            fromAudit.push({
+              id: `audit-${log.id}`,
+              type: "earned",
+              title: count ? `Stamp #${count} Collected` : "Stamp Earned",
+              description: `A new stamp was added to your loyalty card.${count ? ` (${count}/10 stamps)` : ""}`,
+              stampNumber: count,
+              totalStamps: count,
+              timestamp: log.timestamp,
+            });
+          } else if (log.action === "REDEEM") {
+            fromAudit.push({
+              id: `audit-${log.id}`,
+              type: "redeemed",
+              title: "Free Drink Reward Claimed",
+              description: "Redeemed 10 stamps for a complimentary handcrafted beverage.",
+              totalStamps: 0,
+              timestamp: log.timestamp,
+            });
+          } else if (log.action === "DELETE" && log.details.toLowerCase().includes("revok")) {
+            const count = log.metadata?.newStamps;
+            fromAudit.push({
+              id: `audit-${log.id}`,
+              type: "revoked",
+              title: "Stamp Adjusted",
+              description: `A stamp was removed from your loyalty card.${count !== undefined ? ` (${count}/10 stamps)` : ""}`,
+              totalStamps: count,
+              timestamp: log.timestamp,
+            });
+          }
+        });
+      } catch {
+        // Ignore audit log parse errors
+      }
+
+      // Merge and deduplicate entries that represent the same event within 15 seconds
+      const combined = [...fromNotifications, ...localEntries, ...fromAudit].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+
+      const deduped: StampHistoryEntry[] = [];
+      for (const item of combined) {
+        const itemTime = new Date(item.timestamp).getTime();
+        const isDuplicate = deduped.some((existing) => {
+          if (existing.type !== item.type) return false;
+          const existingTime = new Date(existing.timestamp).getTime();
+          const timeDiff = Math.abs(existingTime - itemTime);
+          if (existing.id === item.id) return true;
+          if (timeDiff < 15000 && existing.totalStamps === item.totalStamps) return true;
+          return false;
+        });
+        if (!isDuplicate) {
+          deduped.push(item);
+        }
+      }
+
+      // Ensure active stamps on the card have baseline history entries if not yet logged
+      if (currentStamps > 0) {
+        // Find entries since the most recent redemption
+        const lastRedeemIdx = deduped.findIndex((e) => e.type === "redeemed");
+        const currentCycleEntries =
+          lastRedeemIdx >= 0 ? deduped.slice(0, lastRedeemIdx) : deduped;
+        const earnedInCycle = currentCycleEntries.filter((e) => e.type === "earned");
+
+        if (earnedInCycle.length < currentStamps) {
+          const existingNumbers = new Set(
+            earnedInCycle.map((e) => e.stampNumber).filter(Boolean)
+          );
+          const baseDate = fallbackDateStr ? new Date(fallbackDateStr) : new Date();
+          const validBaseTime = isNaN(baseDate.getTime()) ? Date.now() : baseDate.getTime();
+          const newLocalToSave = [...localEntries];
+          let addedBaseline = false;
+
+          for (let s = 1; s <= currentStamps; s++) {
+            if (!existingNumbers.has(s) && earnedInCycle.length + (addedBaseline ? 1 : 0) < currentStamps) {
+              const syntheticId = `baseline-${cardId}-stamp-${s}`;
+              if (!deduped.some((d) => d.id === syntheticId)) {
+                // Stagger timestamps slightly so each stamp has a distinct chronological order
+                const stampTimestamp = new Date(
+                  validBaseTime - (currentStamps - s) * 3600 * 1000 * 24
+                ).toISOString();
+                const baselineEntry: StampHistoryEntry = {
+                  id: syntheticId,
+                  type: "earned",
+                  title: `Stamp #${s} Collected`,
+                  description: `Handcrafted beverage stamp added to your loyalty card. (${s}/10 stamps)`,
+                  stampNumber: s,
+                  totalStamps: s,
+                  timestamp: stampTimestamp,
+                };
+                deduped.push(baselineEntry);
+                if (!newLocalToSave.some((l) => l.id === syntheticId)) {
+                  newLocalToSave.push(baselineEntry);
+                  addedBaseline = true;
+                }
+              }
+            }
+          }
+
+          if (addedBaseline) {
+            saveLocalHistory(cardId, newLocalToSave);
+          }
+        }
+      }
+
+      deduped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setStampHistory(deduped);
+    },
+    []
+  );
 
   const triggerConfetti = async (fromTop: boolean = false) => {
     // Guard against multiple simultaneous confetti runs
@@ -231,7 +491,13 @@ export function LoyaltyView() {
                 (m) => (m.email && m.email.toLowerCase() === sessionEmail.toLowerCase()) ||
                   (m.phone && m.phone.trim() === sessionEmail.trim())
               );
-              let memberIdToUse = loyaltyCard?.id || existing?.id || `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+              let memberIdToUse =
+                loyaltyCard?.id ||
+                existing?.id ||
+                (await generateUniqueLoyaltyCardId(
+                  supabase,
+                  members.map((m) => m.id)
+                ));
 
               // NOTE: Do NOT upsert loyalty_cards here — that's the admin/signup's responsibility.
               // Writing stamps from here risks overwriting fresher data from the admin.
@@ -286,6 +552,15 @@ export function LoyaltyView() {
         setMemberId(current.id);
         setMemberName(current.name);
         setMemberUsername(current.username || "");
+        setMemberEmail(current.email || "");
+        if (current.joinedAt) {
+          const parsedJoin = new Date(current.joinedAt);
+          if (!isNaN(parsedJoin.getTime())) {
+            const month = String(parsedJoin.getMonth() + 1).padStart(2, "0");
+            const year = String(parsedJoin.getFullYear()).slice(-2);
+            setMemberJoinedAt(`${month}/${year}`);
+          }
+        }
         setPoints(current.points);
         setIsGuest(guestState);
 
@@ -295,6 +570,8 @@ export function LoyaltyView() {
           }
           return currentStamps;
         });
+
+        loadStampHistory(current.id, current.email || "", currentStamps, current.joinedAt);
       }
       setIsLoaded(true);
     };
@@ -309,7 +586,7 @@ export function LoyaltyView() {
       // We fetch the profile UUID to use as a reliable filter for the loyalty_cards real-time subscription
       const setupRealtimeChannel = async () => {
         const isEmail = sessionEmail.includes("@");
-        const query = supabaseClient.from("profiles").select("id, loyalty_cards(id)");
+        const query = supabaseClient.from("profiles").select("id, email, loyalty_cards(id)");
         const { data: profileData } = isEmail
           ? await query.eq("email", sessionEmail.toLowerCase()).single()
           : await query.eq("phone", sessionEmail).single();
@@ -340,7 +617,41 @@ export function LoyaltyView() {
                 setStamps((prevStamps) => {
                   if (newStamps > prevStamps) {
                     triggerConfetti(true);
+                    appendLocalHistoryEntry(loyaltyCardId, {
+                      id: `rt-earn-${Date.now()}`,
+                      type: "earned",
+                      title: `Stamp #${newStamps} Collected`,
+                      description: `A new stamp was added to your loyalty card. (${newStamps}/10 stamps)`,
+                      stampNumber: newStamps,
+                      totalStamps: newStamps,
+                      timestamp: new Date().toISOString(),
+                    });
+                  } else if (newStamps === 0 && prevStamps >= 10) {
+                    appendLocalHistoryEntry(loyaltyCardId, {
+                      id: `rt-redeem-${Date.now()}`,
+                      type: "redeemed",
+                      title: "Free Drink Reward Claimed",
+                      description: "You claimed your free drink reward! Your stamps have been reset to 0.",
+                      totalStamps: 0,
+                      timestamp: new Date().toISOString(),
+                    });
+                  } else if (newStamps < prevStamps) {
+                    appendLocalHistoryEntry(loyaltyCardId, {
+                      id: `rt-revoke-${Date.now()}`,
+                      type: "revoked",
+                      title: "Stamp Adjusted",
+                      description: `A stamp was removed from your loyalty card. (${newStamps}/10 stamps)`,
+                      totalStamps: newStamps,
+                      timestamp: new Date().toISOString(),
+                    });
                   }
+                  setTimeout(() => {
+                    loadStampHistory(
+                      loyaltyCardId,
+                      profileData?.email || memberEmailRef.current,
+                      newStamps
+                    );
+                  }, 300);
                   return newStamps;
                 });
               }
@@ -355,9 +666,18 @@ export function LoyaltyView() {
 
     const handleStorage = (e: Event) => {
       if (e instanceof StorageEvent) {
-        if (e.key === "customer_session" || e.key === "loyalty_members") {
+        if (
+          !e.key ||
+          e.key === "customer_session" ||
+          e.key === "loyalty_members" ||
+          e.key.startsWith("customer_notifications_") ||
+          e.key.startsWith("loyalty_stamp_history_") ||
+          e.key === "audit_logs"
+        ) {
           syncFromDb();
         }
+      } else {
+        syncFromDb();
       }
     };
 
@@ -369,7 +689,7 @@ export function LoyaltyView() {
         channel.unsubscribe();
       }
     };
-  }, []);
+  }, [loadStampHistory]);
 
   const copyMemberId = () => {
     navigator.clipboard.writeText(memberId);
@@ -385,6 +705,27 @@ export function LoyaltyView() {
     setPoints(newPoints); // bonus points for claiming
     setShowClaimSuccess(true);
     triggerConfetti(true);
+
+    const nowIso = new Date().toISOString();
+    appendLocalHistoryEntry(memberId, {
+      id: `claim-${Date.now()}`,
+      type: "redeemed",
+      title: "Free Drink Reward Claimed",
+      description: "Claim any Mini drink on the menu! Stamps reset to 0/10.",
+      totalStamps: 0,
+      timestamp: nowIso,
+    });
+
+    if (memberEmail) {
+      notificationsService.addNotification(
+        memberEmail,
+        "Loyalty Card Redeemed",
+        "You claimed your free drink reward! Your stamps have been reset to 0.",
+        "loyalty"
+      );
+    }
+
+    loadStampHistory(memberId, memberEmail, 0);
 
     // Save back to db
     const members = db.getLoyaltyMembers();
@@ -504,9 +845,16 @@ export function LoyaltyView() {
     };
   };
 
+  const filteredHistory = stampHistory.filter((entry) => {
+    if (historyFilter === "all") return true;
+    if (historyFilter === "earned") return entry.type === "earned";
+    if (historyFilter === "redeemed") return entry.type === "redeemed";
+    return true;
+  });
+
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background py-16 md:py-24 text-foreground relative overflow-hidden transition-colors duration-500">
+      <div className="min-h-screen bg-background pt-24 pb-16 sm:py-24 text-foreground relative overflow-hidden transition-colors duration-500">
         {/* Subtle decorative background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {/* Glowing gold blobs */}
@@ -526,10 +874,7 @@ export function LoyaltyView() {
           />
         </div>
 
-        <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
-
-
-
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 relative z-10">
           {isGuest ? (
             <FadeUp className="max-w-lg mx-auto text-center flex flex-col items-center py-8 sm:py-12">
               <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 font-bold block mb-2">
@@ -566,138 +911,259 @@ export function LoyaltyView() {
               </div>
             </FadeUp>
           ) : (
-            <FadeUp className="max-w-[760px] mx-auto w-full">
-              <div className="w-[310px] xs:w-[350px] h-[540px] xs:h-[600px] sm:w-full sm:h-[465px] mx-auto relative">
-                <div
-                  className={`${isFullscreen
-                    ? "fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4"
-                    : "absolute inset-0 flex items-center justify-center"
-                    }`}
-                  style={{ perspective: "1500px" }}
-                >
-                  {/* Close button for fullscreen mode */}
-                  {isFullscreen && (
-                    <button
-                      onClick={() => setIsFullscreen(false)}
-                      className="fixed top-6 right-6 z-55 rounded-full bg-white/10 hover:bg-white/20 text-white p-3 transition-all active:scale-95 cursor-pointer"
-                      title="Exit Fullscreen"
-                    >
-                      <X size={24} />
-                    </button>
-                  )}
-
-                  {/* Rotator Wrapper to present the card landscape (sideways/rotated) on mobile screen */}
+            <div className="max-w-[760px] mx-auto w-full space-y-6 sm:space-y-8">
+              {/* ─── DIGITAL LOYALTY CARD ─── */}
+              <FadeUp className="w-full">
+                <div className="w-[310px] xs:w-[350px] h-[540px] xs:h-[600px] sm:w-full sm:h-[465px] mx-auto relative">
                   <div
-                    className={`w-full h-full rotate-90 sm:rotate-0 flex items-center justify-center transition-all duration-300 ${isFullscreen
-                      ? "scale-[0.92] xs:scale-[1.05] sm:scale-110 md:scale-125"
-                      : "scale-[0.72] xs:scale-[0.80] sm:scale-100"
+                    className={`${isFullscreen
+                      ? "fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4"
+                      : "absolute inset-0 flex items-center justify-center"
                       }`}
+                    style={{ perspective: "1500px" }}
                   >
+                    {/* Close button for fullscreen mode */}
+                    {isFullscreen && (
+                      <button
+                        onClick={() => setIsFullscreen(false)}
+                        className="fixed top-6 right-6 z-55 rounded-full bg-white/10 hover:bg-white/20 text-white p-3 transition-all active:scale-95 cursor-pointer"
+                        title="Exit Fullscreen"
+                      >
+                        <X size={24} />
+                      </button>
+                    )}
+
+                    {/* Rotator Wrapper to present the card landscape (sideways/rotated) on mobile screen */}
                     <div
-                      className="absolute sm:relative w-[720px] h-[440px] sm:w-full sm:h-full transition-transform duration-700"
-                      style={{
-                        transformStyle: "preserve-3d",
-                        transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)"
-                      }}
+                      className={`w-full h-full rotate-90 sm:rotate-0 flex items-center justify-center transition-all duration-300 ${isFullscreen
+                        ? "scale-[0.92] xs:scale-[1.05] sm:scale-110 md:scale-125"
+                        : "scale-[0.72] xs:scale-[0.80] sm:scale-100"
+                        }`}
                     >
-                      {/* Front Side: Loyalty Stamp Card */}
                       <div
-                        className={`absolute inset-0 w-full h-full ${isFlipped ? "pointer-events-none z-0" : "pointer-events-auto z-10"}`}
+                        className="absolute sm:relative w-[720px] h-[440px] sm:w-full sm:h-full transition-transform duration-700"
                         style={{
-                          backfaceVisibility: "hidden",
-                          WebkitBackfaceVisibility: "hidden"
+                          transformStyle: "preserve-3d",
+                          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)"
                         }}
                       >
-                        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/40 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 p-8 glassmorphism-green shadow-xl flex flex-col justify-start gap-4 h-full">
-                          {/* Front Card Header */}
-                          <div className="pr-12 sm:pr-64">
-                            <h3 className="type-h3 text-emerald-600 dark:text-emerald-400">Every stamp is a step toward another unforgettable brew.</h3>
-                            <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Buy 10 coffees, get the 11th complimentary.</p>
-                          </div>
+                        {/* Front Side: Loyalty Stamp Card */}
+                        <div
+                          className={`absolute inset-0 w-full h-full ${isFlipped ? "pointer-events-none z-0" : "pointer-events-auto z-10"}`}
+                          style={{
+                            backfaceVisibility: "hidden",
+                            WebkitBackfaceVisibility: "hidden"
+                          }}
+                        >
+                          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/40 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 p-8 glassmorphism-green shadow-xl flex flex-col justify-start gap-4 h-full">
+                            {/* Front Card Header */}
+                            <div className="pr-12 sm:pr-64">
+                              <h3 className="type-h3 text-emerald-600 dark:text-emerald-400">Every stamp is a step toward another unforgettable brew.</h3>
+                              <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Buy 10 coffees, get the 11th complimentary.</p>
+                            </div>
 
-                          {/* Card Actions Group */}
-                          <div className="absolute top-8 right-8 flex items-center gap-2 z-20">
-                            {stamps >= 10 && (
-                              <button
-                                onClick={handleClaimReward}
-                                className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 type-ui flex items-center gap-1.5 transition-all shadow-lg animate-pulse whitespace-nowrap"
-                              >
-                                <Gift size={14} className="text-emerald-300" />
-                                Claim Free Drink
-                              </button>
-                            )}
-                            {/* Fullscreen Button */}
-                            <button
-                              onClick={() => setIsFullscreen(!isFullscreen)}
-                              className="sm:hidden rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95"
-                              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
-                            >
-                              <Maximize2 size={16} />
-                            </button>
-                            {/* Flip Icon Button */}
-                            <button
-                              onClick={() => setIsFlipped(true)}
-                              className="rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95"
-                              title="View Membership Card"
-                            >
-                              <RotateCcw size={16} className="rotate-180" />
-                            </button>
-                          </div>
-
-                          {/* Stamp Card Grid */}
-                          <div className="grid grid-cols-5 gap-4 mt-6 justify-items-center">
-                            {Array.from({ length: 10 }).map((_, idx) => {
-                              const isStamped = idx < stamps;
-                              const isRewardSlot = idx === 9;
-                              return (
-                                <div
-                                  key={idx}
-                                  className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-300 ${isStamped
-                                    ? "bg-transparent border-emerald-500/40"
-                                    : isRewardSlot
-                                      ? "bg-zinc-100 border-emerald-500/40 text-zinc-500 dark:bg-[#181818] dark:border-emerald-500/30 dark:text-zinc-600 cursor-pointer"
-                                      : "bg-zinc-100 border-zinc-200/80 dark:bg-[#181818] dark:border-white/5"
-                                    } ${isRewardSlot && stamps >= 10 ? "bg-emerald-50/70 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-lg gold-glow cursor-pointer" : ""} ${isRewardSlot ? "group" : ""}`}
+                            {/* Card Actions Group */}
+                            <div className="absolute top-8 right-8 flex items-center gap-2 z-20">
+                              {stamps >= 10 && (
+                                <button
+                                  onClick={handleClaimReward}
+                                  className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 type-ui flex items-center gap-1.5 transition-all shadow-lg animate-pulse whitespace-nowrap cursor-pointer"
                                 >
-                                  {isStamped ? (
-                                    <motion.div
-                                      key={`stamped-${idx}`}
-                                      initial={{ scale: 0.5, rotate: -45 }}
-                                      animate={{ scale: 1, rotate: 0 }}
-                                      transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                                      className="flex flex-col items-center justify-center"
-                                    >
-                                      <Image
-                                        src="/stamps-transparent.png"
-                                        alt="Coffee Stamp"
-                                        width={72}
-                                        height={72}
-                                        className="w-15 h-15 sm:w-18 sm:h-18 object-contain loyalty-stamp-color"
-                                      />
-                                    </motion.div>
-                                  ) : (
-                                    <span className="text-zinc-500 dark:text-zinc-600 font-bold text-base sm:text-lg font-mono">{idx + 1}</span>
-                                  )}
+                                  <Gift size={14} className="text-emerald-300" />
+                                  Claim Free Drink
+                                </button>
+                              )}
+                              {/* Fullscreen Button */}
+                              <button
+                                onClick={() => setIsFullscreen(!isFullscreen)}
+                                className="sm:hidden rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95 cursor-pointer"
+                                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
+                              >
+                                <Maximize2 size={16} />
+                              </button>
+                              {/* Flip Icon Button */}
+                              <button
+                                onClick={() => setIsFlipped(true)}
+                                className="rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95 cursor-pointer"
+                                title="View Membership Card"
+                              >
+                                <RotateCcw size={16} className="rotate-180" />
+                              </button>
+                            </div>
 
-                                  {/* If it's the 10th slot, mark it with a Gift icon at the top */}
-                                  {isRewardSlot && (
-                                    <div className={`absolute -top-2.5 -right-2.5 rounded-full p-1.5 bg-emerald-500 text-white shadow-md z-20 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 ${stamps >= 10 ? "animate-bounce" : ""}`}>
-                                      <Gift size={16} />
-                                      {/* Hover tooltip for the entire 10th circle positioned on top of the Gift icon */}
-                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-zinc-900 dark:bg-zinc-800 text-white text-[10px] font-bold rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-lg border border-white/10 z-30">
-                                        Free Drink
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900 dark:border-t-zinc-800" />
+                            {/* Stamp Card Grid */}
+                            <div className="grid grid-cols-5 gap-4 mt-6 justify-items-center">
+                              {Array.from({ length: 10 }).map((_, idx) => {
+                                const isStamped = idx < stamps;
+                                const isRewardSlot = idx === 9;
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-300 ${isStamped
+                                      ? "bg-transparent border-emerald-500/40"
+                                      : isRewardSlot
+                                        ? "bg-zinc-100 border-emerald-500/40 text-zinc-500 dark:bg-[#181818] dark:border-emerald-500/30 dark:text-zinc-600 cursor-pointer"
+                                        : "bg-zinc-100 border-zinc-200/80 dark:bg-[#181818] dark:border-white/5"
+                                      } ${isRewardSlot && stamps >= 10 ? "bg-emerald-50/70 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-lg gold-glow cursor-pointer" : ""} ${isRewardSlot ? "group" : ""}`}
+                                  >
+                                    {isStamped ? (
+                                      <motion.div
+                                        key={`stamped-${idx}`}
+                                        initial={{ scale: 0.5, rotate: -45 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                                        className="flex flex-col items-center justify-center"
+                                      >
+                                        <Image
+                                          src="/stamps-transparent.png"
+                                          alt="Coffee Stamp"
+                                          width={72}
+                                          height={72}
+                                          className="w-15 h-15 sm:w-18 sm:h-18 object-contain loyalty-stamp-color"
+                                        />
+                                      </motion.div>
+                                    ) : (
+                                      <span className="text-zinc-500 dark:text-zinc-600 font-bold text-base sm:text-lg font-mono">{idx + 1}</span>
+                                    )}
+
+                                    {/* If it's the 10th slot, mark it with a Gift icon at the top */}
+                                    {isRewardSlot && (
+                                      <div className={`absolute -top-2.5 -right-2.5 rounded-full p-1.5 bg-emerald-500 text-white shadow-md z-20 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 ${stamps >= 10 ? "animate-bounce" : ""}`}>
+                                        <Gift size={16} />
+                                        {/* Hover tooltip for the entire 10th circle positioned on top of the Gift icon */}
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 bg-zinc-900 dark:bg-zinc-800 text-white text-[10px] font-bold rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap shadow-lg border border-white/10 z-30">
+                                          Free Drink
+                                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900 dark:border-t-zinc-800" />
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
 
-                          {/* Brand Logo & Info Alert text on Lower Right Corner */}
-                          <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
-                            <div>
+                            {/* Brand Logo & Info Alert text on Lower Right Corner */}
+                            <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end">
+                              <div>
+                                <Image
+                                  src="/logo.png"
+                                  alt="Antonioni Grounds Logo"
+                                  width={140}
+                                  height={46}
+                                  className="h-9 w-auto object-contain invert dark:invert-0"
+                                />
+                              </div>
+                              <div className="max-w-[240px] xs:max-w-[280px] sm:max-w-[320px] text-right">
+                                <p className="text-[8px] sm:text-[9px] text-zinc-500 leading-normal sm:leading-relaxed">
+                                  Stamps are automatically issued upon checkout for any handcrafted beverage purchases when your loyalty ID is scanned.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Back Side: ANTONIONI MEMBER CARD */}
+                        <div
+                          className={`absolute inset-0 w-full h-full ${!isFlipped ? "pointer-events-none z-0" : "pointer-events-auto z-10"}`}
+                          style={{
+                            backfaceVisibility: "hidden",
+                            WebkitBackfaceVisibility: "hidden",
+                            transform: "rotateY(180deg)"
+                          }}
+                        >
+                          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/40 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 p-8 glassmorphism-green shadow-xl flex flex-col justify-between h-full">
+
+                            {/* Right side coffee photo cover */}
+                            <div className="absolute top-0 right-0 bottom-0 w-1/2 overflow-hidden border-l border-[#2E5A44]/10 block">
+                              <Image
+                                src="/kape.jpg"
+                                alt="Luxury Coffee"
+                                fill
+                                className="object-cover opacity-90 hover:opacity-100 transition-opacity duration-300"
+                              />
+                              {/* Soft blend overlay gradient to card background */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-[#ECF7F2] dark:from-[#07130E] via-transparent to-transparent" />
+                            </div>
+
+                            {/* Content Column (occupying left half on desktop) */}
+                            <div className="flex flex-col justify-start gap-3 h-full w-[48%] min-w-0 z-10 relative pb-14">
+                              <div>
+                                <span className="text-[10px] tracking-[0.25em] text-[#2E5A44] dark:text-emerald-400 font-bold uppercase block font-sans">Antonioni Grounds Reserve</span>
+                                <h2 className="type-h1 text-foreground mt-1 truncate uppercase">
+                                  {memberUsername || memberName}
+                                </h2>
+                                {isGuest && <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Guest Preview Card</p>}
+                              </div>
+
+                              {/* Flex Row Container: QR Code on left, Member stats on right */}
+                              <div className="flex flex-row items-start gap-5 mt-3">
+                                {/* Integrated Large QR Code */}
+                                <div
+                                  onClick={() => setIsQrExpanded(true)}
+                                  className="w-36 h-36 bg-white p-2.5 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-inner shrink-0 group cursor-pointer"
+                                >
+                                  {/* Real QR Code Representation */}
+                                  {qrCodeUrl ? (
+                                    <img
+                                      src={qrCodeUrl}
+                                      alt="Loyalty QR Code"
+                                      className="w-full h-full object-contain relative z-0 select-none pointer-events-none"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-zinc-100 dark:bg-[#181818] animate-pulse rounded-md" />
+                                  )}
+
+                                  {/* Hover Overlay Expand Button */}
+                                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20">
+                                    <button className="bg-[#2E5A44] text-white rounded-full p-2.5 shadow-lg flex items-center justify-center hover:scale-110 transition-all hover:bg-[#234533] active:scale-95">
+                                      <Maximize2 size={16} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Member ID & Member Since Stack */}
+                                <div className="space-y-4 pb-1">
+                                  <div className="space-y-0.5">
+                                    <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Member ID</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono text-foreground text-xs tracking-wider font-semibold">{memberId}</span>
+                                      <button
+                                        onClick={copyMemberId}
+                                        className="text-zinc-500 hover:text-emerald-500 transition-colors cursor-pointer"
+                                        title="Copy ID"
+                                      >
+                                        {copiedId ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Member Since</span>
+                                    <span className="font-mono text-zinc-800 dark:text-zinc-300 text-xs font-semibold">{memberJoinedAt}</span>
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Loyalty Status</span>
+                                    <span className="font-mono text-[#2E5A44] dark:text-emerald-400 text-xs font-bold">{stamps} / 10 Stamps</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Reward Preview Strip */}
+                              <div className="mt-auto rounded-xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5 px-4 py-3 block">
+                                <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Your Reward at 10 Stamps</span>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Coffee size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                  <span className="text-foreground font-semibold text-xs">Claim any Mini drink on the menu!</span>
+                                </div>
+                                <p className="text-[9px] text-zinc-500 dark:text-zinc-400 mt-1">
+                                  {stamps >= 10
+                                    ? "Ready to claim!"
+                                    : `${10 - stamps} more stamp${10 - stamps === 1 ? "" : "s"} to unlock`}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Brand Logo on Lower Left Corner */}
+                            <div className="absolute bottom-8 left-8 z-10">
                               <Image
                                 src="/logo.png"
                                 alt="Antonioni Grounds Logo"
@@ -706,153 +1172,71 @@ export function LoyaltyView() {
                                 className="h-9 w-auto object-contain invert dark:invert-0"
                               />
                             </div>
-                            <div className="max-w-[240px] xs:max-w-[280px] sm:max-w-[320px] text-right">
-                              <p className="text-[8px] sm:text-[9px] text-zinc-500 leading-normal sm:leading-relaxed">
-                                Stamps are automatically issued upon checkout for any handcrafted beverage purchases when your loyalty ID is scanned.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
 
-                      {/* Back Side: ANTONIONI MEMBER CARD */}
-                      <div
-                        className={`absolute inset-0 w-full h-full ${!isFlipped ? "pointer-events-none z-0" : "pointer-events-auto z-10"}`}
-                        style={{
-                          backfaceVisibility: "hidden",
-                          WebkitBackfaceVisibility: "hidden",
-                          transform: "rotateY(180deg)"
-                        }}
-                      >
-                        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/15 bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1]/40 dark:from-[#07130E]/95 dark:to-[#0F261B]/95 p-8 glassmorphism-green shadow-xl flex flex-col justify-between h-full">
-
-                          {/* Right side coffee photo cover */}
-                          <div className="absolute top-0 right-0 bottom-0 w-1/2 overflow-hidden border-l border-[#2E5A44]/10 block">
-                            <Image
-                              src="/kape.jpg"
-                              alt="Luxury Coffee"
-                              fill
-                              className="object-cover opacity-90 hover:opacity-100 transition-opacity duration-300"
-                            />
-                            {/* Soft blend overlay gradient to card background */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#ECF7F2] dark:from-[#07130E] via-transparent to-transparent" />
-                          </div>
-
-                          {/* Content Column (occupying left half on desktop) */}
-                          <div className="flex flex-col justify-start gap-3 h-full w-[48%] min-w-0 z-10 relative pb-14">
-                            <div>
-                              <span className="text-[10px] tracking-[0.25em] text-[#2E5A44] dark:text-emerald-400 font-bold uppercase block font-sans">Antonioni Grounds Reserve</span>
-                              <h2 className="type-h1 text-foreground mt-1 truncate uppercase">
-                                {memberUsername || memberName}
-                              </h2>
-                              {isGuest && <p className="type-caption text-zinc-600 dark:text-zinc-400 mt-1">Guest Preview Card</p>}
-                            </div>
-
-                            {/* Flex Row Container: QR Code on left, Member stats on right */}
-                            <div className="flex flex-row items-start gap-5 mt-3">
-                              {/* Integrated Large QR Code */}
-                              <div
-                                onClick={() => setIsQrExpanded(true)}
-                                className="w-36 h-36 bg-white p-2.5 rounded-xl flex flex-col justify-center items-center relative overflow-hidden shadow-inner shrink-0 group cursor-pointer"
+                            {/* Card Actions Group */}
+                            <div className="absolute top-8 right-8 flex items-center gap-2 z-20">
+                              {/* Fullscreen Button */}
+                              <button
+                                onClick={() => setIsFullscreen(!isFullscreen)}
+                                className="sm:hidden rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95 cursor-pointer"
+                                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
                               >
-                                {/* Real QR Code Representation */}
-                                {qrCodeUrl ? (
-                                  <img
-                                    src={qrCodeUrl}
-                                    alt="Loyalty QR Code"
-                                    className="w-full h-full object-contain relative z-0 select-none pointer-events-none"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full bg-zinc-100 dark:bg-[#181818] animate-pulse rounded-md" />
-                                )}
-
-                                {/* Hover Overlay Expand Button */}
-                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20">
-                                  <button className="bg-[#2E5A44] text-white rounded-full p-2.5 shadow-lg flex items-center justify-center hover:scale-110 transition-all hover:bg-[#234533] active:scale-95">
-                                    <Maximize2 size={16} />
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Member ID & Member Since Stack */}
-                              <div className="space-y-4 pb-1">
-                                <div className="space-y-0.5">
-                                  <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Member ID</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono text-foreground text-xs tracking-wider font-semibold">{memberId}</span>
-                                    <button
-                                      onClick={copyMemberId}
-                                      className="text-zinc-500 hover:text-emerald-500 transition-colors"
-                                      title="Copy ID"
-                                    >
-                                      {copiedId ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="space-y-0.5">
-                                  <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Member Since</span>
-                                  <span className="font-mono text-zinc-800 dark:text-zinc-300 text-xs font-semibold">10/24</span>
-                                </div>
-                                <div className="space-y-0.5">
-                                  <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Loyalty Status</span>
-                                  <span className="font-mono text-[#2E5A44] dark:text-emerald-400 text-xs font-bold">{stamps} / 10 Stamps</span>
-                                </div>
-                              </div>
+                                <Maximize2 size={16} />
+                              </button>
+                              {/* Flip Icon Button */}
+                              <button
+                                onClick={() => setIsFlipped(false)}
+                                className="rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95 cursor-pointer"
+                                title="View Stamp Card"
+                              >
+                                <RotateCcw size={16} />
+                              </button>
                             </div>
 
-                            {/* Reward Preview Strip */}
-                            <div className="mt-auto rounded-xl border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5 px-4 py-3 block">
-                              <span className="text-[9px] uppercase tracking-wider text-zinc-600 dark:text-zinc-500 block">Your Reward at 10 Stamps</span>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Coffee size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                <span className="text-foreground font-semibold text-xs">Free Antonioni Blends Modest</span>
-                              </div>
-                              <p className="text-[9px] text-zinc-500 dark:text-zinc-400 mt-1">
-                                {stamps >= 10
-                                  ? "Ready to claim!"
-                                  : `${10 - stamps} more stamp${10 - stamps === 1 ? "" : "s"} to unlock`}
-                              </p>
-                            </div>
                           </div>
-
-                          {/* Brand Logo on Lower Left Corner */}
-                          <div className="absolute bottom-8 left-8 z-10">
-                            <Image
-                              src="/logo.png"
-                              alt="Antonioni Grounds Logo"
-                              width={140}
-                              height={46}
-                              className="h-9 w-auto object-contain invert dark:invert-0"
-                            />
-                          </div>
-
-                          {/* Card Actions Group */}
-                          <div className="absolute top-8 right-8 flex items-center gap-2 z-20">
-                            {/* Fullscreen Button */}
-                            <button
-                              onClick={() => setIsFullscreen(!isFullscreen)}
-                              className="sm:hidden rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95"
-                              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
-                            >
-                              <Maximize2 size={16} />
-                            </button>
-                            {/* Flip Icon Button */}
-                            <button
-                              onClick={() => setIsFlipped(false)}
-                              className="rounded-full border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5 p-2.5 text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all active:scale-95"
-                              title="View Stamp Card"
-                            >
-                              <RotateCcw size={16} />
-                            </button>
-                          </div>
-
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </FadeUp>
+              </FadeUp>
+
+              {/* ─── STAMP HISTORY SECTION ─── */}
+              <FadeUp delay={0.1} className="w-[310px] xs:w-[350px] sm:w-full mx-auto mt-24 sm:mt-28 pt-6 sm:pt-8">
+                <div className="flex items-center justify-between pb-3.5 border-b border-card-border">
+                  <h3 className="text-sm sm:text-base font-serif font-bold text-foreground tracking-wide">
+                    Stamp History
+                  </h3>
+                  <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
+                    {stamps} / 10 Stamps
+                  </span>
+                </div>
+
+                {stampHistory.length === 0 ? (
+                  <p className="py-8 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 text-center">
+                    No stamp history yet.
+                  </p>
+                ) : (
+                  <div className="mt-2 max-h-[260px] overflow-y-auto pr-1 divide-y divide-card-border">
+                    {stampHistory.map((item) => (
+                      <div
+                        key={item.id}
+                        className="h-[52px] flex items-center justify-between gap-4 text-xs sm:text-sm"
+                      >
+                        <span className="font-medium text-foreground truncate">
+                          {item.title}
+                        </span>
+                        <div className="flex items-center gap-2 sm:gap-3 font-mono text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 shrink-0">
+                          <span>{formatHistoryDate(item.timestamp)}</span>
+                          <span className="opacity-40">•</span>
+                          <span>{formatHistoryTime(item.timestamp)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </FadeUp>
+            </div>
           )}
 
         </div>
@@ -896,7 +1280,7 @@ export function LoyaltyView() {
                   Reward Claimed!
                 </h3>
                 <p className="type-body-sm text-neutral-500 dark:text-zinc-400 leading-relaxed max-w-xs">
-                  Your Free Antonioni Blends Modest order has been successfully generated. Present your Digital Loyalty Card at the counter to redeem.
+                  Claim any Mini drink on the menu! Present your Digital Loyalty Card at the counter to redeem.
                 </p>
               </div>
 

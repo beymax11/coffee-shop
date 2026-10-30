@@ -13,6 +13,8 @@ import { ClosingBand } from "@/components/sections/ClosingBand";
 import { QuickViewModal } from "@/components/menu/QuickViewModal";
 import { MenuItem } from "@/types";
 
+const SHOW_EXTRA_SECTIONS = false;
+
 export function HomeView() {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
@@ -27,10 +29,14 @@ export function HomeView() {
       <HomeHero />
       <RoastingExperience />
       <LoyaltyPreviewSection />
-      <SignatureShowcase onQuickView={handleQuickView} />
-      <EventShowcase />
-      <EventsUpdates />
-      <LifestyleGrid />
+      {SHOW_EXTRA_SECTIONS && (
+        <div className="hidden">
+          <SignatureShowcase onQuickView={handleQuickView} />
+          <EventShowcase />
+          <EventsUpdates />
+          <LifestyleGrid />
+        </div>
+      )}
       <ClosingBand />
       <QuickViewModal
         isOpen={isQuickViewOpen}

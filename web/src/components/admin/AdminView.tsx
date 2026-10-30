@@ -12,6 +12,7 @@ import { formatPhoneNumber } from "@/utils/phone";
 import { notificationsService } from "@/utils/notifications";
 import { eraseCookie } from "@/utils/cookies";
 import { invalidateCache } from "@/utils/cache";
+import { generateUniqueLoyaltyCardId } from "@/lib/id-generator";
 
 // Import modular sub-components
 import { Sidebar } from "./sidebar/Sidebar";
@@ -1213,7 +1214,11 @@ export const AdminView: React.FC = () => {
   // Loyalty Member
   const handleAddLoyaltySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const memberId = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+    const { supabase } = await import("@/utils/supabase");
+    const memberId = await generateUniqueLoyaltyCardId(
+      supabase,
+      loyaltyMembers.map((m) => m.id)
+    );
     const email = loyaltyForm.email.trim();
     const phone = loyaltyForm.phone.trim();
     const name = loyaltyForm.name.trim();

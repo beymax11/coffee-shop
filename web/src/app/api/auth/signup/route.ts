@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
       console.error("[Signup Error] Failed to send verification email:", mailErr);
     }
 
-    return NextResponse.json({ success: true, emailConfirmRequired: true });
+    return NextResponse.json({ success: true, emailConfirmRequired: true, cardId });
   } catch (err) {
     console.error("POST /api/auth/signup unexpected error:", err);
     return NextResponse.json(

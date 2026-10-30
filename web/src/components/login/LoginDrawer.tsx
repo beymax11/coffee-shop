@@ -6,6 +6,7 @@ import { X, Mail, Lock, Eye, EyeOff, LogIn, Check, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
+import { generateUniqueLoyaltyCardId } from "@/lib/id-generator";
 import { setCookie, eraseCookie } from "@/utils/cookies";
 import { initAdminClientSession } from "@/utils/admin-session-client";
 
@@ -212,7 +213,10 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
           if (profile) {
             let memberIdToUse = loyaltyCard?.id || existingMember.id;
             if (!memberIdToUse || memberIdToUse.length > 20) {
-              memberIdToUse = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+              memberIdToUse = await generateUniqueLoyaltyCardId(
+                supabase,
+                members.map((m) => m.id)
+              );
               if (supabase) {
                 supabase
                   .from("loyalty_cards")
@@ -240,7 +244,10 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
           const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
           let memberIdToUse = loyaltyCard?.id;
           if (!memberIdToUse || memberIdToUse.length > 20) {
-            memberIdToUse = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+            memberIdToUse = await generateUniqueLoyaltyCardId(
+              supabase,
+              members.map((m) => m.id)
+            );
             if (supabase) {
               supabase
                 .from("loyalty_cards")

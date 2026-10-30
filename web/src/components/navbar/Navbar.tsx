@@ -259,7 +259,6 @@ export const Navbar: React.FC = () => {
 
 
   const navLinks = [
-    { name: "Home", href: "/" },
     { name: "Menu", href: "/menu" },
     { name: "Brew Buggy", href: "/brew-buggy" },
     { name: "Reservations", href: "/reservations" },

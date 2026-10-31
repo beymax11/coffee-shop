@@ -33,7 +33,8 @@ export function LoginPageClient() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("view") === "page") {
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    if (params.get("view") === "page" || isMobile) {
       setViewMode("page");
     } else {
       setViewMode("drawer");
@@ -227,7 +228,7 @@ export function LoginPageClient() {
         });
       } else {
         // Customer Sign In
-        setSuccessMessage("Welcome back. Redirecting to reserve account...");
+        setSuccessMessage("Welcome back. Redirecting to Good Cup account...");
         setIsSuccess(true);
         eraseCookie("admin_session");
         eraseCookie("admin_role");
@@ -341,18 +342,20 @@ export function LoginPageClient() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 relative overflow-y-auto transition-colors duration-500">
-      {/* Decorative brand glow */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-[#2E5A44]/[0.03] via-transparent to-[#2E5A44]/[0.02]" />
-      <div className="pointer-events-none absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-[#2E5A44]/[0.06] blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-[#2E5A44]/[0.04] blur-3xl" />
+    <div className="w-full flex-1 min-h-[calc(100dvh-72px)] md:min-h-[calc(100dvh-80px)] bg-background text-foreground flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 relative overflow-x-hidden touch-pan-y transition-colors duration-500">
+      {/* Decorative brand glow - strictly contained to avoid horizontal drag/scroll on mobile */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#2E5A44]/[0.03] via-transparent to-[#2E5A44]/[0.02]" />
+        <div className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full bg-[#2E5A44]/[0.06] blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 h-[600px] w-[600px] rounded-full bg-[#2E5A44]/[0.04] blur-3xl" />
+      </div>
 
-      {/* Main Wrapper - Centered, Borderless, Direct Placement */}
+      {/* Main Wrapper - Centered, Steady on Mobile */}
       <motion.div 
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-full max-w-xl flex flex-col py-8 md:py-12"
+        className="relative z-10 w-full max-w-md sm:max-w-lg md:max-w-xl flex flex-col my-auto py-2 sm:py-6"
       >
         {/* Header Block */}
         <div className="flex flex-col items-center text-center pb-6 border-b border-card-border/40 relative">
@@ -360,10 +363,10 @@ export function LoginPageClient() {
             Antonioni Grounds
           </span>
           <h1 className="text-foreground text-3xl font-serif mt-1 font-bold">
-            The Reserve
+            The Good Cup
           </h1>
           <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-2 max-w-md leading-relaxed">
-            Enter your credentials to access your reserve account.
+            Enter your credentials to access your Good Cup account.
           </p>
         </div>
 
@@ -418,7 +421,7 @@ export function LoginPageClient() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isSubmitting || isSuccess}
-                className="w-full rounded-lg border border-card-border bg-background-alt/50 py-2.5 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 text-sm disabled:opacity-50"
+                className="w-full rounded-lg border border-card-border bg-background-alt/50 py-2.5 pl-11 pr-3 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 text-base sm:text-sm disabled:opacity-50"
               />
             </div>
           </div>
@@ -441,7 +444,7 @@ export function LoginPageClient() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isSubmitting || isSuccess}
-                className="w-full rounded-lg border border-card-border bg-background-alt/50 py-2.5 pl-11 pr-11 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 text-sm disabled:opacity-50"
+                className="w-full rounded-lg border border-card-border bg-background-alt/50 py-2.5 pl-11 pr-11 type-field text-foreground outline-none transition-all duration-300 focus:border-emerald-500/80 focus:ring-1 focus:ring-emerald-500/20 focus:bg-background-alt font-sans placeholder:text-neutral-400 dark:placeholder:text-zinc-600 text-base sm:text-sm disabled:opacity-50"
               />
               <button
                 type="button"
@@ -505,7 +508,7 @@ export function LoginPageClient() {
 
         {/* Footer Notice & Toggle Link */}
         <div className="mt-8 pt-6 border-t border-card-border/45 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <p className="type-caption text-neutral-400 dark:text-zinc-500 text-[10px] leading-relaxed max-w-[280px]">
+          <p className="type-caption text-neutral-400 dark:text-zinc-500 text-[10px] leading-relaxed w-full sm:max-w-[280px]">
             Antonioni Grounds Reserve Membership.<br />
             By signing in you agree to our terms of service.
           </p>

@@ -52,7 +52,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
 
   // Form states
   const [editName, setEditName] = useState(customer.name);
@@ -67,7 +67,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const handleClose = useCallback(() => {
     if (!isLoggingOut && !isSaving) {
       setIsEditing(false);
-      setShowLogoutConfirm(false);
+
       onClose();
     }
   }, [isLoggingOut, isSaving, onClose]);
@@ -76,7 +76,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setMessage("");
-      setShowLogoutConfirm(false);
+
       setIsEditing(false);
       setCopiedId(false);
     }
@@ -397,42 +397,24 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               ) : (
                 <div className="flex items-center justify-between">
                   {/* Logout Action */}
-                  {showLogoutConfirm ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                        Log out?
-                      </span>
-                      <button
-                        type="button"
-                        disabled={isLoggingOut}
-                        onClick={onLogout}
-                        className="px-2.5 py-1 rounded bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1"
-                      >
-                        {isLoggingOut ? (
-                          <Loader2 size={11} className="animate-spin" />
-                        ) : (
-                          "Yes"
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowLogoutConfirm(false)}
-                        className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={isLoggingOut}
-                      onClick={() => setShowLogoutConfirm(true)}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:underline cursor-pointer disabled:opacity-50"
-                    >
-                      <LogOut size={14} />
-                      <span>Log Out</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    disabled={isLoggingOut}
+                    onClick={onLogout}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:underline cursor-pointer disabled:opacity-50"
+                  >
+                    {isLoggingOut ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Logging out...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LogOut size={14} />
+                        <span>Log Out</span>
+                      </>
+                    )}
+                  </button>
 
                   {/* Edit & Close */}
                   <div className="flex items-center gap-2">

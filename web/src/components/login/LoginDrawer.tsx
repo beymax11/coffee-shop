@@ -187,7 +187,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
         });
       } else {
         // Customer Sign In
-        setSuccessMessage("Welcome back. Redirecting to reserve account...");
+        setSuccessMessage("Welcome back. Redirecting to Good Cup account...");
         setIsSuccess(true);
         eraseCookie("admin_session");
         eraseCookie("admin_role");
@@ -325,7 +325,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">
-                      Access Reserve
+                      The Good Cup
                     </span>
                     <h2 className="type-h2 text-foreground mt-0.5">
                       Sign In
@@ -341,7 +341,7 @@ export function LoginDrawer({ isOpen, onClose }: LoginDrawerProps) {
                 </div>
                 <div className="h-px w-12 bg-gradient-to-r from-[#2E5A44] to-transparent mt-5" />
                 <p className="type-body-sm text-neutral-500 dark:text-zinc-400 mt-4 leading-relaxed">
-                  Enter your credentials to access your reserve account.
+                  Enter your credentials to access your Good Cup account.
                 </p>
               </motion.div>
 

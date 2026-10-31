@@ -10,6 +10,8 @@ import { QuickViewModal } from "@/components/menu/QuickViewModal";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
 import { MenuItem } from "@/types";
 
+const SHOW_AVAILABLE_SOON = true;
+
 const LEGACY_MOCK_CATEGORIES = [
   "Hot Coffee",
   "Cold Coffee",
@@ -219,6 +221,61 @@ export function MenuView() {
     setIsQuickViewOpen(true);
   };
 
+  if (SHOW_AVAILABLE_SOON) {
+    return (
+      <PageTransition>
+        <div className="min-h-screen bg-background py-16 md:py-24 text-foreground relative overflow-hidden transition-colors duration-500">
+          {/* Subtle decorative background elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* Glowing green blobs */}
+            <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.08)_0%,transparent_70%)] blur-[120px]" />
+            <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.06)_0%,transparent_70%)] blur-[120px]" />
+            <div className="absolute top-[30%] left-[40%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.04)_0%,transparent_70%)] blur-[100px]" />
+
+            {/* Fine luxury grid lines overlay */}
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage: `linear-gradient(to right, var(--card-border) 1px, transparent 1px), linear-gradient(to bottom, var(--card-border) 1px, transparent 1px)`,
+                backgroundSize: "40px 40px",
+                maskImage: "radial-gradient(ellipse at center, black, transparent 80%)",
+                WebkitMaskImage: "radial-gradient(ellipse at center, black, transparent 80%)",
+              }}
+            />
+          </div>
+
+          <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
+            <FadeUp className="max-w-lg mx-auto text-center flex flex-col items-center py-8 sm:py-12">
+              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 font-bold block mb-2">
+                Menu
+              </span>
+              <h2 className="type-h2 text-foreground font-serif leading-tight">
+                This feature is available soon.
+              </h2>
+              <p className="text-base font-medium text-emerald-600 dark:text-emerald-400 mt-2">
+                Curating our digital coffee &amp; pastry catalog.
+              </p>
+              <p className="type-body text-neutral-600 dark:text-zinc-400 mt-3 mb-8 max-w-md leading-relaxed text-sm sm:text-base">
+                We&apos;re finalizing our handcrafted beverage and pastry lineup to bring you a seamless browsing experience. Check back soon to explore what&apos;s pouring.
+              </p>
+              <div className="w-full max-w-xs space-y-3">
+                <div className="type-ui group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#2E5A44] py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_25px_rgba(46,90,68,0.3)] select-none">
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
+                  <span className="relative flex items-center gap-1.5">
+                    <span>Tara, kape!</span>
+                  </span>
+                </div>
+                <p className="inline-block text-xs font-medium text-neutral-500 dark:text-zinc-400 pt-2">
+                  Antonioni Grounds Digital Menu
+                </p>
+              </div>
+            </FadeUp>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-background pt-10 md:pt-16 pb-16 md:pb-24 text-foreground relative overflow-hidden transition-colors duration-500">
@@ -425,12 +482,12 @@ export function MenuView() {
                                 {item.price != null
                                   ? `₱${Number(item.price).toFixed(2)}`
                                   : item.modest != null
-                                  ? `₱${Number(item.modest).toFixed(2)}`
-                                  : item.hot != null
-                                  ? `₱${Number(item.hot).toFixed(2)}`
-                                  : item.grand != null
-                                  ? `₱${Number(item.grand).toFixed(2)}`
-                                  : "—"}
+                                    ? `₱${Number(item.modest).toFixed(2)}`
+                                    : item.hot != null
+                                      ? `₱${Number(item.hot).toFixed(2)}`
+                                      : item.grand != null
+                                        ? `₱${Number(item.grand).toFixed(2)}`
+                                        : "—"}
                               </span>
 
                               {(item.modest != null || item.grand != null || item.hot != null) && (
@@ -438,8 +495,8 @@ export function MenuView() {
                                   {item.modest != null && item.grand != null
                                     ? "Modest / Grand"
                                     : item.hot != null
-                                    ? "Hot / Iced"
-                                    : "Sizes available"}
+                                      ? "Hot / Iced"
+                                      : "Sizes available"}
                                 </span>
                               )}
                             </div>

@@ -6,6 +6,7 @@ import { Mail, Lock, Eye, EyeOff, Loader2, UserRound, UserPlus, AtSign, Check } 
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
+import { getNextLocalLoyaltyCardId } from "@/lib/id-generator";
 
 export function SignUpPageClient() {
   const router = useRouter();
@@ -51,13 +52,14 @@ export function SignUpPageClient() {
         throw new Error("Username can only contain alphanumeric characters, underscores, and dots.");
       }
 
-      const randomId = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
-
       // 2. Suppress trigger warnings or mock DB handling
       if (!supabase) {
+        const sequentialId = getNextLocalLoyaltyCardId(
+          db.getLoyaltyMembers().map((m) => m.id)
+        );
         // Mock registrations
         db.saveLoyaltyMember({
-          id: randomId,
+          id: sequentialId,
           name: name.trim(),
           username: trimmedUsername,
           email: activeEmail,
@@ -102,8 +104,10 @@ export function SignUpPageClient() {
       );
 
       if (!existingMember) {
+        const assignedCardId =
+          resData.cardId || getNextLocalLoyaltyCardId(members.map((m) => m.id));
         db.saveLoyaltyMember({
-          id: randomId,
+          id: assignedCardId,
           name: name.trim(),
           username: username.trim().toLowerCase(),
           email: activeEmail,

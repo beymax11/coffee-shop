@@ -6,8 +6,9 @@ import {
   isSessionActive,
   revokeActiveSession,
   getActiveSessionId,
+  verifyToken,
 } from "@/lib/admin-auth";
-import { getClientIp } from "@/lib/rate-limit";
+import { getClientIp, enforceRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -52,6 +53,11 @@ async function broadcastKickout(email: string, newSessionId: string) {
  * Kicks out any prior active session.
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = enforceRateLimit(req, "auth-admin-session", 15, 300);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const body = await req.json();
     const { userId, email, role, accessToken: bodyToken } = body;
@@ -182,6 +188,7 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({
       success: true,
       sessionId,
+      role: validatedRole,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       accessExpiresAt: tokens.accessExpiresAt,
@@ -194,7 +201,7 @@ export async function POST(req: NextRequest) {
     // 15-minute access token (900 seconds)
     res.headers.append(
       "Set-Cookie",
-      `admin_access_token=${tokens.accessToken}; Path=/; Max-Age=900; SameSite=Lax${secureFlag}`
+      `admin_access_token=${tokens.accessToken}; Path=/; Max-Age=900; HttpOnly; SameSite=Lax${secureFlag}`
     );
 
     // 7-day refresh token (604800 seconds)
@@ -216,7 +223,7 @@ export async function POST(req: NextRequest) {
 
     res.headers.append(
       "Set-Cookie",
-      `admin_role=${role}; Path=/; Max-Age=604800; SameSite=Lax${secureFlag}`
+      `admin_role=${validatedRole}; Path=/; Max-Age=604800; SameSite=Lax${secureFlag}`
     );
 
     return res;
@@ -231,7 +238,7 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET /api/auth/admin-session
- * Checks if a specific sessionId is still active.
+ * Checks if a specific sessionId is still active and returns the server-verified role.
  */
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -251,30 +258,69 @@ export async function GET(req: NextRequest) {
 
   const normalizedEmail = email.toLowerCase().trim();
   const active = isSessionActive(normalizedEmail, sessionId);
-  const currentActiveSessionId = getActiveSessionId(normalizedEmail);
+
+  let verifiedRole: "admin" | "barista" | undefined;
+  const tokenCookie =
+    req.cookies.get("admin_access_token")?.value ||
+    req.cookies.get("admin_refresh_token")?.value;
+
+  if (tokenCookie) {
+    const verified = verifyToken(tokenCookie);
+    if (
+      verified.valid &&
+      verified.payload &&
+      verified.payload.email.toLowerCase().trim() === normalizedEmail
+    ) {
+      verifiedRole = verified.payload.role;
+    }
+  }
 
   return NextResponse.json({
     active,
-    currentActiveSessionId,
+    ...(verifiedRole ? { role: verifiedRole } : {}),
   });
 }
 
 /**
  * DELETE /api/auth/admin-session
- * Logs out and revokes active session.
+ * Logs out and revokes active session (requires ownership of the session).
  */
 export async function DELETE(req: NextRequest) {
   const email = req.nextUrl.searchParams.get("email");
   if (email) {
-    revokeActiveSession(email);
+    const normalizedEmail = email.toLowerCase().trim();
+    const tokenCookie =
+      req.cookies.get("admin_access_token")?.value ||
+      req.cookies.get("admin_refresh_token")?.value;
+    const cookieSessionId = req.cookies.get("admin_session_id")?.value;
+    const activeSessionId = getActiveSessionId(normalizedEmail);
+
+    let canRevoke = false;
+    if (tokenCookie) {
+      const verified = verifyToken(tokenCookie);
+      if (
+        verified.valid &&
+        verified.payload &&
+        verified.payload.email.toLowerCase().trim() === normalizedEmail
+      ) {
+        canRevoke = true;
+      }
+    }
+    if (!canRevoke && cookieSessionId && activeSessionId && cookieSessionId === activeSessionId) {
+      canRevoke = true;
+    }
+
+    if (canRevoke) {
+      revokeActiveSession(normalizedEmail);
+    }
   }
 
   const res = NextResponse.json({ success: true });
-  res.headers.append("Set-Cookie", "admin_access_token=; Path=/; Max-Age=0");
-  res.headers.append("Set-Cookie", "admin_refresh_token=; Path=/; Max-Age=0");
-  res.headers.append("Set-Cookie", "admin_session_id=; Path=/; Max-Age=0");
-  res.headers.append("Set-Cookie", "admin_session=; Path=/; Max-Age=0");
-  res.headers.append("Set-Cookie", "admin_role=; Path=/; Max-Age=0");
+  res.headers.append("Set-Cookie", "admin_access_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+  res.headers.append("Set-Cookie", "admin_refresh_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+  res.headers.append("Set-Cookie", "admin_session_id=; Path=/; Max-Age=0; SameSite=Lax");
+  res.headers.append("Set-Cookie", "admin_session=; Path=/; Max-Age=0; SameSite=Lax");
+  res.headers.append("Set-Cookie", "admin_role=; Path=/; Max-Age=0; SameSite=Lax");
 
   return res;
 }

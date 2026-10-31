@@ -140,17 +140,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 7. Generate collision-resistant unique loyalty card ID
-    const cardId = await generateUniqueLoyaltyCardId(supabaseAdmin);
-    const { error: loyaltyError } = await supabaseAdmin.from("loyalty_cards").upsert(
-      {
-        id: cardId,
-        user_id: user.id,
-        stamps: 0,
-        points: 0,
-      },
-      { onConflict: "user_id" }
-    );
+    // 7. Generate collision-resistant unique loyalty card ID (with retry on concurrent ID collision)
+    const triedCardIds: string[] = [];
+    let cardId = "";
+    let loyaltyError: any = null;
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      cardId = await generateUniqueLoyaltyCardId(supabaseAdmin, triedCardIds);
+      triedCardIds.push(cardId);
+
+      const { error } = await supabaseAdmin.from("loyalty_cards").upsert(
+        {
+          id: cardId,
+          user_id: user.id,
+          stamps: 0,
+          points: 0,
+        },
+        { onConflict: "user_id" }
+      );
+
+      loyaltyError = error;
+      if (!error || error.code !== "23505") {
+        break;
+      }
+    }
 
     if (loyaltyError) {
       console.error("[Signup Error] Loyalty card upsert:", loyaltyError.message);
@@ -187,7 +200,7 @@ export async function POST(req: NextRequest) {
       console.error("[Signup Error] Failed to send verification email:", mailErr);
     }
 
-    return NextResponse.json({ success: true, emailConfirmRequired: true });
+    return NextResponse.json({ success: true, emailConfirmRequired: true, cardId });
   } catch (err) {
     console.error("POST /api/auth/signup unexpected error:", err);
     return NextResponse.json(

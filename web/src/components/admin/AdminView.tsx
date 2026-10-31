@@ -12,6 +12,7 @@ import { formatPhoneNumber } from "@/utils/phone";
 import { notificationsService } from "@/utils/notifications";
 import { eraseCookie } from "@/utils/cookies";
 import { invalidateCache } from "@/utils/cache";
+import { generateUniqueLoyaltyCardId } from "@/lib/id-generator";
 
 // Import modular sub-components
 import { Sidebar } from "./sidebar/Sidebar";
@@ -163,7 +164,7 @@ export const AdminView: React.FC = () => {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  // 1. Auth check
+  // 1. Auth check (with server-side role verification to prevent localStorage privilege escalation)
   useEffect(() => {
     const session = localStorage.getItem("admin_session");
     if (session !== "true") {
@@ -171,10 +172,14 @@ export const AdminView: React.FC = () => {
     } else {
       setIsAuthenticated(true);
       const adminProfileStr = localStorage.getItem("admin_profile");
+      let parsedEmail = "";
+      let parsedName = "Admin User";
       if (adminProfileStr) {
         try {
           const adminProfile = JSON.parse(adminProfileStr);
+          if (adminProfile.name) parsedName = adminProfile.name;
           if (adminProfile.email) {
+            parsedEmail = adminProfile.email;
             setCurrentUserEmail(adminProfile.email);
           }
           if (adminProfile.role) {
@@ -191,6 +196,33 @@ export const AdminView: React.FC = () => {
         } catch (e) {
           console.error("Error parsing admin profile:", e);
         }
+      }
+
+      // Verify staff role against server token so localStorage edits cannot escalate barista -> admin
+      const sessionId = localStorage.getItem("admin_session_id");
+      if (parsedEmail && sessionId) {
+        fetch(
+          `/api/auth/admin-session?email=${encodeURIComponent(
+            parsedEmail
+          )}&sessionId=${encodeURIComponent(sessionId)}`
+        )
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data?.role && (data.role === "admin" || data.role === "barista")) {
+              setCurrentUserRole(data.role);
+              localStorage.setItem(
+                "admin_profile",
+                JSON.stringify({
+                  name: parsedName,
+                  email: parsedEmail,
+                  role: data.role,
+                })
+              );
+            }
+          })
+          .catch(() => {
+            // Ignore transient network errors
+          });
       }
     }
   }, [router]);
@@ -384,24 +416,11 @@ export const AdminView: React.FC = () => {
             };
           });
 
-          // Merge local members that do NOT exist in Supabase (e.g. offline walk-in members that aren't synced yet)
-          const mergedMembers = [...supabaseMembers];
-          localMembers.forEach((local) => {
-            const alreadyExists = mergedMembers.some((s) => {
-              if (local.email && s.email) {
-                return s.email.toLowerCase() === local.email.toLowerCase();
-              }
-              if (local.phone && s.phone) {
-                return s.phone.trim() === local.phone.trim();
-              }
-              return false;
-            });
-            if (!alreadyExists) {
-              mergedMembers.push(local);
-            }
-          });
-
-          setLoyaltyMembers(mergedMembers);
+          // Keep localStorage synced with Supabase (single source of truth) so deleted records don't reappear on other devices
+          if (typeof window !== "undefined") {
+            localStorage.setItem("loyalty_members", JSON.stringify(supabaseMembers));
+          }
+          setLoyaltyMembers(supabaseMembers);
         }
       } else {
         setLoyaltyMembers(localMembers);
@@ -868,13 +887,12 @@ export const AdminView: React.FC = () => {
     const member = loyaltyMembers.find(m => m.id === id);
 
     try {
-      const { supabase } = await import("@/utils/supabase");
-      if (supabase && member) {
-        await supabase
-          .from("profiles")
-          .delete()
-          .eq("email", member.email.toLowerCase());
-      }
+      await fetch(
+        `/api/loyalty?cardId=${encodeURIComponent(id)}&email=${encodeURIComponent(
+          member?.email || ""
+        )}`,
+        { method: "DELETE" }
+      );
     } catch (err) {
       console.error("Error deleting member:", err);
     }
@@ -1213,13 +1231,45 @@ export const AdminView: React.FC = () => {
   // Loyalty Member
   const handleAddLoyaltySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const memberId = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
+    const { supabase } = await import("@/utils/supabase");
+    const existingIds = loyaltyMembers.map((m) => m.id);
     const email = loyaltyForm.email.trim();
     const phone = loyaltyForm.phone.trim();
     const name = loyaltyForm.name.trim();
     const stamps = Number(loyaltyForm.stamps) || 0;
 
     const formattedPhone = phone ? formatPhoneNumber(phone) : "";
+
+    let memberId = "";
+    try {
+      const res = await fetch("/api/loyalty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          phone: formattedPhone,
+          stamps,
+          existingIds,
+        }),
+      });
+
+      if (res.ok) {
+        const resData = await res.json();
+        if (resData?.memberId) {
+          memberId = resData.memberId;
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        console.warn("Walk-in registration API warning:", errData);
+      }
+    } catch (err) {
+      console.error("Error during server walk-in registration:", err);
+    }
+
+    if (!memberId) {
+      memberId = await generateUniqueLoyaltyCardId(supabase, existingIds);
+    }
 
     const newMember: LoyaltyMember = {
       id: memberId,
@@ -1230,207 +1280,6 @@ export const AdminView: React.FC = () => {
       points: 0,
       joinedAt: new Date().toISOString().split("T")[0]
     };
-
-    try {
-      const { supabase } = await import("@/utils/supabase");
-      if (supabase) {
-        const tempPassword = `CoffeeTemp_${Math.floor(100000 + Math.random() * 900000)}!`;
-
-        if (formattedPhone) {
-          // Phone Signup
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            phone: formattedPhone,
-            password: tempPassword,
-            options: {
-              data: {
-                name: name,
-                role: "customer"
-              }
-            }
-          });
-
-          if (signUpError) {
-            console.warn("Supabase signUp by phone error (user might already exist):", signUpError.message);
-
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("id")
-              .eq("phone", formattedPhone)
-              .single();
-
-            if (profile) {
-              await supabase
-                .from("profiles")
-                .update({ name: name })
-                .eq("id", profile.id);
-
-              const { error: updateError } = await supabase
-                .from("loyalty_cards")
-                .upsert({
-                  id: memberId,
-                  user_id: profile.id,
-                  stamps: stamps,
-                  points: 0
-                }, { onConflict: "user_id" });
-
-              if (updateError) {
-                console.error("Failed to update existing loyalty card in Supabase by phone:", updateError.message);
-              }
-            }
-          } else {
-            const userId = signUpData.user?.id;
-            if (userId) {
-              await new Promise((resolve) => setTimeout(resolve, 1200));
-
-              const { data: existingProfile } = await supabase
-                .from("profiles")
-                .select("id")
-                .eq("id", userId)
-                .single();
-
-              if (existingProfile) {
-                const { error: updateError } = await supabase
-                  .from("loyalty_cards")
-                  .upsert({
-                    id: memberId,
-                    user_id: userId,
-                    stamps: stamps,
-                    points: 0
-                  }, { onConflict: "user_id" });
-
-                if (updateError) {
-                  console.error("Failed to update loyalty card after phone signUp:", updateError.message);
-                }
-              } else {
-                const { error: insertError } = await supabase
-                  .from("profiles")
-                  .insert({
-                    id: userId,
-                    name: name,
-                    email: "",
-                    phone: formattedPhone || null,
-                    role: "customer"
-                  });
-
-                if (insertError) {
-                  console.error("Failed to insert missing profile after phone signUp:", insertError.message);
-                }
-
-                const { error: loyaltyInsertError } = await supabase
-                  .from("loyalty_cards")
-                  .insert({
-                    id: memberId,
-                    user_id: userId,
-                    stamps: stamps,
-                    points: 0
-                  });
-
-                if (loyaltyInsertError) {
-                  console.error("Failed to insert loyalty card after phone signUp:", loyaltyInsertError.message);
-                }
-              }
-            }
-          }
-        } else {
-          // Email Signup
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: email,
-            password: tempPassword,
-            options: {
-              data: {
-                name: name,
-                role: "customer"
-              }
-            }
-          });
-
-          if (signUpError) {
-            console.warn("Supabase signUp by email error (user might already exist):", signUpError.message);
-
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("id")
-              .eq("email", email.toLowerCase())
-              .single();
-
-            if (profile) {
-              await supabase
-                .from("profiles")
-                .update({ name: name })
-                .eq("id", profile.id);
-
-              const { error: updateError } = await supabase
-                .from("loyalty_cards")
-                .upsert({
-                  id: memberId,
-                  user_id: profile.id,
-                  stamps: stamps,
-                  points: 0
-                }, { onConflict: "user_id" });
-
-              if (updateError) {
-                console.error("Failed to update existing loyalty card in Supabase by email:", updateError.message);
-              }
-            }
-          } else {
-            const userId = signUpData.user?.id;
-            if (userId) {
-              await new Promise((resolve) => setTimeout(resolve, 1200));
-
-              const { data: existingProfile } = await supabase
-                .from("profiles")
-                .select("id")
-                .eq("id", userId)
-                .single();
-
-              if (existingProfile) {
-                const { error: updateError } = await supabase
-                  .from("loyalty_cards")
-                  .upsert({
-                    id: memberId,
-                    user_id: userId,
-                    stamps: stamps,
-                    points: 0
-                  }, { onConflict: "user_id" });
-
-                if (updateError) {
-                  console.error("Failed to update loyalty card after email signUp:", updateError.message);
-                }
-              } else {
-                const { error: insertError } = await supabase
-                  .from("profiles")
-                  .insert({
-                    id: userId,
-                    name: name,
-                    email: email.toLowerCase(),
-                    phone: null,
-                    role: "customer"
-                  });
-
-                if (insertError) {
-                  console.error("Failed to insert missing profile after email signUp:", insertError.message);
-                }
-
-                const { error: loyaltyInsertError } = await supabase
-                  .from("loyalty_cards")
-                  .insert({
-                    id: memberId,
-                    user_id: userId,
-                    stamps: stamps,
-                    points: 0
-                  });
-
-                if (loyaltyInsertError) {
-                  console.error("Failed to insert loyalty card after email signUp:", loyaltyInsertError.message);
-                }
-              }
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Error during Supabase registration:", err);
-    }
 
     db.saveLoyaltyMember(newMember);
     await loadAllData();

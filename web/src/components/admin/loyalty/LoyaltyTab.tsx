@@ -121,12 +121,12 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
       if (sortBy === "oldest") {
         const timeA = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
         const timeB = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
-        return timeA - timeB;
+        return timeA - timeB || a.id.localeCompare(b.id);
       }
       // default: newest
       const timeA = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
       const timeB = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
-      return timeB - timeA;
+      return timeB - timeA || b.id.localeCompare(a.id);
     });
 
     return result;

@@ -1,9 +1,17 @@
 import crypto from "crypto";
 
-const JWT_SECRET =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.ADMIN_JWT_SECRET ||
-  "antonioni-grounds-secure-admin-token-secret-2026";
+function getJwtSecret(): string {
+  const secret =
+    process.env.ADMIN_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (secret) return secret;
+
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "[Admin Auth] CRITICAL: Neither ADMIN_JWT_SECRET nor SUPABASE_SERVICE_ROLE_KEY is configured in production."
+    );
+  }
+  return "antonioni-grounds-secure-admin-token-secret-2026";
+}
 
 export const ACCESS_TOKEN_LIFESPAN_MS = 15 * 60 * 1000; // 15 Minutes
 export const REFRESH_TOKEN_LIFESPAN_MS = 7 * 24 * 60 * 60 * 1000; // 7 Days
@@ -50,7 +58,7 @@ export function signToken(payload: AdminTokenPayload): string {
   const data = `${encodedHeader}.${encodedPayload}`;
 
   const signature = crypto
-    .createHmac("sha256", JWT_SECRET)
+    .createHmac("sha256", getJwtSecret())
     .update(data)
     .digest("base64")
     .replace(/=/g, "")
@@ -78,18 +86,19 @@ export function verifyToken(token: string): {
     const data = `${encodedHeader}.${encodedPayload}`;
 
     const expectedSignature = crypto
-      .createHmac("sha256", JWT_SECRET)
+      .createHmac("sha256", getJwtSecret())
       .update(data)
       .digest("base64")
       .replace(/=/g, "")
       .replace(/\+/g, "-")
       .replace(/\//g, "_");
 
+    const sigBuf = Buffer.from(signature);
+    const expectedBuf = Buffer.from(expectedSignature);
+
     if (
-      !crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
-      )
+      sigBuf.length !== expectedBuf.length ||
+      !crypto.timingSafeEqual(sigBuf, expectedBuf)
     ) {
       return { valid: false, error: "Invalid signature." };
     }

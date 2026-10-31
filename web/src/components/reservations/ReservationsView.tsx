@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { Coffee, Calendar as CalendarIcon, Clock, Users, MapPin, ChevronRight, ChevronLeft, CheckCircle2, User, Mail, Phone, FileText, Printer, Check, Search, Eye, Loader2, X, ExternalLink, Navigation, Sparkles } from "lucide-react";
-import { AvailableSoon } from "@/components/shared/AvailableSoon";
 
 // Set to false when ready to launch reservations
 const SHOW_AVAILABLE_SOON = true;
@@ -939,24 +938,54 @@ export function ReservationsView() {
   if (SHOW_AVAILABLE_SOON && !isPreviewMode) {
     return (
       <PageTransition>
-        <AvailableSoon
-          featureName="Table & Cart Reservations"
-          badge="Available Soon"
-          title="This Feature is Available Soon"
-          description="We are refining our online table reservation and Brew Buggy booking experience to ensure a seamless booking flow. This feature will be available soon."
-          icon={<CalendarIcon size={32} />}
-          highlights={[
-            {
-              title: "Table Reservations",
-              desc: "Reserve intimate tables and lounge seating for your visits.",
-            },
-            {
-              title: "Brew Buggy Cart Booking",
-              desc: "Book our coffee cart packages with custom coffee menus for your events.",
-            },
-          ]}
-          onPreview={() => setIsPreviewMode(true)}
-        />
+        <div className="min-h-screen bg-background py-16 md:py-24 text-foreground relative overflow-hidden transition-colors duration-500">
+          {/* Subtle decorative background elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* Glowing green blobs */}
+            <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.08)_0%,transparent_70%)] blur-[120px]" />
+            <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.06)_0%,transparent_70%)] blur-[120px]" />
+            <div className="absolute top-[30%] left-[40%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.04)_0%,transparent_70%)] blur-[100px]" />
+
+            {/* Fine luxury grid lines overlay */}
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage: `linear-gradient(to right, var(--card-border) 1px, transparent 1px), linear-gradient(to bottom, var(--card-border) 1px, transparent 1px)`,
+                backgroundSize: "40px 40px",
+                maskImage: "radial-gradient(ellipse at center, black, transparent 80%)",
+                WebkitMaskImage: "radial-gradient(ellipse at center, black, transparent 80%)",
+              }}
+            />
+          </div>
+
+          <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
+            <FadeUp className="max-w-lg mx-auto text-center flex flex-col items-center py-8 sm:py-12">
+              <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 font-bold block mb-2">
+                Reservations
+              </span>
+              <h2 className="type-h2 text-foreground font-serif leading-tight">
+                This feature is available soon.
+              </h2>
+              <p className="text-base font-medium text-emerald-600 dark:text-emerald-400 mt-2">
+                Refining our table &amp; Brew Buggy booking experience.
+              </p>
+              <p className="type-body text-neutral-600 dark:text-zinc-400 mt-3 mb-8 max-w-md leading-relaxed text-sm sm:text-base">
+                We&apos;re finalizing our online table reservation and coffee cart booking flow to bring you a seamless experience. Check back soon to reserve your spot.
+              </p>
+              <div className="w-full max-w-xs space-y-3">
+                <div className="type-ui group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#2E5A44] py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_25px_rgba(46,90,68,0.3)] select-none">
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
+                  <span className="relative flex items-center gap-1.5">
+                    <span>Tara, kape!</span>
+                  </span>
+                </div>
+                <p className="inline-block text-xs font-medium text-neutral-500 dark:text-zinc-400 pt-2">
+                  Antonioni Grounds Experience Bookings
+                </p>
+              </div>
+            </FadeUp>
+          </div>
+        </div>
       </PageTransition>
     );
   }

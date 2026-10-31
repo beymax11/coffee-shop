@@ -57,54 +57,63 @@ export function LoyaltyPreviewSection() {
   }, []);
 
   return (
-    <section className="py-10 md:py-16 bg-background dark:bg-black text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">
-      {/* Subtle Background Glows */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#2E5A44]/5 rounded-full filter blur-[100px] pointer-events-none dark:hidden" />
+    <section className="py-16 md:py-24 bg-background dark:bg-black text-foreground border-t border-card-border relative transition-colors duration-500 overflow-hidden">
+      {/* Subtle decorative background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Glowing green blobs */}
+        <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.08)_0%,transparent_70%)] blur-[120px]" />
+        <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.06)_0%,transparent_70%)] blur-[120px]" />
+        <div className="absolute top-[30%] left-[40%] w-[50%] h-[50%] rounded-full bg-[radial-gradient(circle,rgba(46,90,68,0.04)_0%,transparent_70%)] blur-[100px]" />
 
-      {/* Grid overlay */}
-      <div
-        className="absolute inset-0 opacity-10 pointer-events-none dark:hidden"
-        style={{
-          backgroundImage: `linear-gradient(to right, var(--card-border) 1px, transparent 1px), linear-gradient(to bottom, var(--card-border) 1px, transparent 1px)`,
-          backgroundSize: '45px 45px',
-          maskImage: 'radial-gradient(ellipse at center, black, transparent 80%)',
-          WebkitMaskImage: 'radial-gradient(ellipse at center, black, transparent 80%)'
-        }}
-      />
+        {/* Fine luxury grid lines overlay */}
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `linear-gradient(to right, var(--card-border) 1px, transparent 1px), linear-gradient(to bottom, var(--card-border) 1px, transparent 1px)`,
+            backgroundSize: "40px 40px",
+            maskImage: "radial-gradient(ellipse at center, black, transparent 80%)",
+            WebkitMaskImage: "radial-gradient(ellipse at center, black, transparent 80%)",
+          }}
+        />
+      </div>
 
       <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
         {isGuest ? (
           /* Centered layout for guests (not logged in) */
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <div className="space-y-4">
-              <FadeUp>
-                <div className="flex items-center justify-center gap-2">
-                  <div className="h-[1px] w-8 bg-[#2E5A44]/30" />
-                  <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Loyalty Club</span>
-                  <div className="h-[1px] w-8 bg-[#2E5A44]/30" />
-                </div>
-                <h2 className="type-h2 text-foreground mt-2 leading-snug">
-                  Get Your Loyalty Card
-                </h2>
-                <p className="type-body text-neutral-500 dark:text-zinc-400 leading-relaxed max-w-xl mx-auto">
-                  Scan your card, collect your stamps. We already remember our regulars, this just makes it official.
-                </p>
-              </FadeUp>
+          <FadeUp className="max-w-lg mx-auto text-center flex flex-col items-center py-8 sm:py-12">
+            <span className="type-eyebrow text-emerald-600 dark:text-emerald-400 font-bold block mb-2">
+              Loyalty Card
+            </span>
+            <h2 className="type-h2 text-foreground font-serif leading-tight">
+              Your Antonioni Grounds card, but digital.
+            </h2>
+            <p className="text-base font-medium text-emerald-600 dark:text-emerald-400 mt-2">
+              No more forgetting it at home.
+            </p>
+            <p className="type-body text-neutral-600 dark:text-zinc-400 mt-3 mb-8 max-w-md leading-relaxed text-sm sm:text-base">
+              Scan it every visit and collect your stamps. Every so often, we&apos;ll get to say thank you with more than just a discount code.
+            </p>
+            <div className="w-full max-w-xs space-y-3">
+              <Link
+                href="/signup"
+                className="type-ui group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#2E5A44] py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_25px_rgba(46,90,68,0.3)] active:scale-95 cursor-pointer"
+              >
+                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
+                <span className="relative flex items-center gap-1.5">
+                  <span>Get Your Card</span>
+                  <span className="max-w-0 -translate-x-2 opacity-0 overflow-hidden transition-all duration-300 ease-out group-hover:max-w-[20px] group-hover:translate-x-0 group-hover:opacity-100 flex items-center">
+                    <ArrowRight size={15} className="shrink-0 ml-1" />
+                  </span>
+                </span>
+              </Link>
+              <Link
+                href="/login"
+                className="inline-block text-xs font-medium text-neutral-500 dark:text-zinc-400 hover:text-foreground hover:underline transition-colors pt-2 cursor-pointer"
+              >
+                Already have an account? Sign In
+              </Link>
             </div>
-
-            {/* Loyalty CTAs */}
-            <FadeUp delay={0.1} className="pt-4 border-t border-card-border">
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/loyalty"
-                  className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] text-white px-6 py-3 font-semibold text-sm transition-all duration-300 active:scale-95 cursor-pointer shadow-[0_0_20px_rgba(46,90,68,0.25)]"
-                >
-                  Get Your Loyalty Card
-                  <ArrowRight size={14} className="w-0 opacity-0 -translate-x-2 group-hover:w-3.5 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out shrink-0" />
-                </Link>
-              </div>
-            </FadeUp>
-          </div>
+          </FadeUp>
         ) : (
           /* 2-column layout for logged in members */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
@@ -160,7 +169,7 @@ export function LoyaltyPreviewSection() {
                     </div>
                     <div className="flex justify-between text-[10px] text-zinc-400">
                       <span>{stamps} coffees purchased</span>
-                      <span>{10 - stamps} stamps left to Free Antonioni Blends Modest</span>
+                      <span>{10 - stamps} stamps left — Claim any Mini drink on the menu!</span>
                     </div>
                   </div>
 
@@ -168,7 +177,7 @@ export function LoyaltyPreviewSection() {
                   <div className="border-t border-card-border/80 pt-4 mt-2 space-y-3">
                     <p className="text-[10px] text-zinc-500 tracking-wider uppercase">Current Privileges</p>
                     <div className="space-y-2 text-xs text-neutral-600 dark:text-zinc-400">
-                      <p>Free Antonioni Blends Modest at 10 stamps</p>
+                      <p>Claim any Mini drink on the menu! (at 10 stamps)</p>
                       <p>Freshly brewed coffee and handcrafted beverages made daily.</p>
                       <p>Discover our signature drinks and seasonal specialties.</p>
                     </div>

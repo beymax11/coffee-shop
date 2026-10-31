@@ -240,8 +240,8 @@ export const MenuTab: React.FC<MenuTabProps> = ({
             aria-label="Toggle filter tabs"
             title="Toggle Category Filters"
             className={`sm:hidden flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer shrink-0 ${showMobileFilters || menuCatFilter !== "All"
-                ? "bg-brand-green/10 border-brand-green/40 text-brand-green dark:bg-brand-green/20"
-                : "bg-white dark:bg-background-alt border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/30"
+              ? "bg-brand-green/10 border-brand-green/40 text-brand-green dark:bg-brand-green/20"
+              : "bg-white dark:bg-background-alt border-neutral-200 dark:border-card-border text-neutral-600 dark:text-neutral-400 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/30"
               }`}
           >
             <Filter size={15} className={menuCatFilter !== "All" ? "text-brand-green" : ""} />
@@ -322,8 +322,8 @@ export const MenuTab: React.FC<MenuTabProps> = ({
                   key={cat}
                   onClick={() => setMenuCatFilter(cat)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all duration-200 ${isActive
-                      ? "bg-brand-green text-white shadow-sm font-semibold"
-                      : "bg-neutral-100 dark:bg-background-alt text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-card-border"
+                    ? "bg-brand-green text-white shadow-sm font-semibold"
+                    : "bg-neutral-100 dark:bg-background-alt text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-card-border"
                     }`}
                 >
                   {cat}

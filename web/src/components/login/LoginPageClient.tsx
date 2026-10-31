@@ -7,6 +7,7 @@ import { Mail, Lock, Eye, EyeOff, Loader2, Check, LogIn } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
+import { generateUniqueLoyaltyCardId } from "@/lib/id-generator";
 import { setCookie, eraseCookie } from "@/utils/cookies";
 import { initAdminClientSession } from "@/utils/admin-session-client";
 import { toast } from "sonner";
@@ -219,13 +220,21 @@ export function LoginPageClient() {
         }
 
         // Initialize single active session and 15m/7d dual-tokens
-        await initAdminClientSession({
+        const sessionData = await initAdminClientSession({
           userId: user.id,
           email: userEmail,
           role: actualRole,
           name: adminName,
           accessToken: data.session?.access_token,
         });
+        if (sessionData?.role) {
+          setCookie("admin_role", sessionData.role, 7);
+          localStorage.setItem("admin_profile", JSON.stringify({
+            name: adminName,
+            email: userEmail,
+            role: sessionData.role
+          }));
+        }
       } else {
         // Customer Sign In
         setSuccessMessage("Welcome back. Redirecting to Good Cup account...");
@@ -248,16 +257,19 @@ export function LoginPageClient() {
           if (profile) {
             let memberIdToUse = loyaltyCard?.id || existingMember.id;
             if (!memberIdToUse || memberIdToUse.length > 20) {
-              memberIdToUse = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
-              if (supabase) {
+              memberIdToUse = await generateUniqueLoyaltyCardId(
+                supabase,
+                members.map((m) => m.id)
+              );
+              if (supabase && !loyaltyCard?.id) {
                 supabase
                   .from("loyalty_cards")
                   .upsert({
                     id: memberIdToUse,
                     user_id: user.id,
-                    stamps: loyaltyCard?.stamps || 0,
-                    points: loyaltyCard?.points || 0
-                  }, { onConflict: "user_id" })
+                    stamps: 0,
+                    points: 0
+                  }, { onConflict: "user_id", ignoreDuplicates: true })
                   .then(({ error }) => {
                     if (error) console.error("Error updating member_id on login:", error);
                   });
@@ -276,16 +288,19 @@ export function LoginPageClient() {
           const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
           let memberIdToUse = loyaltyCard?.id;
           if (!memberIdToUse || memberIdToUse.length > 20) {
-            memberIdToUse = `AG-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`;
-            if (supabase) {
+            memberIdToUse = await generateUniqueLoyaltyCardId(
+              supabase,
+              members.map((m) => m.id)
+            );
+            if (supabase && !loyaltyCard?.id) {
               supabase
                 .from("loyalty_cards")
                 .upsert({
                   id: memberIdToUse,
                   user_id: user.id,
-                  stamps: loyaltyCard?.stamps || 0,
-                  points: loyaltyCard?.points || 0
-                }, { onConflict: "user_id" })
+                  stamps: 0,
+                  points: 0
+                }, { onConflict: "user_id", ignoreDuplicates: true })
                 .then(({ error }) => {
                   if (error) console.error("Error updating member_id on login:", error);
                 });

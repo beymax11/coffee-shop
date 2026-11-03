@@ -67,10 +67,7 @@ export function TableReservationForm({
 
 export function TableReservationPolicy() {
   return (
-    <div className="p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/10 mt-6 space-y-2">
-      <h4 className="text-xs font-serif font-bold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase mb-1">
-        Antonioni Grounds - Tiaong Lounge Reserve Policy
-      </h4>
+    <div className="space-y-3">
       <p className="text-[11px] text-zinc-500 leading-relaxed font-light">
         Lounge table reservations require a fee of <strong>₱3,500 for a 3-hour duration</strong> (with a <strong>₱1,000 downpayment required</strong> to secure your reservation). This amount is <strong>fully consumable</strong> for any orders of food and drinks.
       </p>

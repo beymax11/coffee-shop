@@ -291,10 +291,7 @@ export function CartReservationForm({
 
 export function CartReservationPolicy() {
   return (
-    <div className="p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/10 mt-6 space-y-2">
-      <h4 className="text-xs font-serif font-bold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase mb-1">
-        Brew Buggy Coffee Cart Sourcing Details & Policies
-      </h4>
+    <div className="space-y-3">
       <p className="text-[11px] text-zinc-500 leading-relaxed font-light">
         <strong>Flavor Options included:</strong> Iced Latte, Iced/Hot Americano, 2 Any Flavored (Iced or Hot), and 2 Non-Coffee Over Ice. Package includes the mobile cart, 2 baristas, and a service duration of exactly <strong>3 hours</strong>.
       </p>

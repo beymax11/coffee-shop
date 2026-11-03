@@ -47,7 +47,7 @@ export function ReservationsView() {
     fullName: "",
     email: "",
     phone: "",
-    eventType: "Table Reservation",
+    eventType: "" as any,
     date: "",
     time: "",
     guestCount: 2,
@@ -627,13 +627,11 @@ export function ReservationsView() {
 
   const handleCardContinue = (type: ReservationType) => {
     setSelectingLoadingType(type);
-    selectType(type);
+    selectType(type, true);
     setTimeout(() => {
-      if (validateStep()) {
-        setStep((prev) => prev + 1);
-      }
+      setStep((prev) => prev + 1);
       setSelectingLoadingType(null);
-    }, 400);
+    }, 300);
   };
 
   const handleBack = () => {
@@ -782,25 +780,36 @@ export function ReservationsView() {
     setShowPaymentForm(false);
   };
 
-  const selectType = (type: ReservationType) => {
+  const selectType = (type: ReservationType, forceSelect = false) => {
+    // If clicking the already open card, toggle it off/collapse it
+    if (!forceSelect && formData.eventType === type) {
+      setFormData((prev) => ({
+        ...prev,
+        eventType: "" as any,
+      }));
+      return;
+    }
+
     const isTableType = type === "Table Reservation";
     setFormData((prev) => ({
       ...prev,
       eventType: type,
-      date: "", // Reset date when switching experience type so user picks an available date for the new experience
-      location: isTableType ? "Antonioni Grounds - Tiaong" : "",
-      time: "08:00 AM", // default start time
-      guestCount: isTableType ? 2 : 50, // default to 50 pax package for Brew Buggy, 2 for Table
+      date: prev.eventType === type ? prev.date : "",
+      location: isTableType ? "Antonioni Grounds - Tiaong" : (prev.eventType === type ? prev.location : ""),
+      time: prev.time || "08:00 AM",
+      guestCount: isTableType ? (prev.eventType === type ? prev.guestCount || 2 : 2) : (prev.eventType === type ? prev.guestCount || 50 : 50),
     }));
-    setAddressDetails({
-      landmark: "",
-      street: "",
-      barangay: "",
-      city: "",
-      province: "",
-    });
-    setIsAddressExpanded(false);
-    setErrors({ ...errors, eventType: undefined });
+    if (formData.eventType !== type) {
+      setAddressDetails({
+        landmark: "",
+        street: "",
+        barangay: "",
+        city: "",
+        province: "",
+      });
+      setIsAddressExpanded(false);
+    }
+    setErrors((prev) => ({ ...prev, eventType: undefined }));
   };
 
   const updateField = (field: keyof FormData, value: any) => {
@@ -825,7 +834,7 @@ export function ReservationsView() {
   const labelAccent = "text-emerald-600 dark:text-emerald-400";
 
   const renderStepper = () => (
-    <div className="max-w-xl mx-auto mb-10 relative print:hidden">
+    <div className="max-w-xl mx-auto mb-4 sm:mb-6 lg:mb-10 relative print:hidden">
       <div className="flex items-center justify-between text-center select-none">
         {[
           { num: 1, label: "Experience" },
@@ -1004,7 +1013,7 @@ export function ReservationsView() {
           </button>
         </div>
       )}
-      <div className="min-h-screen bg-background pt-8 pb-16 md:pt-12 md:pb-24 text-foreground relative overflow-hidden font-sans print:bg-white print:text-black transition-colors duration-500">
+      <div className="min-h-screen bg-background pt-3 sm:pt-6 md:pt-12 pb-16 md:pb-24 text-foreground relative overflow-hidden font-sans print:bg-white print:text-black transition-colors duration-500">
         {/* Inject print-specific styles to hide main navbar and footer if present */}
         <style dangerouslySetInnerHTML={{
           __html: `
@@ -1083,25 +1092,20 @@ export function ReservationsView() {
         <div className="mx-auto max-w-7xl px-4 md:px-8 relative z-10 print:px-0">
           {step < 3 ? (
             <div className="flex flex-col">
-              {/* Stepper only visible on mobile/tablet view above the layout */}
-              <div className="lg:hidden w-full">
-                {renderStepper()}
-              </div>
-
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
 
-                <div className={`lg:col-span-4 order-1 lg:sticky lg:top-6 text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:pt-0 lg:pb-4 print:hidden`}>
+                <div className={`${step === 1 ? 'hidden lg:block ' : ''}lg:col-span-4 order-1 lg:sticky lg:top-6 text-center lg:text-left lg:pr-12 lg:border-r lg:border-zinc-200 dark:lg:border-white/5 lg:pt-0 lg:pb-4 print:hidden`}>
 
                   <div className={step === 1 ? 'hidden lg:block' : ''}>
                     {step >= 2 && (
-                      <span className={`text-[10px] uppercase font-bold tracking-[0.35em] block mb-3 font-sans transition-colors duration-300 ${labelAccent}`}>
+                      <span className={`text-[9px] sm:text-[10px] uppercase font-bold tracking-[0.35em] block mb-2 sm:mb-3 font-sans transition-colors duration-300 text-center lg:text-left ${labelAccent}`}>
                         Reservation Details
                       </span>
                     )}
-                    <h1 className="text-4xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-0">
+                    <h1 className="text-2xl sm:text-3xl lg:text-5xl font-serif text-foreground tracking-tight font-semibold leading-tight mt-0 text-center lg:text-left">
                       {step >= 2 ? "Select Date & Time" : "Book with Us"}
                     </h1>
-                    <div className="w-16 h-[1px] bg-brand-gold mt-4 mb-5" />
+                    <div className="w-12 sm:w-16 h-[1px] bg-brand-gold mt-3 sm:mt-4 mb-5 mx-auto lg:mx-0" />
 
                     {step === 2 ? (
                       <div className="space-y-6">
@@ -1501,13 +1505,7 @@ export function ReservationsView() {
                   </div>
 
                   {/* Form Content Wrapper */}
-                  <div className="rounded-2xl border border-card-border bg-card p-8 md:p-10 shadow-[0_0_50px_rgba(0,0,0,0.08)] dark:shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden backdrop-blur-xl">
-                    {/* Decorative corner borders */}
-                    <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-emerald-500/30" />
-                    <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-emerald-500/30" />
-                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-emerald-500/30" />
-                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-emerald-500/30" />
-
+                  <div className="relative z-10">
                     <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
                       {/* STEP 1: EVENT TYPE SELECT */}
                       {step === 1 && (
@@ -1515,12 +1513,12 @@ export function ReservationsView() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="space-y-6"
+                          className="space-y-4 sm:space-y-6"
                         >
-                          <div className="border-b border-zinc-200 dark:border-white/5 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div>
+                          <div className="border-b border-zinc-200 dark:border-white/5 pb-3 sm:pb-4 mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 text-center sm:text-left">
+                            <div className="mx-auto sm:mx-0">
                               <h3 className="text-xl font-serif text-foreground tracking-wide">Book a Table or Brew Buggy</h3>
-                              <p className="text-xs text-zinc-500 mt-1 font-light">Book right here or through Instagram DM (<a href="https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg==" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">@antonioni.grounds</a>). Whichever’s easier for you.</p>
+                              <p className="text-xs text-zinc-500 mt-1 font-light max-w-md sm:max-w-none mx-auto sm:mx-0">Book right here or through Instagram DM (<a href="https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg==" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">@antonioni.grounds</a>). Whichever’s easier for you.</p>
                             </div>
                             <button
                               type="button"
@@ -1530,85 +1528,91 @@ export function ReservationsView() {
                                 setTrackedReservation(null);
                                 setSearchTicketId("");
                               }}
-                              className="flex items-center justify-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-600/5 px-4 py-2 font-sans text-[11px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 hover:border-emerald-600/50 transition-all active:scale-95 cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.06)] shrink-0 self-start sm:self-auto"
+                              className="flex items-center justify-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-600/5 px-4 py-2 font-sans text-[11px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 hover:bg-emerald-600/10 hover:border-emerald-600/50 transition-all active:scale-95 cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.06)] shrink-0 self-center sm:self-auto"
                             >
                               <Search size={12} className="stroke-[2.5]" />
                               Track Booking Status
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 items-start">
                             {eventTypes.map((item) => {
                               const isSelected = formData.eventType === item.type;
                               const isTable = item.type === "Table Reservation";
 
                               return (
-                                <motion.div
+                                <div
                                   key={item.type}
-                                  whileHover={{ y: -4, scale: 1.01 }}
-                                  whileTap={{ scale: 0.99 }}
                                   onClick={() => selectType(item.type)}
-                                  className={`rounded-xl border p-6 cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[310px] h-auto select-none ${isSelected
-                                    ? "bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1] border-emerald-600/50 shadow-[0_10px_30px_rgba(46,90,68,0.12)] text-foreground dark:from-[#07130E]/95 dark:to-[#0F261B]/95 dark:border-emerald-500/80 dark:shadow-[0_10px_30px_rgba(46,90,68,0.25)]"
+                                  className={`rounded-xl border p-5 sm:p-6 cursor-pointer transition-[border-color,background-color,box-shadow] duration-200 flex flex-col justify-between select-none ${isSelected
+                                    ? "bg-gradient-to-br from-[#ECF7F2] to-[#D8ECE1] border-emerald-600/50 shadow-[0_8px_25px_rgba(46,90,68,0.1)] text-foreground dark:from-[#07130E]/95 dark:to-[#0F261B]/95 dark:border-emerald-500/80 dark:shadow-[0_8px_25px_rgba(46,90,68,0.25)]"
                                     : "bg-card border-card-border text-neutral-500 hover:border-emerald-600/30 hover:bg-background"
                                     }`}
                                 >
-                                  <div className="space-y-4 flex-1">
-                                    {/* Title & Description */}
+                                  <div className="space-y-3 flex-1">
+                                    {/* Title & Pricing */}
                                     <div>
                                       <div className="flex justify-between items-baseline gap-2">
                                         <h4 className="font-serif text-sm md:text-base text-foreground tracking-wide font-medium">{item.title}</h4>
                                         <span className={`font-serif text-xs italic ${isSelected
-                                          ? "text-emerald-700 dark:text-emerald-400"
+                                          ? "text-emerald-700 dark:text-emerald-400 font-semibold"
                                           : "text-zinc-500"
                                           }`}>
                                           {item.pricing}
                                         </span>
                                       </div>
+                                      {/* Description - always visible */}
                                       <p className="font-sans text-[11px] text-zinc-600 dark:text-zinc-400 font-light mt-1.5 leading-relaxed">{item.desc}</p>
                                     </div>
 
-                                    {/* Features list */}
-                                    <ul className="space-y-1.5 pt-3 border-t border-zinc-200 dark:border-white/5">
-                                      {item.features.map((feat) => (
-                                        <li key={feat} className="flex items-center gap-2 font-sans text-[10px] text-zinc-600 dark:text-zinc-400 font-light">
-                                          <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-emerald-600 dark:bg-emerald-400" : "bg-zinc-400 dark:bg-zinc-600"}`} />
-                                          {feat}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
+                                    {/* 100% GPU / Hardware-accelerated CSS Grid Accordion (Zero JS recalculation lag) */}
+                                    <div
+                                      className={`grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isSelected
+                                        ? "grid-rows-[1fr] opacity-100"
+                                        : "grid-rows-[0fr] opacity-0 pointer-events-none"
+                                        }`}
+                                    >
+                                      <div className="overflow-hidden">
+                                        <div className="pt-2">
+                                          {/* Features list */}
+                                          <ul className="space-y-1.5 pt-2.5 border-t border-zinc-200 dark:border-white/5">
+                                            {item.features.map((feat) => (
+                                              <li key={feat} className="flex items-center gap-2 font-sans text-[10px] text-zinc-600 dark:text-zinc-400 font-light">
+                                                <span className="w-1 h-1 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
+                                                {feat}
+                                              </li>
+                                            ))}
+                                          </ul>
 
-                                  <div className="flex justify-end items-center pt-4 border-t border-zinc-200 dark:border-white/5 mt-4 min-h-[44px]">
-                                    {isSelected ? (
-                                      <button
-                                        type="button"
-                                        disabled={selectingLoadingType === item.type}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleCardContinue(item.type);
-                                        }}
-                                        className="flex items-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2.5 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)] active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed"
-                                      >
-                                        {selectingLoadingType === item.type ? (
-                                          <>
-                                            <Loader2 size={14} className="animate-spin" />
-                                            <span>Loading...</span>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <span>Continue</span>
-                                            <ChevronRight size={14} />
-                                          </>
-                                        )}
-                                      </button>
-                                    ) : (
-                                      <span className="font-sans text-[9px] uppercase tracking-widest font-bold text-zinc-500 dark:text-zinc-600 py-1">
-                                        Choose
-                                      </span>
-                                    )}
+                                          {/* Action Button: smoothly slides down with zero lag */}
+                                          <div className="flex justify-end items-center pt-3 border-t border-zinc-200 dark:border-white/5 mt-3.5">
+                                            <button
+                                              type="button"
+                                              disabled={selectingLoadingType === item.type}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleCardContinue(item.type);
+                                              }}
+                                              className="flex items-center gap-2 rounded-full bg-[#2E5A44] hover:bg-[#234533] px-5 py-2 font-sans text-xs uppercase font-bold tracking-wider text-white border border-[#2E5A44]/30 transition-all shadow-[0_0_20px_rgba(46,90,68,0.25)] hover:shadow-[0_0_25px_rgba(46,90,68,0.4)] active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed cursor-pointer"
+                                            >
+                                              {selectingLoadingType === item.type ? (
+                                                <>
+                                                  <Loader2 size={14} className="animate-spin" />
+                                                  <span>Loading...</span>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <span>Continue</span>
+                                                  <ChevronRight size={14} />
+                                                </>
+                                              )}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                </motion.div>
+                                </div>
                               );
                             })}
                           </div>
@@ -1629,7 +1633,7 @@ export function ReservationsView() {
                           </div>
 
                           {/* Booking & Contact Information Block */}
-                          <div className="space-y-5 bg-background-alt/40 p-6 rounded-xl border border-card-border backdrop-blur-sm">
+                          <div className="space-y-6">
                             {formData.eventType === "Table Reservation" ? (
                               <TableReservationForm
                                 formData={formData}
@@ -1733,7 +1737,7 @@ export function ReservationsView() {
 
                           {/* Flavor Selection Dropdowns (Only for Coffee Cart Booking) */}
                           {formData.eventType === "Coffee Cart Booking" && (
-                            <div className="space-y-5 bg-background-alt/45 p-6 rounded-xl border border-card-border backdrop-blur-sm">
+                            <div className="space-y-6 pt-2">
                               <div className="border-b border-zinc-200/10 pb-2 mb-4 flex justify-between items-baseline">
                                 <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-600 dark:text-emerald-400 block pl-1 font-sans">
                                   Customize Package Flavors
@@ -1828,15 +1832,13 @@ export function ReservationsView() {
                           )}
 
                           {/* Summary Block */}
-                          <div className="rounded-xl border border-card-border bg-card p-6 space-y-4 mt-8 relative overflow-hidden">
-                            {/* Inner emerald decorative line */}
-                            <div className="absolute inset-2 border border-emerald-500/10 dark:border-emerald-950/20 rounded-lg pointer-events-none" />
-                            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/5 pb-3 relative z-10">
+                          <div className="rounded-xl border border-card-border bg-card p-6 space-y-4 mt-8">
+                            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/5 pb-3">
                               <h4 className={`font-sans text-[10px] uppercase font-bold tracking-[0.25em] ${labelAccent}`}>Review Booking Details</h4>
                               <span className="font-sans text-[10px] uppercase font-bold tracking-[0.2em] text-zinc-400 dark:text-zinc-500">Summary</span>
                             </div>
 
-                            <div className="space-y-3.5 pt-2 relative z-10">
+                            <div className="space-y-3.5 pt-2">
                               {(() => {
                                 const pricing = getPricingDetails();
                                 const endTime = getEndTimeString(formData.time);
@@ -1850,18 +1852,18 @@ export function ReservationsView() {
                                   { label: "Location", value: isTable ? "Antonioni Grounds - Tiaong" : formData.location },
                                   ...(isTable
                                     ? [
-                                        { label: "Package Price", value: "₱3,500 (Consumable)" },
-                                      ]
+                                      { label: "Package Price", value: "₱3,500 (Consumable)" },
+                                    ]
                                     : [
-                                        { label: "Base Package Price", value: `₱${(pricing.basePackagePrice || 5500).toLocaleString()}` },
-                                        { 
-                                          label: "Transportation Fee", 
-                                          value: (pricing.transpoFee || 0) === 0 
-                                            ? "FREE" 
-                                            : `₱${(pricing.transpoFee || 0).toLocaleString()}${pricing.distanceKm ? ` (${pricing.distanceKm.toFixed(1)} km)` : ""}` 
-                                        },
-                                        { label: "Total Reservation Cost", value: `₱${pricing.totalPrice.toLocaleString()}` },
-                                      ]),
+                                      { label: "Base Package Price", value: `₱${(pricing.basePackagePrice || 5500).toLocaleString()}` },
+                                      {
+                                        label: "Transportation Fee",
+                                        value: (pricing.transpoFee || 0) === 0
+                                          ? "FREE"
+                                          : `₱${(pricing.transpoFee || 0).toLocaleString()}${pricing.distanceKm ? ` (${pricing.distanceKm.toFixed(1)} km)` : ""}`
+                                      },
+                                      { label: "Total Reservation Cost", value: `₱${pricing.totalPrice.toLocaleString()}` },
+                                    ]),
                                   { label: "Required Downpayment", value: `₱${pricing.downpayment.toLocaleString()}`, highlight: true }
                                 ];
 
@@ -1883,13 +1885,12 @@ export function ReservationsView() {
                           </div>
 
                           {/* Interactive Policy Agreement Notice (Required) */}
-                          <div className={`mt-6 p-4 rounded-xl border transition-all flex flex-col gap-2 ${
-                            errors.policy 
-                              ? "border-red-500/50 bg-red-500/5" 
-                              : hasAgreedPolicy
-                                ? "border-emerald-500/30 bg-emerald-500/10"
-                                : "border-card-border bg-background-alt/40 hover:border-emerald-500/30"
-                          }`}>
+                          <div className={`mt-6 p-4 rounded-xl border transition-all flex flex-col gap-2 ${errors.policy
+                            ? "border-red-500/50 bg-red-500/5"
+                            : hasAgreedPolicy
+                              ? "border-emerald-500/30 bg-emerald-500/10"
+                              : "border-card-border bg-background-alt/40 hover:border-emerald-500/30"
+                            }`}>
                             <div className="flex items-start gap-3">
                               <input
                                 type="checkbox"
@@ -1983,41 +1984,35 @@ export function ReservationsView() {
         <AnimatePresence>
           {isTrackModalOpen && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-              onClick={() => setIsTrackModalOpen(false)}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="fixed inset-0 z-50 bg-card overflow-y-auto flex flex-col"
             >
-              <motion.div
-                initial={{ scale: 0.95, y: 15 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 15 }}
-                transition={{ type: "spring", duration: 0.4 }}
-                className="relative w-full max-w-lg rounded-2xl border border-card-border bg-card/95 p-6 shadow-2xl overflow-hidden backdrop-blur-xl max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="relative w-full max-w-2xl mx-auto min-h-full flex flex-col p-4 sm:p-6 lg:p-8 pb-16">
                 {/* Decorative gradients inside modal */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#2E5A44]/5 blur-3xl rounded-full pointer-events-none" />
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-3xl rounded-full pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#2E5A44]/5 blur-3xl rounded-full pointer-events-none" />
 
                 {/* Modal Header */}
-                <div className="flex items-start justify-between border-b border-zinc-200 dark:border-white/5 pb-4 mb-5">
+                <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-md pb-4 mb-6 border-b border-zinc-200 dark:border-white/5 flex items-start justify-between shrink-0 pt-2 -mt-2">
                   <div>
-                    <h3 className="text-xl font-serif text-foreground font-semibold">Track Reservation Status</h3>
-                    <p className="text-xs text-zinc-500 mt-1 font-light">Verify the real-time status of your booking.</p>
+                    <h3 className="text-xl sm:text-2xl font-serif text-foreground font-semibold">Track Reservation Status</h3>
+                    <p className="text-xs sm:text-sm text-zinc-500 mt-1 font-light">Verify the real-time status of your booking.</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsTrackModalOpen(false)}
-                    className="p-1.5 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-400 hover:text-foreground transition-all cursor-pointer"
+                    className="p-2 sm:p-2.5 rounded-full hover:bg-zinc-100 dark:hover:bg-white/5 text-zinc-400 hover:text-foreground transition-all cursor-pointer border border-transparent hover:border-card-border"
+                    aria-label="Close tracking modal"
                   >
-                    <X size={18} />
+                    <X size={22} />
                   </button>
                 </div>
 
                 {/* Search Input and Action */}
-                <div className="space-y-4">
+                <div className="space-y-5 flex-1">
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Search className="absolute left-3 top-3 text-zinc-500" size={16} />
@@ -2339,7 +2334,7 @@ export function ReservationsView() {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -2381,7 +2376,7 @@ export function ReservationsView() {
         {isPolicyModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
             <div className="bg-card border border-card-border rounded-2xl w-full max-w-xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
-              <div className="p-6 border-b border-card-border flex items-center justify-between bg-background-alt/50">
+              <div className="p-6 border-b border-card-border flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-emerald-600 dark:text-emerald-400 block font-sans">
                     Antonioni Grounds Policy
@@ -2407,7 +2402,7 @@ export function ReservationsView() {
                 )}
               </div>
 
-              <div className="p-4 border-t border-card-border bg-background-alt/50 flex justify-end">
+              <div className="p-4 border-t border-card-border flex justify-end">
                 <button
                   type="button"
                   onClick={() => setIsPolicyModalOpen(false)}

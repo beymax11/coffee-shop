@@ -1,5 +1,9 @@
+"use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { PrivacyPolicyModal } from "./PrivacyPolicyModal";
 import { TermsOfServiceModal } from "./TermsOfServiceModal";
 import { ReservationPolicyModal } from "./ReservationPolicyModal";
@@ -20,15 +24,29 @@ const TikTokIcon = ({ size = 18 }: { size?: number }) => (
 export const Footer: React.FC = () => {
   const [activeModal, setActiveModal] = useState<"privacy" | "terms" | "reservation" | "accessibility" | null>(null);
 
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    navigation: false,
+    hours: false,
+    location: false,
+    connect: false,
+  });
+
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
   return (
     <footer className="relative mt-auto border-t border-card-border bg-card text-foreground overflow-hidden">
       {/* Background soft gold glow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-[150px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="mx-auto max-w-7xl px-6 py-16 md:px-8">
-        <div className="flex flex-col lg:flex-row lg:items-start gap-12 lg:gap-16 xl:gap-20 border-b border-card-border pb-16">
+      <div className="mx-auto max-w-7xl px-6 pt-8 pb-6 md:py-16 md:px-8">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-16 xl:gap-20 border-b-0 md:border-b border-card-border pb-3 md:pb-16">
           {/* Brand Info */}
-          <div className="w-full max-w-sm shrink-0 space-y-6">
+          <div className="w-full max-w-sm shrink-0 space-y-3 md:space-y-6">
             <Link href="/" className="flex items-center">
               <img
                 src="/logo.png"
@@ -44,94 +62,194 @@ export const Footer: React.FC = () => {
             </p>
           </div>
 
-          {/* Navigation, Opening Hours & Location */}
-          <div className="flex flex-col sm:flex-row flex-wrap items-start justify-start gap-10 sm:gap-12 lg:gap-14">
-            <div className="space-y-4">
-              <h4 className="type-label text-foreground">Navigation</h4>
-              <ul className="space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
-                <li>
-                  <Link href="/" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Home</Link>
-                </li>
-                <li>
-                  <Link href="/menu" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Menu</Link>
-                </li>
-                <li>
-                  <Link href="/brew-buggy" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Brew Buggy</Link>
-                </li>
-                <li>
-                  <Link href="/reservations" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Reservations</Link>
-                </li>
-                <li>
-                  <Link href="/loyalty" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Loyalty Card</Link>
-                </li>
-                <li>
-                  <Link href="/about" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">About Us</Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Contact</Link>
-                </li>
-              </ul>
+          {/* Navigation, Opening Hours, Location & Connect with us */}
+          <div className="w-full flex flex-col md:w-auto md:flex-row md:flex-wrap md:items-start md:justify-start md:gap-10 sm:gap-12 lg:gap-14">
+            {/* Navigation */}
+            <div className="w-full md:w-auto md:space-y-4">
+              <button
+                type="button"
+                onClick={() => toggleSection("navigation")}
+                className="flex w-full items-center justify-between py-1.5 text-left font-medium transition-colors md:cursor-default md:py-0 md:pointer-events-none"
+                aria-expanded={openSections.navigation}
+              >
+                <span className="type-label text-foreground">Navigation</span>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-neutral-400 dark:text-zinc-500 transition-transform duration-200 md:hidden",
+                    openSections.navigation && "rotate-180 text-emerald-600 dark:text-emerald-400"
+                  )}
+                />
+              </button>
+              <div
+                className={cn(
+                  "grid transition-all duration-300 ease-in-out md:block",
+                  openSections.navigation
+                    ? "grid-rows-[1fr] opacity-100 pb-4 pt-1 md:pb-0 md:pt-0"
+                    : "grid-rows-[0fr] opacity-0 pointer-events-none md:pointer-events-auto md:opacity-100"
+                )}
+              >
+                <div className="overflow-hidden md:overflow-visible">
+                  <ul className="space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
+                    <li>
+                      <Link href="/" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Home</Link>
+                    </li>
+                    <li>
+                      <Link href="/menu" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Menu</Link>
+                    </li>
+                    <li>
+                      <Link href="/brew-buggy" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Brew Buggy</Link>
+                    </li>
+                    <li>
+                      <Link href="/reservations" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Reservations</Link>
+                    </li>
+                    <li>
+                      <Link href="/loyalty" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Loyalty Card</Link>
+                    </li>
+                    <li>
+                      <Link href="/about" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">About Us</Link>
+                    </li>
+                    <li>
+                      <Link href="/contact" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Contact</Link>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="type-label text-foreground">Opening Hours</h4>
-              <ul className="space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
-                <li>
-                  <span>Monday – Sunday</span>
-                  <span className="block text-neutral-800 dark:text-zinc-300 font-medium">9:00 AM – 9:00 PM</span>
-                </li>
-              </ul>
+            {/* Opening Hours */}
+            <div className="w-full md:w-auto md:space-y-4">
+              <button
+                type="button"
+                onClick={() => toggleSection("hours")}
+                className="flex w-full items-center justify-between py-1.5 text-left font-medium transition-colors md:cursor-default md:py-0 md:pointer-events-none"
+                aria-expanded={openSections.hours}
+              >
+                <span className="type-label text-foreground">Opening Hours</span>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-neutral-400 dark:text-zinc-500 transition-transform duration-200 md:hidden",
+                    openSections.hours && "rotate-180 text-emerald-600 dark:text-emerald-400"
+                  )}
+                />
+              </button>
+              <div
+                className={cn(
+                  "grid transition-all duration-300 ease-in-out md:block",
+                  openSections.hours
+                    ? "grid-rows-[1fr] opacity-100 pb-4 pt-1 md:pb-0 md:pt-0"
+                    : "grid-rows-[0fr] opacity-0 pointer-events-none md:pointer-events-auto md:opacity-100"
+                )}
+              >
+                <div className="overflow-hidden md:overflow-visible">
+                  <ul className="space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
+                    <li>
+                      <span>Monday – Sunday</span>
+                      <span className="block text-neutral-800 dark:text-zinc-300 font-medium">9:00 AM – 9:00 PM</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="type-label text-foreground">Location</h4>
-              <address className="not-italic space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
-                <p className="text-neutral-800 dark:text-zinc-300 font-medium">Antonioni Grounds</p>
-                <p>J.P Rizal Street, Poblacion 3</p>
-                <p>Tiaong, 4325 Quezon, Philippines</p>
-              </address>
+            {/* Location */}
+            <div className="w-full md:w-auto md:space-y-4">
+              <button
+                type="button"
+                onClick={() => toggleSection("location")}
+                className="flex w-full items-center justify-between py-1.5 text-left font-medium transition-colors md:cursor-default md:py-0 md:pointer-events-none"
+                aria-expanded={openSections.location}
+              >
+                <span className="type-label text-foreground">Location</span>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-neutral-400 dark:text-zinc-500 transition-transform duration-200 md:hidden",
+                    openSections.location && "rotate-180 text-emerald-600 dark:text-emerald-400"
+                  )}
+                />
+              </button>
+              <div
+                className={cn(
+                  "grid transition-all duration-300 ease-in-out md:block",
+                  openSections.location
+                    ? "grid-rows-[1fr] opacity-100 pb-4 pt-1 md:pb-0 md:pt-0"
+                    : "grid-rows-[0fr] opacity-0 pointer-events-none md:pointer-events-auto md:opacity-100"
+                )}
+              >
+                <div className="overflow-hidden md:overflow-visible">
+                  <address className="not-italic space-y-2.5 type-body-sm text-neutral-500 dark:text-zinc-400">
+                    <p className="text-neutral-800 dark:text-zinc-300 font-medium">Antonioni Grounds</p>
+                    <p>J.P Rizal Street, Poblacion 3</p>
+                    <p>Tiaong, 4325 Quezon, Philippines</p>
+                  </address>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="type-label text-foreground">Connect with us</h4>
-              <p className="text-xs text-neutral-500 dark:text-zinc-400">
-                Tag us <span className="font-semibold text-emerald-600 dark:text-emerald-400">#antonionigrounds #natorist</span>
-              </p>
-              <div className="flex items-center gap-4 text-zinc-500">
-                <a
-                  href="https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg=="
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground dark:hover:text-white transition-colors"
-                  aria-label="Instagram"
-                >
-                  <InstagramIcon size={18} />
-                </a>
-                <a
-                  href="https://www.facebook.com/share/1KExdzaSt5/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground dark:hover:text-white transition-colors"
-                  aria-label="Facebook"
-                >
-                  <FacebookIcon size={18} />
-                </a>
-                <a
-                  href="https://www.tiktok.com/@antonioni.grounds?_r=1&_t=ZS-98UmTZeZYwi"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground dark:hover:text-white transition-colors"
-                  aria-label="TikTok"
-                >
-                  <TikTokIcon size={18} />
-                </a>
+            {/* Connect with us */}
+            <div className="w-full md:w-auto md:space-y-4">
+              <button
+                type="button"
+                onClick={() => toggleSection("connect")}
+                className="flex w-full items-center justify-between py-1.5 text-left font-medium transition-colors md:cursor-default md:py-0 md:pointer-events-none"
+                aria-expanded={openSections.connect}
+              >
+                <span className="type-label text-foreground">Connect with us</span>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-neutral-400 dark:text-zinc-500 transition-transform duration-200 md:hidden",
+                    openSections.connect && "rotate-180 text-emerald-600 dark:text-emerald-400"
+                  )}
+                />
+              </button>
+              <div
+                className={cn(
+                  "grid transition-all duration-300 ease-in-out md:block",
+                  openSections.connect
+                    ? "grid-rows-[1fr] opacity-100 pb-4 pt-1 md:pb-0 md:pt-0"
+                    : "grid-rows-[0fr] opacity-0 pointer-events-none md:pointer-events-auto md:opacity-100"
+                )}
+              >
+                <div className="overflow-hidden md:overflow-visible space-y-3">
+                  <p className="text-xs text-neutral-500 dark:text-zinc-400">
+                    Tag us <span className="font-semibold text-emerald-600 dark:text-emerald-400">#antonionigrounds #natorist</span>
+                  </p>
+                  <div className="flex items-center gap-4 text-zinc-500">
+                    <a
+                      href="https://www.instagram.com/antonioni.grounds?igsh=MWR6MzBrNnplN2hubg=="
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-foreground dark:hover:text-white transition-colors"
+                      aria-label="Instagram"
+                    >
+                      <InstagramIcon size={18} />
+                    </a>
+                    <a
+                      href="https://www.facebook.com/share/1KExdzaSt5/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-foreground dark:hover:text-white transition-colors"
+                      aria-label="Facebook"
+                    >
+                      <FacebookIcon size={18} />
+                    </a>
+                    <a
+                      href="https://www.tiktok.com/@antonioni.grounds?_r=1&_t=ZS-98UmTZeZYwi"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-foreground dark:hover:text-white transition-colors"
+                      aria-label="TikTok"
+                    >
+                      <TikTokIcon size={18} />
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Legal Footer */}
-        <div className="flex flex-col md:flex-row items-center justify-between py-8 type-caption text-zinc-500 gap-4">
+        <div className="flex flex-col md:flex-row items-center justify-between pt-4 pb-2 md:py-8 type-caption text-zinc-500 gap-3 md:gap-4 text-center md:text-left">
           <p>© {new Date().getFullYear()} Antonioni Grounds. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6 text-xs text-zinc-500">
             <button
@@ -162,7 +280,7 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Brand Signature */}
-        <div className="flex justify-center pt-8 pb-4">
+        <div className="flex justify-center pt-2 pb-2 md:pt-8 md:pb-4">
           <img
             src="/signature.png"
             alt="Antonioni Signature"

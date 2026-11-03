@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
 import { getCachedData } from "@/utils/cache";
-import { Eye, Search, X } from "lucide-react";
+import { Eye, Search, X, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QuickViewModal } from "@/components/menu/QuickViewModal";
 import { FadeUp, StaggerContainer, StaggerItem, PageTransition } from "@/components/animations";
@@ -28,6 +28,19 @@ export function MenuView() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Lock body scroll when mobile filter drawer is open
+  useEffect(() => {
+    if (isMobileFilterOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileFilterOpen]);
 
   // Sync menu categories from Supabase database (menu_categories table)
   const fetchCategories = async () => {
@@ -278,20 +291,19 @@ export function MenuView() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background pt-10 md:pt-16 pb-16 md:pb-24 text-foreground relative overflow-hidden transition-colors duration-500">
+      <div className="min-h-screen bg-background text-foreground pt-8 sm:pt-12 md:pt-16 pb-16 md:pb-24 relative overflow-hidden transition-colors duration-500">
 
-        {/* Cinematic Vertical & Horizontal Framing Lines */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#2E5A44]/20 to-transparent pointer-events-none" />
-        <div className="absolute inset-y-0 left-12 w-px bg-[#2E5A44]/[0.04] hidden xl:block pointer-events-none" />
-        <div className="absolute inset-y-0 right-12 w-px bg-[#2E5A44]/[0.04] hidden xl:block pointer-events-none" />
-
-        {/* Ambient Glows */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none z-0">
-          <div className="absolute top-[-10%] left-[10%] w-[500px] h-[500px] rounded-full bg-[#2E5A44]/[0.05] blur-[130px]" />
-          <div className="absolute top-[15%] right-[5%] w-[450px] h-[450px] rounded-full bg-[#2E5A44]/[0.04] blur-[110px]" />
+        {/* Subtle Decorative Ambient Glow */}
+        <div className="absolute inset-0 pointer-events-none opacity-40">
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundImage: `radial-gradient(circle at 50% 10%, rgba(46, 90, 68, 0.05) 0%, transparent 60%), radial-gradient(circle at 80% 80%, rgba(46, 90, 68, 0.03) 0%, transparent 50%)`,
+            }}
+          />
         </div>
 
-        <div className="mx-auto max-w-7xl px-6 md:px-8 relative z-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 relative z-10">
 
           {/* Header Title Block */}
           <div className="text-center max-w-2xl mx-auto mb-10 md:mb-12 flex flex-col items-center">
@@ -301,23 +313,63 @@ export function MenuView() {
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-sans font-black text-foreground tracking-tight leading-tight uppercase mb-3">
               Menu
             </h1>
-            <p className="type-body text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed text-sm sm:text-base">
+            <p className="type-body text-neutral-600 dark:text-zinc-400 max-w-xl leading-relaxed text-sm sm:text-base">
               Here’s what’s pouring. Hot, iced, or somewhere in between. Modest and Grand are our size names, “medium” and “large” felt like someone else’s menu.
             </p>
           </div>
 
-          {/* Main Grid Layout: Sidebar on Left, Menu Items on Right */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start mt-8">
+          {/* Mobile Search & Filter Toolbar (< lg only) */}
+          <div className="flex items-center gap-2.5 mb-5 lg:hidden">
+            <div className="relative flex-1 group">
+              <Search
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors duration-300 group-focus-within:text-[#2E5A44] dark:group-focus-within:text-emerald-400"
+                size={16}
+              />
+              <input
+                type="text"
+                placeholder="Search menu..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border border-card-border dark:border-white/15 bg-card dark:bg-zinc-950/70 py-2.5 pl-10 pr-9 text-xs text-foreground dark:text-white outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15 transition-all placeholder:text-neutral-400 dark:placeholder:text-zinc-500 shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
 
-            {/* Sidebar Filters */}
-            <div className="lg:col-span-1 lg:sticky lg:top-24 space-y-4 lg:space-y-6 bg-card/65 dark:bg-zinc-950/60 p-4 sm:p-5 md:p-6 rounded-2xl border border-card-border backdrop-blur-md shadow-xl glassmorphism-green mb-6 lg:mb-0">
+            {/* Mobile Filter Button */}
+            <button
+              onClick={() => setIsMobileFilterOpen(true)}
+              className={`relative flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-lg border text-xs font-sans font-bold tracking-wider uppercase transition-all duration-300 shadow-sm cursor-pointer shrink-0 ${selectedCategory !== "All"
+                ? "border-emerald-500/50 bg-[#2E5A44] text-white shadow-md shadow-[#2E5A44]/20"
+                : "border-card-border dark:border-white/15 bg-card dark:bg-zinc-950/70 text-foreground dark:text-zinc-200 hover:border-emerald-500/40"
+                }`}
+            >
+              <SlidersHorizontal size={15} />
+              <span className="truncate max-w-[100px]">{selectedCategory === "All" ? "Filter" : selectedCategory}</span>
+              {selectedCategory !== "All" && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              )}
+            </button>
+          </div>
 
-              {/* Optional Sidebar Title/Summary */}
-              <div className="hidden lg:flex lg:flex-col lg:border-b lg:border-card-border lg:dark:border-zinc-900/40 lg:pb-3 lg:mb-2">
-                <span className="text-[10px] font-sans font-bold tracking-widest text-[#2E5A44] dark:text-emerald-450 uppercase">
+          {/* Main Layout: Sidebar on Left, Products on Right */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 items-start">
+
+            {/* Desktop Sidebar Filters */}
+            <div className="hidden lg:block lg:col-span-1 lg:sticky lg:top-24 space-y-4 lg:space-y-6 bg-card dark:bg-zinc-950/70 p-4 sm:p-5 rounded-lg border border-card-border dark:border-white/10 shadow-sm backdrop-blur-md mb-2 lg:mb-0">
+
+              {/* Sidebar Header */}
+              <div className="hidden lg:flex lg:flex-col border-b border-card-border dark:border-white/10 pb-3 mb-2">
+                <span className="text-[10px] font-sans font-bold tracking-[0.2em] text-[#2E5A44] dark:text-emerald-400 uppercase">
                   Categories
                 </span>
-                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">
+                <span className="text-[10px] text-neutral-500 dark:text-zinc-400 mt-1">
                   Showing {filteredItems.length} of {items.length} options
                 </span>
               </div>
@@ -326,7 +378,7 @@ export function MenuView() {
               <div className="relative w-full">
                 <div className="relative group">
                   <Search
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 transition-colors duration-300 group-focus-within:text-emerald-650 dark:group-focus-within:text-emerald-400"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors duration-300 group-focus-within:text-[#2E5A44] dark:group-focus-within:text-emerald-400"
                     size={16}
                   />
                   <input
@@ -334,24 +386,21 @@ export function MenuView() {
                     placeholder="Search menu..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-xl border border-card-border dark:border-zinc-800 bg-background-alt/30 dark:bg-zinc-900/35 py-3 pl-12 pr-12 type-field text-foreground outline-none focus:border-emerald-500/80 focus:ring-4 focus:ring-emerald-500/5 transition-all duration-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-655 shadow-inner"
+                    className="w-full rounded-lg border border-card-border dark:border-white/15 bg-background-alt/50 dark:bg-black/40 py-2.5 sm:py-3 pl-11 pr-11 text-xs sm:text-sm text-foreground dark:text-white outline-none focus:border-emerald-500/70 focus:ring-2 focus:ring-emerald-500/15 transition-all placeholder:text-neutral-400 dark:placeholder:text-zinc-500"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery("")}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-foreground dark:text-zinc-500 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-foreground dark:hover:text-white transition-colors cursor-pointer"
                     >
-                      <X size={16} />
+                      <X size={15} />
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Category Tabs Wrapper with Left/Right Fades on Mobile */}
-              <div className="relative border-t border-card-border/50 dark:border-zinc-900/40 pt-4 mt-1 lg:border-t-0 lg:pt-0 lg:mt-0">
-                <div className="absolute -left-4 top-0 bottom-0 w-8 bg-gradient-to-r from-card/95 dark:from-zinc-950/90 to-transparent pointer-events-none z-10 lg:hidden" />
-                <div className="absolute -right-4 top-0 bottom-0 w-8 bg-gradient-to-l from-card/95 dark:from-zinc-950/90 to-transparent pointer-events-none z-10 lg:hidden" />
-
+              {/* Category Tabs Wrapper */}
+              <div className="relative border-t border-card-border dark:border-white/10 pt-3 lg:border-t-0 lg:pt-0">
                 <div className="flex overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 lg:mx-0 lg:px-0 lg:overflow-visible">
                   <div className="flex gap-2 mx-auto min-w-max px-2 lg:px-0 lg:flex-col lg:w-full lg:gap-1.5">
                     {categories.map((category) => {
@@ -360,22 +409,17 @@ export function MenuView() {
                         <motion.button
                           key={category}
                           onClick={() => setSelectedCategory(category)}
-                          className={`relative flex items-center justify-center lg:justify-start rounded-xl px-4 py-2 sm:px-5 sm:py-2.5 lg:px-4 lg:py-2.5 type-ui border text-[10px] tracking-wider transition-all duration-300 whitespace-nowrap cursor-pointer z-10 lg:w-full ${isSelected
-                            ? "border-transparent text-white font-bold"
-                            : "border-card-border bg-background-alt/20 dark:border-zinc-900 dark:bg-zinc-900/20 text-zinc-500 hover:text-foreground dark:text-zinc-400 dark:hover:text-white hover:border-emerald-500/30 hover:bg-background"
+                          className={`relative flex items-center justify-center lg:justify-start rounded-lg px-4 py-2 sm:px-5 sm:py-2.5 lg:px-4 lg:py-2.5 font-sans text-xs tracking-wider uppercase transition-all duration-300 whitespace-nowrap cursor-pointer z-10 lg:w-full ${isSelected
+                            ? "border border-emerald-500/40 bg-[#2E5A44] text-white font-bold shadow-md shadow-[#2E5A44]/25"
+                            : "border border-card-border dark:border-white/10 bg-card dark:bg-white/[0.03] text-neutral-600 dark:text-zinc-400 hover:text-foreground dark:hover:text-white hover:bg-background-alt/50 dark:hover:bg-white/[0.06] hover:border-emerald-500/30"
                             }`}
                           whileHover={{ y: -1 }}
                           whileTap={{ scale: 0.98 }}
                         >
-                          {/* Sliding Pill Background */}
-                          {isSelected && (
-                            <motion.span
-                              layoutId="activeCategory"
-                              className="absolute inset-0 bg-[#2E5A44] dark:bg-[#2E5A44]/95 rounded-xl -z-10 shadow-md shadow-[#2E5A44]/25"
-                              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                            />
-                          )}
-                          <span>{category}</span>
+                          <span className="flex items-center gap-2">
+                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                            <span>{category}</span>
+                          </span>
                         </motion.button>
                       );
                     })}
@@ -383,15 +427,15 @@ export function MenuView() {
                 </div>
               </div>
 
-              {/* Reset Filters Option for Desktop */}
+              {/* Reset Filters */}
               {(searchQuery !== "" || selectedCategory !== "All") && (
-                <div className="hidden lg:block border-t border-card-border dark:border-zinc-900/40 pt-4">
+                <div className="border-t border-card-border dark:border-white/10 pt-3">
                   <button
                     onClick={() => {
                       setSearchQuery("");
                       setSelectedCategory("All");
                     }}
-                    className="w-full text-center py-2.5 rounded-xl border border-dashed border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/5 type-ui text-[10px] tracking-wider transition-all duration-300 cursor-pointer"
+                    className="w-full text-center py-2.5 rounded-lg border border-dashed border-[#2E5A44]/40 text-[#2E5A44] dark:text-emerald-400 hover:bg-emerald-500/10 text-xs tracking-wider uppercase font-semibold transition-all cursor-pointer"
                   >
                     Reset Active Filters
                   </button>
@@ -401,103 +445,132 @@ export function MenuView() {
 
             {/* Menu Items Grid */}
             <div className="lg:col-span-3">
-              {/* Empty State */}
               {filteredItems.length === 0 ? (
-                <div className="text-center py-24 border border-dashed border-card-border dark:border-zinc-900 rounded-3xl max-w-md mx-auto">
-                  <p className="type-body-sm text-zinc-500 dark:text-zinc-500 font-medium">
+                <div className="text-center py-20 border border-dashed border-card-border dark:border-white/10 rounded-xl max-w-md mx-auto">
+                  <p className="text-sm text-neutral-500 dark:text-zinc-400 font-medium">
                     {items.length === 0
                       ? "No menu items available at the moment."
                       : "No items found matching your filters."}
                   </p>
                   {(searchQuery !== "" || selectedCategory !== "All") && (
                     <button
-                      onClick={() => { setSearchQuery(""); setSelectedCategory("All"); }}
-                      className="mt-4 type-ui text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors font-bold underline decoration-emerald-500/30"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedCategory("All");
+                      }}
+                      className="mt-4 text-xs font-bold text-[#2E5A44] dark:text-emerald-400 hover:underline uppercase tracking-wider"
                     >
                       Reset Filters
                     </button>
                   )}
                 </div>
               ) : (
-                /* Items Grid */
-                <StaggerContainer className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
+                <StaggerContainer className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4 md:gap-5 lg:gap-6">
                   {filteredItems.map((item) => {
+                    const isColdOrFrappe =
+                      item.category?.toLowerCase().includes("cold") ||
+                      item.category?.toLowerCase().includes("coffee-free") ||
+                      item.category?.toLowerCase().includes("frappe") ||
+                      item.category?.toLowerCase().includes("soda");
+
                     return (
                       <StaggerItem key={item.id}>
                         <div
                           onClick={() => handleQuickView(item)}
-                          className="group relative flex flex-col justify-between rounded-2xl border border-card-border dark:border-zinc-900 bg-card dark:bg-zinc-950/40 overflow-hidden transition-all duration-500 hover:border-emerald-500/35 hover:bg-card/90 dark:hover:bg-zinc-900/30 hover:shadow-[0_0_35px_rgba(46,90,68,0.06)] dark:hover:shadow-[0_0_40px_rgba(46,90,68,0.08)] cursor-pointer h-full"
+                          className="group relative flex flex-col justify-between rounded-lg border border-card-border dark:border-white/10 bg-card dark:bg-zinc-950/60 hover:bg-card/95 dark:hover:bg-zinc-900/80 hover:border-emerald-500/40 transition-all duration-300 hover:shadow-[0_12px_32px_rgba(46,90,68,0.1)] dark:hover:shadow-[0_0_25px_rgba(16,185,129,0.12)] cursor-pointer h-full overflow-hidden backdrop-blur-sm"
                         >
-                          {/* Premium Image Container */}
-                          <div className="relative aspect-square w-full overflow-hidden bg-zinc-900 dark:bg-zinc-950 border-b border-card-border dark:border-zinc-900">
+                          {/* Drink / Product Image Container (Fitted directly to the Card Box) */}
+                          <div className="relative aspect-square w-full overflow-hidden bg-background-alt/50 dark:bg-black/40 border-b border-card-border dark:border-white/10">
                             <img
                               src={item.image}
                               alt={item.name}
-                              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 group-hover:rotate-[0.5deg]"
+                              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                               loading="lazy"
                               decoding="async"
                             />
 
-                            {/* Film Aspect Vignette Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+                            {/* Lens Focus Marks (Artisan Detail) */}
+                            <div className="absolute top-2.5 left-2.5 w-2.5 h-2.5 border-t border-l border-neutral-300 dark:border-white/30 pointer-events-none" />
+                            <div className="absolute top-2.5 right-2.5 w-2.5 h-2.5 border-t border-r border-neutral-300 dark:border-white/30 pointer-events-none" />
+                            <div className="absolute bottom-2.5 left-2.5 w-2.5 h-2.5 border-b border-l border-neutral-300 dark:border-white/30 pointer-events-none" />
+                            <div className="absolute bottom-2.5 right-2.5 w-2.5 h-2.5 border-b border-r border-neutral-300 dark:border-white/30 pointer-events-none" />
 
-                            {/* Lens Shutter Focus Marks (Cinematic Hover Touch) */}
-                            <div className="absolute top-3 left-3 w-3 h-3 border-t border-l border-emerald-500/30 transition-colors duration-300 group-hover:border-emerald-500/80" />
-                            <div className="absolute top-3 right-3 w-3 h-3 border-t border-r border-emerald-500/30 transition-colors duration-300 group-hover:border-emerald-500/80" />
-                            <div className="absolute bottom-3 left-3 w-3 h-3 border-b border-l border-emerald-500/30 transition-colors duration-300 group-hover:border-emerald-500/80" />
-                            <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r border-emerald-500/30 transition-colors duration-300 group-hover:border-emerald-500/80" />
-
-                            {/* Shutter Overlay on Hover */}
-                            <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                              <span className="flex items-center justify-center rounded-full bg-[#2E5A44] p-3 text-white hover:scale-110 active:scale-95 transition-all duration-300 shadow-[0_0_20px_rgba(46,90,68,0.4)]">
-                                <Eye size={16} />
+                            {/* Hover Quick View Eye */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                              <span className="flex items-center justify-center rounded-full bg-[#2E5A44] p-2.5 sm:p-3 text-white shadow-lg">
+                                <Eye size={15} />
                               </span>
                             </div>
                           </div>
 
-                          {/* Content details */}
-                          <div className="flex-1 flex flex-col justify-between p-3.5 sm:p-5 md:p-6">
+                          {/* Details & Pricing */}
+                          <div className="flex-1 flex flex-col justify-between p-3 sm:p-4 md:p-4.5">
                             <div>
                               {/* Item Name */}
-                              <h3 className="text-xs sm:text-base font-sans font-extrabold tracking-tight text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 line-clamp-1 sm:line-clamp-2">
+                              <h3 className="text-xs sm:text-sm md:text-base font-sans font-bold tracking-tight text-foreground dark:text-white group-hover:text-[#2E5A44] dark:group-hover:text-emerald-400 transition-colors duration-300 text-center line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] flex items-center justify-center">
                                 {item.name}
                               </h3>
 
-                              {/* Category */}
-                              <div className="mt-1">
-                                <span className="text-[8px] sm:text-[9px] font-sans font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase">
-                                  {item.category}
-                                </span>
-                              </div>
-
-                              {/* Description */}
-                              <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 line-clamp-2 leading-relaxed">
-                                {item.description}
-                              </p>
+                              {/* Category Note */}
+                              <span className="text-[8px] sm:text-[9px] font-sans font-semibold tracking-wider text-neutral-500 dark:text-zinc-400 uppercase text-center block mt-0.5">
+                                {item.category}
+                              </span>
                             </div>
 
-                            {/* Price */}
-                            <div className="flex items-center justify-between border-t border-card-border dark:border-zinc-900 pt-2.5 mt-3 sm:pt-4 sm:mt-4">
-                              <span className="text-xs sm:text-base font-sans font-extrabold text-[#2E5A44] dark:text-emerald-400">
-                                {item.price != null
-                                  ? `₱${Number(item.price).toFixed(2)}`
-                                  : item.modest != null
-                                    ? `₱${Number(item.modest).toFixed(2)}`
-                                    : item.hot != null
-                                      ? `₱${Number(item.hot).toFixed(2)}`
-                                      : item.grand != null
-                                        ? `₱${Number(item.grand).toFixed(2)}`
-                                        : "—"}
-                              </span>
-
-                              {(item.modest != null || item.grand != null || item.hot != null) && (
-                                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
-                                  {item.modest != null && item.grand != null
-                                    ? "Modest / Grand"
-                                    : item.hot != null
-                                      ? "Hot / Iced"
-                                      : "Sizes available"}
-                                </span>
+                            {/* Antonioni 3-Tier Price Block */}
+                            <div className="mt-2.5 pt-2 sm:mt-3 sm:pt-2.5 border-t border-card-border dark:border-white/10 w-full">
+                              {item.hot != null && item.modest != null && item.grand != null ? (
+                                <div className="flex items-center justify-center divide-x divide-card-border dark:divide-white/20 text-center w-full">
+                                  <div className="flex-1 px-0.5 flex flex-col items-center">
+                                    <span className="text-[11px] sm:text-xs md:text-sm font-extrabold text-[#2E5A44] dark:text-emerald-400 tracking-tight">
+                                      ₱{Math.round(Number(item.hot))}
+                                    </span>
+                                    <span className="text-[7px] sm:text-[8px] font-sans font-bold text-[#2E5A44] dark:text-emerald-400 uppercase tracking-wider">
+                                      {isColdOrFrappe ? "MINI" : "HOT"}
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 px-0.5 flex flex-col items-center">
+                                    <span className="text-[11px] sm:text-xs md:text-sm font-extrabold text-foreground dark:text-white tracking-tight">
+                                      ₱{Math.round(Number(item.modest))}
+                                    </span>
+                                    <span className="text-[7px] sm:text-[8px] font-sans font-bold text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">
+                                      MODEST
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 px-0.5 flex flex-col items-center">
+                                    <span className="text-[11px] sm:text-xs md:text-sm font-extrabold text-foreground dark:text-white tracking-tight">
+                                      ₱{Math.round(Number(item.grand))}
+                                    </span>
+                                    <span className="text-[7px] sm:text-[8px] font-sans font-bold text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">
+                                      GRAND
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : item.modest != null && item.grand != null ? (
+                                <div className="flex items-center justify-center divide-x divide-card-border dark:divide-white/20 text-center w-full">
+                                  <div className="flex-1 px-1 flex flex-col items-center">
+                                    <span className="text-[11px] sm:text-xs md:text-sm font-extrabold text-[#2E5A44] dark:text-emerald-400 tracking-tight">
+                                      ₱{Math.round(Number(item.modest))}
+                                    </span>
+                                    <span className="text-[7px] sm:text-[8px] font-sans font-bold text-[#2E5A44] dark:text-emerald-400 uppercase tracking-wider">
+                                      MODEST
+                                    </span>
+                                  </div>
+                                  <div className="flex-1 px-1 flex flex-col items-center">
+                                    <span className="text-[11px] sm:text-xs md:text-sm font-extrabold text-foreground dark:text-white tracking-tight">
+                                      ₱{Math.round(Number(item.grand))}
+                                    </span>
+                                    <span className="text-[7px] sm:text-[8px] font-sans font-bold text-neutral-500 dark:text-zinc-400 uppercase tracking-wider">
+                                      GRAND
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-center py-0.5">
+                                  <span className="text-xs sm:text-base font-extrabold text-foreground dark:text-white tracking-tight">
+                                    ₱{Math.round(Number(item.price ?? item.modest ?? item.hot ?? item.grand ?? 0))}
+                                  </span>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -520,6 +593,105 @@ export function MenuView() {
           item={selectedItem}
         />
       )}
+
+      {/* Mobile Categories Bottom Drawer */}
+      <AnimatePresence>
+        {isMobileFilterOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setIsMobileFilterOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+            />
+
+            {/* Bottom Drawer Sheet */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="relative z-10 w-full max-h-[82vh] flex flex-col bg-card dark:bg-[#141615] rounded-t-2xl border-t border-card-border dark:border-white/15 shadow-2xl overflow-hidden"
+            >
+              {/* Drag Handle */}
+              <div className="w-full flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-neutral-300 dark:bg-white/20" />
+              </div>
+
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-card-border dark:border-white/10">
+                <div>
+                  <h3 className="text-sm font-sans font-bold tracking-tight text-foreground dark:text-white uppercase">
+                    Categories
+                  </h3>
+                  <span className="text-[10px] text-neutral-500 dark:text-zinc-400">
+                    Showing {filteredItems.length} of {items.length} options
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsMobileFilterOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-background-alt dark:hover:bg-white/10 text-neutral-500 dark:text-zinc-400 hover:text-foreground dark:hover:text-white transition-colors cursor-pointer"
+                  aria-label="Close filter drawer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Categories List */}
+              <div className="p-4 sm:p-5 overflow-y-auto max-h-[52vh] space-y-1.5">
+                {categories.map((category) => {
+                  const isSelected = selectedCategory === category;
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => {
+                        setSelectedCategory(category);
+                        setIsMobileFilterOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-sans text-xs tracking-wider uppercase transition-all duration-200 cursor-pointer ${isSelected
+                        ? "bg-[#2E5A44] text-white font-bold shadow-md shadow-[#2E5A44]/25"
+                        : "border border-card-border dark:border-white/10 bg-background-alt/30 dark:bg-white/[0.03] text-neutral-700 dark:text-zinc-300 hover:border-emerald-500/40 hover:bg-background-alt/60"
+                        }`}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-emerald-400" : "bg-neutral-400/40"}`} />
+                        <span>{category}</span>
+                      </span>
+                      {isSelected && (
+                        <span className="text-[10px] font-sans font-bold text-emerald-400 tracking-wider">ACTIVE</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 border-t border-card-border dark:border-white/10 bg-background-alt/40 dark:bg-black/30 flex gap-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                {selectedCategory !== "All" && (
+                  <button
+                    onClick={() => {
+                      setSelectedCategory("All");
+                      setIsMobileFilterOpen(false);
+                    }}
+                    className="flex-1 py-3 rounded-lg border border-card-border dark:border-white/15 bg-card dark:bg-white/5 text-xs font-sans font-bold uppercase tracking-wider text-neutral-600 dark:text-zinc-300 hover:text-foreground transition-all cursor-pointer"
+                  >
+                    Reset All
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsMobileFilterOpen(false)}
+                  className="flex-1 py-3 rounded-lg bg-[#2E5A44] hover:bg-[#234533] text-white text-xs font-sans font-bold uppercase tracking-wider transition-all shadow-md shadow-[#2E5A44]/25 cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </PageTransition>
   );
 }

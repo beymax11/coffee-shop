@@ -29,7 +29,7 @@ export const ClosingBand: React.FC = () => {
           {/* Button 1: Tara, kape! (→ Menu) */}
           <Link
             href="/menu"
-            className="type-ui group relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-8 py-4 text-white font-semibold transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_35px_rgba(46,90,68,0.3)] active:scale-95 cursor-pointer w-full sm:w-auto"
+            className="type-ui group relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full bg-[#2E5A44] px-6 sm:px-8 py-3.5 sm:py-4 text-white font-semibold whitespace-nowrap transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_35px_rgba(46,90,68,0.3)] active:scale-95 cursor-pointer w-full max-w-64 sm:w-auto"
           >
             <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-hero-shine" />
             <span className="relative flex items-center gap-2">
@@ -44,7 +44,7 @@ export const ClosingBand: React.FC = () => {
           {/* Button 2: Book the Brew Buggy (→ Reservations) */}
           <Link
             href="/reservations?type=cart"
-            className="type-ui group relative inline-flex items-center justify-center gap-2.5 rounded-full border border-card-border bg-card/80 backdrop-blur-md px-8 py-4 text-foreground font-semibold transition-all duration-300 hover:border-emerald-500/40 hover:bg-neutral-100 dark:hover:bg-zinc-800/80 active:scale-95 cursor-pointer shadow-sm w-full sm:w-auto"
+            className="type-ui group relative inline-flex items-center justify-center gap-2.5 rounded-full border border-card-border bg-card/80 backdrop-blur-md px-6 sm:px-8 py-3.5 sm:py-4 text-foreground font-semibold whitespace-nowrap transition-all duration-300 hover:border-emerald-500/40 hover:bg-neutral-100 dark:hover:bg-zinc-800/80 active:scale-95 cursor-pointer shadow-sm w-full max-w-64 sm:w-auto"
           >
             <Calendar size={16} className="text-[#2E5A44] dark:text-emerald-400 shrink-0 transition-transform duration-300 group-hover:scale-110" />
             <span>Book the Brew Buggy</span>

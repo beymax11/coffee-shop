@@ -93,7 +93,7 @@ export function LoyaltyPreviewSection() {
             <p className="type-body text-neutral-600 dark:text-zinc-400 mt-3 mb-8 max-w-md leading-relaxed text-sm sm:text-base">
               Scan it every visit and collect your stamps. Every so often, we&apos;ll get to say thank you with more than just a discount code.
             </p>
-            <div className="w-full max-w-xs space-y-3">
+            <div className="w-full max-w-64 sm:max-w-xs space-y-3">
               <Link
                 href="/signup"
                 className="type-ui group relative w-full flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#2E5A44] py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#234533] hover:shadow-[0_0_25px_rgba(46,90,68,0.3)] active:scale-95 cursor-pointer"

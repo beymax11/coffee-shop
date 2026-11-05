@@ -79,11 +79,10 @@ export const RoastingExperience: React.FC = () => {
 
           {/* Right Col: Details & Interactive Steps */}
           <div className="space-y-8 flex flex-col justify-center">
-            <div className="space-y-4">
+            <div className="space-y-4 text-center md:text-left">
               <FadeUp>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center md:justify-start gap-2">
                   <span className="type-eyebrow text-emerald-600 dark:text-emerald-400">Our Story</span>
-
                 </div>
                 <h2 className="type-h2 text-2xl sm:text-4xl text-foreground mt-2 leading-snug">
                   Behind Every Cup We Pour
@@ -153,13 +152,13 @@ export const RoastingExperience: React.FC = () => {
             </div>
 
             {/* CTA Button */}
-            <FadeUp delay={0.1} className="pt-4 border-t border-card-border">
+            <FadeUp delay={0.1} className="pt-4 border-t border-card-border flex justify-center md:justify-start">
               <Link
                 href={activeStep.ctaLink}
-                className="inline-flex items-center gap-2 type-ui font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 group transition-colors duration-300"
+                className="inline-flex items-center justify-center gap-2 type-ui font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 group transition-colors duration-300"
               >
                 {activeStep.ctaLabel}
-                <ArrowRight size={14} className="group-hover:translate-x-1.5 transition-transform duration-300" />
+                <ArrowRight size={14} className="hidden md:inline-block group-hover:translate-x-1.5 transition-transform duration-300" />
               </Link>
             </FadeUp>
           </div>

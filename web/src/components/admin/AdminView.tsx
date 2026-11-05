@@ -402,14 +402,19 @@ export const AdminView: React.FC = () => {
           const supabaseMembers: LoyaltyMember[] = data.map((profile: any) => {
             const rawCard = profile.loyalty_cards;
             const loyaltyCard = Array.isArray(rawCard) ? rawCard[0] : rawCard;
+            const localMatch = localMembers.find(
+              (m) => m.id === (loyaltyCard?.id || profile.id) || (m.email && m.email === profile.email)
+            );
             return {
               id: loyaltyCard?.id || profile.id,
               userId: profile.id, // Always store the Supabase profile UUID
               name: profile.name || profile.username || "Unknown",
               email: profile.email || "",
               phone: profile.phone || undefined,
-              stamps: loyaltyCard?.stamps || 0,
-              points: loyaltyCard?.points || 0,
+              stamps: loyaltyCard?.stamps ?? localMatch?.stamps ?? 0,
+              points: loyaltyCard?.points ?? localMatch?.points ?? 0,
+              freeDrinks: loyaltyCard?.free_drinks ?? loyaltyCard?.freeDrinks ?? localMatch?.freeDrinks ?? 0,
+              totalCardsCompleted: loyaltyCard?.total_cards_completed ?? loyaltyCard?.totalCardsCompleted ?? localMatch?.totalCardsCompleted ?? 0,
               joinedAt: profile.created_at
                 ? new Date(profile.created_at).toISOString().split("T")[0]
                 : new Date().toISOString().split("T")[0]
@@ -734,16 +739,24 @@ export const AdminView: React.FC = () => {
     }
   };
 
-  // --- STAMP HANDLERS: All Supabase-first ---
-  const handleAwardStamp = async (member: LoyaltyMember) => {
-    if (member.stamps >= 10) return;
-    const newStamps = member.stamps + 1;
+  // --- STAMP & REWARD HANDLERS: All Supabase-first ---
+  const handleAwardStamp = async (member: LoyaltyMember, count: number = 1) => {
+    const countToAdd = Math.max(1, count || 1);
+    const newStamps = member.stamps + countToAdd;
+    const newPoints = (member.points || 0) + (countToAdd * 10);
 
     try {
       const res = await fetch("/api/loyalty", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: member.id, userId: member.userId, stamps: newStamps }),
+        body: JSON.stringify({
+          cardId: member.id,
+          userId: member.userId,
+          stamps: newStamps,
+          points: newPoints,
+          freeDrinks: member.freeDrinks || 0,
+          totalCardsCompleted: member.totalCardsCompleted || 0,
+        }),
       });
 
       if (!res.ok) {
@@ -758,8 +771,12 @@ export const AdminView: React.FC = () => {
       return;
     }
 
-    // Update UI state after successful DB write (real-time will sync the customer page)
-    const updated = { ...member, stamps: newStamps };
+    // Update UI state after successful DB write
+    const updated: LoyaltyMember = {
+      ...member,
+      stamps: newStamps,
+      points: newPoints,
+    };
     setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
     db.saveLoyaltyMember(updated);
     playBeep();
@@ -768,17 +785,17 @@ export const AdminView: React.FC = () => {
       action: "AWARD",
       category: "loyalty",
       target: `Loyalty Card (${member.name})`,
-      details: `Awarded +1 loyalty stamp to ${member.name}. New total: ${newStamps}/10 stamps.`,
+      details: `Awarded +${countToAdd} loyalty stamp${countToAdd === 1 ? "" : "s"} to ${member.name}. New total: ${newStamps}/10 stamps.`,
       severity: "success",
-      metadata: { memberId: member.id, email: member.email, newStamps }
+      metadata: { memberId: member.id, email: member.email, newStamps, countAwarded: countToAdd }
     });
 
-    toast.success(`Awarded 1 stamp to ${member.name}. (${newStamps}/10)`);
+    toast.success(`Awarded ${countToAdd} stamp${countToAdd === 1 ? "" : "s"} to ${member.name}. (${newStamps}/10)`);
 
     notificationsService.addNotification(
       member.email,
       "Stamp Earned",
-      `A new stamp was added to your loyalty card. (${newStamps}/10 stamps)`,
+      `${countToAdd} new stamp${countToAdd === 1 ? " was" : "s were"} added to your loyalty card. (${newStamps}/10 stamps)`,
       "loyalty"
     );
   };
@@ -828,19 +845,44 @@ export const AdminView: React.FC = () => {
       "loyalty"
     );
   };
+
   const handleRedeemFreeDrink = (member: LoyaltyMember) => {
+    const hasStoredDrinks = (member.freeDrinks || 0) > 0;
+    const isLegacyFullCard = member.stamps >= 10;
+
+    if (!hasStoredDrinks && !isLegacyFullCard) {
+      toast.error("Customer has no free drinks available to redeem.");
+      return;
+    }
+
+    const remainingVault = hasStoredDrinks ? (member.freeDrinks || 0) - 1 : 0;
+    const promptMessage = hasStoredDrinks
+      ? `Redeem 1 free drink for ${member.name}? They will have ${remainingVault} free drink${remainingVault === 1 ? "" : "s"} left in their vault. Their current active stamps (${member.stamps}/10) will be preserved.`
+      : `Redeem completed loyalty card for ${member.name}? This will claim 1 free drink and reset their stamps from 10/10 to 0.`;
+
     setConfirmModal({
       isOpen: true,
       title: "Redeem Free Drink",
-      message: `Are you sure you want to redeem the rewards card for ${member.name}? This will reset their stamp count back to 0.`,
-      confirmText: "Redeem Card",
+      message: promptMessage,
+      confirmText: "Confirm Redemption",
       variant: "warning",
       onConfirm: async () => {
+        const payload: Record<string, any> = {
+          cardId: member.id,
+          userId: member.userId,
+        };
+
+        if (hasStoredDrinks) {
+          payload.freeDrinks = remainingVault;
+        } else {
+          payload.stamps = 0;
+        }
+
         try {
           const res = await fetch("/api/loyalty", {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cardId: member.id, userId: member.userId, stamps: 0 }),
+            body: JSON.stringify(payload),
           });
 
           if (!res.ok) {
@@ -857,29 +899,147 @@ export const AdminView: React.FC = () => {
           return;
         }
 
-        const updated = { ...member, stamps: 0 };
+        const updated: LoyaltyMember = {
+          ...member,
+          ...(hasStoredDrinks ? { freeDrinks: remainingVault } : { stamps: 0 }),
+        };
         setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+        db.saveLoyaltyMember(updated);
 
         auditLogger.log({
           action: "REDEEM",
           category: "loyalty",
           target: `Loyalty Card (${member.name})`,
-          details: `Redeemed full loyalty rewards card (free drink claimed) for ${member.name}. Stamps reset to 0.`,
+          details: hasStoredDrinks
+            ? `Redeemed 1 free drink from vault for ${member.name}. Remaining in vault: ${remainingVault}. Active stamps preserved at ${member.stamps}/10.`
+            : `Redeemed full loyalty card (10 stamps) for ${member.name}. Stamps reset to 0.`,
           severity: "success",
-          metadata: { memberId: member.id, email: member.email }
+          metadata: { memberId: member.id, email: member.email, remainingVault, stamps: updated.stamps }
         });
 
         notificationsService.addNotification(
           member.email,
-          "Loyalty Card Redeemed",
-          "You claimed your free drink reward! Your stamps have been reset to 0.",
+          "Free Drink Redeemed",
+          hasStoredDrinks
+            ? `You redeemed 1 free drink at the counter! You have ${remainingVault} free drink${remainingVault === 1 ? "" : "s"} remaining in your vault.`
+            : "You claimed your free drink reward! Your stamps have been reset to 0.",
           "loyalty"
         );
 
-        toast.success(`Successfully redeemed free drink for ${member.name}! Stamps reset.`);
+        toast.success(
+          hasStoredDrinks
+            ? `Redeemed 1 drink for ${member.name}! (${remainingVault} remaining in vault)`
+            : `Successfully redeemed free drink for ${member.name}!`
+        );
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
       }
     });
+  };
+
+  const handleStoreFreeDrink = async (member: LoyaltyMember) => {
+    if (member.stamps < 10) {
+      toast.warning("Customer needs 10 stamps to store a free drink.");
+      return;
+    }
+
+    const newStamps = 0;
+    const newFreeDrinks = (member.freeDrinks || 0) + 1;
+    const newCardsCompleted = (member.totalCardsCompleted || 0) + 1;
+    const newPoints = (member.points || 0) + 50;
+
+    try {
+      const res = await fetch("/api/loyalty", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardId: member.id,
+          userId: member.userId,
+          stamps: newStamps,
+          points: newPoints,
+          freeDrinks: newFreeDrinks,
+          totalCardsCompleted: newCardsCompleted,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("Store drink API error:", err);
+        toast.error("Failed to store free drink in database.");
+        return;
+      }
+    } catch (err) {
+      console.error("Error storing free drink:", err);
+      toast.error("Failed to connect to database.");
+      return;
+    }
+
+    // Update UI state after successful DB write
+    const updated: LoyaltyMember = {
+      ...member,
+      stamps: newStamps,
+      points: newPoints,
+      freeDrinks: newFreeDrinks,
+      totalCardsCompleted: newCardsCompleted,
+    };
+    setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+    db.saveLoyaltyMember(updated);
+    playBeep();
+
+    auditLogger.log({
+      action: "UPDATE",
+      category: "loyalty",
+      target: `Loyalty Card (${member.name})`,
+      details: `Stored completed card as +1 Free Drink in vault for ${member.name} (Total: ${newFreeDrinks}). Stamps reset to 0/10.`,
+      severity: "success",
+      metadata: { memberId: member.id, email: member.email, newFreeDrinks, stamps: 0 }
+    });
+
+    toast.success(`Stored 1 Free Drink for ${member.name}! (Total: ${newFreeDrinks}). Stamps reset to 0/10.`);
+
+    notificationsService.addNotification(
+      member.email,
+      "Free Drink Saved! 🎁",
+      `Your completed card has been saved to your Free Mini Drinks! You now have ${newFreeDrinks} Free Mini Drink${newFreeDrinks === 1 ? "" : "s"} available. Stamps reset to 0/10 for your next card.`,
+      "loyalty"
+    );
+  };
+
+  const handleAdjustFreeDrinks = async (member: LoyaltyMember, delta: number) => {
+    const current = member.freeDrinks || 0;
+    const newCount = Math.max(0, current + delta);
+    if (newCount === current) return;
+
+    try {
+      const res = await fetch("/api/loyalty", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId: member.id, userId: member.userId, freeDrinks: newCount }),
+      });
+
+      if (!res.ok) {
+        toast.error("Failed to update free drinks balance.");
+        return;
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Network error adjusting free drinks.");
+      return;
+    }
+
+    const updated = { ...member, freeDrinks: newCount };
+    setLoyaltyMembers(prev => prev.map(m => m.email === member.email ? updated : m));
+    db.saveLoyaltyMember(updated);
+
+    auditLogger.log({
+      action: delta > 0 ? "AWARD" : "DELETE",
+      category: "loyalty",
+      target: `Loyalty Card (${member.name})`,
+      details: `Admin adjusted free drinks balance for ${member.name}: ${current} -> ${newCount} drinks.`,
+      severity: delta > 0 ? "success" : "warning",
+      metadata: { memberId: member.id, newFreeDrinks: newCount }
+    });
+
+    toast.success(`Updated ${member.name}'s free drinks: ${newCount} available.`);
   };
 
 
@@ -1481,8 +1641,10 @@ export const AdminView: React.FC = () => {
                     setShowAddLoyaltyModal(true);
                   }}
                   onRedeemFreeDrink={handleRedeemFreeDrink}
+                  onStoreFreeDrink={handleStoreFreeDrink}
                   onAwardStamp={handleAwardStamp}
                   onRevokeStamp={handleRevokeStamp}
+                  onAdjustFreeDrinks={handleAdjustFreeDrinks}
                 />
               )}
 

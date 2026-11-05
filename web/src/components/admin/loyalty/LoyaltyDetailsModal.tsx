@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Eye, Check, AlertTriangle } from "lucide-react";
+import { X, Eye, Check, AlertTriangle, Gift, Archive } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LoyaltyMember } from "@/utils/db";
 import { formatDisplayPhone } from "@/utils/phone";
@@ -11,6 +11,9 @@ interface LoyaltyDetailsModalProps {
   onClose: () => void;
   selectedMember: LoyaltyMember | null;
   onRevokeStamp: (member: LoyaltyMember) => void;
+  onRedeemFreeDrink?: (member: LoyaltyMember) => void;
+  onStoreFreeDrink?: (member: LoyaltyMember) => void;
+  onAdjustFreeDrinks?: (member: LoyaltyMember, delta: number) => void;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -20,6 +23,9 @@ export const LoyaltyDetailsModal: React.FC<LoyaltyDetailsModalProps> = ({
   onClose,
   selectedMember,
   onRevokeStamp,
+  onRedeemFreeDrink,
+  onStoreFreeDrink,
+  onAdjustFreeDrinks,
 }) => {
   const [isRevokeConfirmOpen, setIsRevokeConfirmOpen] = useState(false);
 
@@ -97,17 +103,34 @@ export const LoyaltyDetailsModal: React.FC<LoyaltyDetailsModalProps> = ({
                   <span className="text-neutral-500 dark:text-zinc-400 font-medium">Joined Date</span>
                   <span className="text-foreground font-semibold">{selectedMember.joinedAt}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs border-t border-card-border/40 pt-4">
-                  <span className="text-neutral-500 dark:text-zinc-400 font-medium">Stamps Collected</span>
+                <div className="flex justify-between items-center text-xs border-t border-card-border/40 pt-3">
+                  <span className="text-neutral-500 dark:text-zinc-400 font-medium">Stamps on Current Card</span>
                   <span className="text-foreground font-mono font-bold text-sm bg-neutral-100 dark:bg-zinc-800/60 px-2.5 py-0.5 rounded-full border border-card-border/60">
                     {selectedMember.stamps} / 10
                   </span>
                 </div>
+                <div className="flex justify-between items-center text-xs border-t border-card-border/40 pt-3">
+                  <div>
+                    <span className="text-neutral-500 dark:text-zinc-400 font-medium block">Stored Free Drinks</span>
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Unredeemed rewards saved by customer</span>
+                  </div>
+                  <span className="text-amber-600 dark:text-amber-400 font-mono font-bold text-xs bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/25 flex items-center gap-1">
+                    <Gift size={11} /> {selectedMember.freeDrinks || 0} Available
+                  </span>
+                </div>
+                {(selectedMember.totalCardsCompleted || 0) > 0 && (
+                  <div className="flex justify-between items-center text-xs border-t border-card-border/40 pt-3">
+                    <span className="text-neutral-500 dark:text-zinc-400 font-medium">Completed Card Cycles</span>
+                    <span className="text-foreground font-mono font-bold text-xs bg-brand-green/10 text-brand-green dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-brand-green/20">
+                      🏆 {selectedMember.totalCardsCompleted} Completed
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Stamps slot preview grid inside the details modal */}
               <div className="mb-6 space-y-2.5">
-                <span className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold block">Visual Stamp Progress</span>
+                <span className="text-[9px] uppercase tracking-wider text-neutral-500 dark:text-zinc-400 font-bold block">Current Card Visual Stamps</span>
                 <div className="grid grid-cols-10 gap-1 p-3.5 bg-foreground/[0.01] rounded-xl border border-card-border/40">
                   {Array.from({ length: 10 }).map((_, idx) => {
                     const isStamped = idx < selectedMember.stamps;
@@ -127,20 +150,50 @@ export const LoyaltyDetailsModal: React.FC<LoyaltyDetailsModalProps> = ({
               </div>
 
               {/* Actions Section */}
-              <div className="flex gap-3">
-                <button
-                  onClick={onClose}
-                  className="flex-1 rounded-full border border-card-border bg-foreground/[0.02] hover:bg-foreground/[0.06] text-neutral-500 dark:text-zinc-300 hover:text-white py-3 text-xs font-bold transition-all cursor-pointer"
-                >
-                  Close Profile
-                </button>
-                <button
-                  onClick={() => setIsRevokeConfirmOpen(true)}
-                  disabled={selectedMember.stamps <= 0}
-                  className="flex-1 rounded-full bg-red-600 hover:bg-red-700 py-3 text-xs text-white transition-all duration-300 font-bold disabled:opacity-40 disabled:pointer-events-none cursor-pointer shadow-md shadow-red-600/10"
-                >
-                  Revoke 1 Stamp
-                </button>
+              <div className="space-y-2.5">
+                {((selectedMember.freeDrinks || 0) > 0 || selectedMember.stamps >= 10) && onRedeemFreeDrink && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        onRedeemFreeDrink(selectedMember);
+                        onClose();
+                      }}
+                      className="flex-1 rounded-full bg-brand-green hover:bg-brand-green-hover py-3 text-xs text-white transition-all duration-300 font-bold cursor-pointer shadow-lg shadow-brand-green/20 flex items-center justify-center gap-1.5"
+                    >
+                      <Gift size={14} />
+                      Redeem
+                    </button>
+                    {selectedMember.stamps >= 10 && onStoreFreeDrink && (
+                      <button
+                        onClick={() => {
+                          onStoreFreeDrink(selectedMember);
+                          onClose();
+                        }}
+                        className="flex-1 rounded-full bg-amber-600 hover:bg-amber-700 text-white py-3 text-xs font-bold transition-all duration-300 shadow-lg shadow-amber-600/20 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95"
+                        title="Store this free drink into customer's Free Mini Drinks vault and reset stamps to 0/10"
+                      >
+                        <Archive size={14} />
+                        Stored
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={onClose}
+                    className="flex-1 rounded-full border border-card-border bg-foreground/[0.02] hover:bg-foreground/[0.06] text-neutral-500 dark:text-zinc-300 hover:text-white py-3 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Close Profile
+                  </button>
+                  <button
+                    onClick={() => setIsRevokeConfirmOpen(true)}
+                    disabled={selectedMember.stamps <= 0}
+                    className="flex-1 rounded-full bg-red-600 hover:bg-red-700 py-3 text-xs text-white transition-all duration-300 font-bold disabled:opacity-40 disabled:pointer-events-none cursor-pointer shadow-md shadow-red-600/10"
+                  >
+                    Revoke 1 Stamp
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

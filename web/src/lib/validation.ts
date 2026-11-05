@@ -142,6 +142,8 @@ export const patchLoyaltySchema = z
     userId: z.string().trim().optional(),
     stamps: z.number().int().min(0).max(100).optional(),
     points: z.number().int().min(0).max(1000000).optional(),
+    freeDrinks: z.number().int().min(0).max(1000).optional(),
+    totalCardsCompleted: z.number().int().min(0).max(1000).optional(),
   })
   .refine((data) => data.cardId || data.userId, {
     message: "Either cardId or userId is required.",

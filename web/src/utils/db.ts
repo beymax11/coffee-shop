@@ -12,6 +12,8 @@ export interface LoyaltyMember {
   stamps: number;
   points: number;
   joinedAt: string;
+  freeDrinks?: number; // Banked free drinks available in vault
+  totalCardsCompleted?: number; // Total number of completed 10-stamp cycles
 }
 
 
@@ -24,6 +26,7 @@ export interface UserProfile {
   role: "admin" | "barista" | "customer";
   stamps?: number;
   points?: number;
+  freeDrinks?: number;
   member_id?: string;
   joinedAt?: string;
 }

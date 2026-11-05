@@ -40,8 +40,10 @@ interface LoyaltyTabProps {
   onDeleteLoyalty: (id: string) => void;
   onOpenRegisterModal: () => void;
   onRedeemFreeDrink: (member: LoyaltyMember) => void;
-  onAwardStamp: (member: LoyaltyMember) => void;
+  onStoreFreeDrink?: (member: LoyaltyMember) => void;
+  onAwardStamp: (member: LoyaltyMember, count?: number) => void;
   onRevokeStamp: (member: LoyaltyMember) => void;
+  onAdjustFreeDrinks?: (member: LoyaltyMember, delta: number) => void;
 }
 
 export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
@@ -51,8 +53,10 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
   onDeleteLoyalty,
   onOpenRegisterModal,
   onRedeemFreeDrink,
+  onStoreFreeDrink,
   onAwardStamp,
   onRevokeStamp,
+  onAdjustFreeDrinks,
 }) => {
   // Modal states
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
@@ -102,7 +106,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
       // Stamp filter
       if (stampFilter === "none" && member.stamps !== 0) return false;
       if (stampFilter === "has" && member.stamps === 0) return false;
-      if (stampFilter === "reward" && member.stamps < 10) return false;
+      if (stampFilter === "reward" && (member.freeDrinks || 0) <= 0 && member.stamps < 10) return false;
 
       return true;
     });
@@ -436,6 +440,8 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                 <tbody className="divide-y divide-neutral-200/70 dark:divide-card-border">
                   {paginatedMembers.map((member) => {
                     const freeDrinkEarned = member.stamps >= 10;
+                    const hasStoredDrinks = (member.freeDrinks || 0) > 0;
+                    const canRedeem = hasStoredDrinks || freeDrinkEarned;
                     return (
                       <tr
                         key={member.id}
@@ -464,13 +470,19 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
 
                         {/* Stamps Progress */}
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-foreground font-mono">{member.stamps} / 10</span>
-                            {freeDrinkEarned ? (
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-brand-green text-white shadow-sm">
-                                Reward Unlocked
+                            {hasStoredDrinks && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 shadow-sm">
+                                🎁 {member.freeDrinks} in Vault
                               </span>
-                            ) : (
+                            )}
+                            {freeDrinkEarned && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-brand-green text-white shadow-sm">
+                                Card Full
+                              </span>
+                            )}
+                            {!freeDrinkEarned && !hasStoredDrinks && (
                               <div className="flex items-center gap-0.5">
                                 {[...Array(10)].map((_, idx) => (
                                   <div
@@ -488,7 +500,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                         {/* Actions */}
                         <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="inline-flex items-center gap-1.5">
-                            {freeDrinkEarned && (
+                            {canRedeem && (
                               <button
                                 onClick={() => onRedeemFreeDrink(member)}
                                 className="px-2.5 py-1.5 rounded-lg bg-brand-green text-white text-[10px] font-bold hover:bg-brand-green/90 transition-colors cursor-pointer shadow-sm"
@@ -530,6 +542,8 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
             <div className="block sm:hidden divide-y divide-neutral-200/70 dark:divide-card-border">
               {paginatedMembers.map((member) => {
                 const freeDrinkEarned = member.stamps >= 10;
+                const hasStoredDrinks = (member.freeDrinks || 0) > 0;
+                const canRedeem = hasStoredDrinks || freeDrinkEarned;
                 return (
                   <div
                     key={member.id}
@@ -545,14 +559,21 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
                         <div className="font-semibold text-foreground font-serif text-sm truncate">
                           {member.name}
                         </div>
-                        <div className="text-[10px] text-brand-green font-mono font-bold">
-                          ID: {member.id}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] text-brand-green font-mono font-bold">
+                            ID: {member.id}
+                          </span>
+                          {hasStoredDrinks && (
+                            <span className="bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded text-[8px] font-bold border border-amber-500/20">
+                              🎁 {member.freeDrinks} in Vault
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       {/* Action buttons */}
                       <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                        {freeDrinkEarned && (
+                        {canRedeem && (
                           <button
                             onClick={() => onRedeemFreeDrink(member)}
                             className="px-2.5 py-1 rounded-lg bg-brand-green text-white text-[10px] font-bold hover:bg-brand-green/90 transition-colors cursor-pointer shadow-sm"
@@ -593,7 +614,7 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
 
                       {freeDrinkEarned ? (
                         <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-brand-green text-white shadow-sm">
-                          Reward Unlocked
+                          Card Full
                         </span>
                       ) : (
                         <div className="flex items-center gap-0.5">
@@ -704,6 +725,9 @@ export const LoyaltyTab: React.FC<LoyaltyTabProps> = ({
         onClose={() => setIsDetailsModalOpen(false)}
         selectedMember={selectedMember}
         onRevokeStamp={onRevokeStamp}
+        onRedeemFreeDrink={onRedeemFreeDrink}
+        onStoreFreeDrink={onStoreFreeDrink}
+        onAdjustFreeDrinks={onAdjustFreeDrinks}
       />
 
       {/* Delete Confirmation Modal */}

@@ -223,11 +223,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: firstError }, { status: 400 });
     }
 
-    const { cardId, userId, stamps, points } = validation.data;
+    const { cardId, userId, stamps, points, freeDrinks, totalCardsCompleted } = validation.data;
 
     const updateData: Record<string, number> = {};
     if (stamps !== undefined) updateData.stamps = stamps;
     if (points !== undefined) updateData.points = points;
+    if (freeDrinks !== undefined) updateData.free_drinks = freeDrinks;
+    if (totalCardsCompleted !== undefined) updateData.total_cards_completed = totalCardsCompleted;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: "No fields to update." }, { status: 400 });
@@ -236,42 +238,63 @@ export async function PATCH(request: NextRequest) {
     let data: any = null;
     let error: any = null;
 
-    // Strategy 1: If cardId is a formatted AG ID (not a UUID), update by loyalty_cards.id
-    if (cardId && !isUUID(cardId)) {
-      const result = await supabaseAdmin
-        .from("loyalty_cards")
-        .update(updateData)
-        .eq("id", cardId)
-        .select()
-        .single();
-      data = result.data;
-      error = result.error;
-    }
+    const executeUpdate = async (payload: Record<string, number>) => {
+      let resData: any = null;
+      let resErr: any = null;
 
-    // Strategy 2: If cardId is a UUID or strategy 1 returned no rows, try by user_id
-    if (!data && !error) {
-      const lookupUserId = userId || cardId;
-      if (lookupUserId) {
+      // Strategy 1: If cardId is a formatted AG ID (not a UUID), update by loyalty_cards.id
+      if (cardId && !isUUID(cardId)) {
         const result = await supabaseAdmin
           .from("loyalty_cards")
-          .update(updateData)
-          .eq("user_id", lookupUserId)
+          .update(payload)
+          .eq("id", cardId)
           .select()
           .single();
-        data = result.data;
-        error = result.error;
+        resData = result.data;
+        resErr = result.error;
       }
-    }
 
-    // Strategy 3: If still no row found, create a new loyalty_cards entry for this user with collision retry
-    if (!data && userId) {
-      const retryResult = await upsertCardWithRetry(
-        userId,
-        updateData.stamps ?? 0,
-        updateData.points ?? 0
-      );
-      data = retryResult.data;
-      error = retryResult.error;
+      // Strategy 2: If cardId is a UUID or strategy 1 returned no rows, try by user_id
+      if (!resData && !resErr) {
+        const lookupUserId = userId || cardId;
+        if (lookupUserId) {
+          const result = await supabaseAdmin
+            .from("loyalty_cards")
+            .update(payload)
+            .eq("user_id", lookupUserId)
+            .select()
+            .single();
+          resData = result.data;
+          resErr = result.error;
+        }
+      }
+
+      // Strategy 3: If still no row found, create a new loyalty_cards entry for this user with collision retry
+      if (!resData && userId) {
+        const retryResult = await upsertCardWithRetry(
+          userId,
+          payload.stamps ?? 0,
+          payload.points ?? 0
+        );
+        resData = retryResult.data;
+        resErr = retryResult.error;
+      }
+
+      return { data: resData, error: resErr };
+    };
+
+    const firstAttempt = await executeUpdate(updateData);
+    data = firstAttempt.data;
+    error = firstAttempt.error;
+
+    // Fallback: If free_drinks or total_cards_completed column is not in Supabase schema yet, retry with base fields
+    if (error && (error.code === "PGRST204" || error.message?.includes("free_drinks") || error.message?.includes("total_cards_completed"))) {
+      const fallbackPayload: Record<string, number> = {};
+      if (stamps !== undefined) fallbackPayload.stamps = stamps;
+      if (points !== undefined) fallbackPayload.points = points;
+      const secondAttempt = await executeUpdate(fallbackPayload);
+      data = secondAttempt.data;
+      error = secondAttempt.error;
     }
 
     if (error) {

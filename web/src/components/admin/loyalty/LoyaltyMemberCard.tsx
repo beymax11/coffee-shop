@@ -27,6 +27,8 @@ export const LoyaltyMemberCard: React.FC<LoyaltyMemberCardProps> = ({
   onDeleteClick,
 }) => {
   const freeDrinkEarned = member.stamps >= 10;
+  const hasStoredDrinks = (member.freeDrinks || 0) > 0;
+  const canRedeem = hasStoredDrinks || freeDrinkEarned;
 
   return (
     <motion.div
@@ -58,8 +60,15 @@ export const LoyaltyMemberCard: React.FC<LoyaltyMemberCardProps> = ({
                 <Calendar size={10} className="shrink-0" />
                 <span>JOINED: {member.joinedAt}</span>
               </div>
-              <div className="flex items-center gap-1 font-mono bg-brand-green/10 px-2 py-0.5 rounded-md border border-brand-green/20 text-brand-green dark:text-emerald-400 text-[10px] font-bold w-fit tracking-wider shadow-sm shadow-brand-green/5 mt-0.5">
-                <span>ID: {member.id}</span>
+              <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                <span className="font-mono bg-brand-green/10 px-2 py-0.5 rounded-md border border-brand-green/20 text-brand-green dark:text-emerald-400 text-[10px] font-bold tracking-wider shadow-sm shadow-brand-green/5">
+                  ID: {member.id}
+                </span>
+                {hasStoredDrinks && (
+                  <span className="font-mono bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/25 text-amber-600 dark:text-amber-400 text-[10px] font-bold tracking-wider shadow-sm">
+                    🎁 {member.freeDrinks} in Vault
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -118,13 +127,13 @@ export const LoyaltyMemberCard: React.FC<LoyaltyMemberCardProps> = ({
         </div>
       </div>
 
-      {freeDrinkEarned && (
+      {canRedeem && (
         <div className="border-t border-card-border/40 pt-4">
           <button
             onClick={() => onRedeemFreeDrink(member)}
             className="w-full py-2 rounded-full bg-brand-green hover:bg-brand-green-hover text-[10px] font-bold type-ui text-white transition-all duration-300 shadow-md shadow-brand-green/15 cursor-pointer animate-pulse"
           >
-            Redeem Drink
+            {hasStoredDrinks ? `Redeem 1 Stored Drink (${member.freeDrinks} Available)` : "Redeem Drink"}
           </button>
         </div>
       )}

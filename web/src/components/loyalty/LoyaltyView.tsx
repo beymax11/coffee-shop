@@ -52,9 +52,13 @@ export function LoyaltyView() {
 
   const [stamps, setStamps] = useState<number>(1);
   const [points, setPoints] = useState<number>(720);
+  const [freeDrinks, setFreeDrinks] = useState<number>(0);
+  const [totalCardsCompleted, setTotalCardsCompleted] = useState<number>(0);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const tier = getTierInfo(points).label;
   const [showClaimSuccess, setShowClaimSuccess] = useState<boolean>(false);
+  const [showRedeemModal, setShowRedeemModal] = useState<boolean>(false);
+  const [selectedVoucherNum, setSelectedVoucherNum] = useState<number | null>(null);
   const [copiedId, setCopiedId] = useState<boolean>(false);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
   const [isQrExpanded, setIsQrExpanded] = useState<boolean>(false);
@@ -528,8 +532,10 @@ export function LoyaltyView() {
                   username: profile.username || existing?.username || "",
                   email: isEmail ? sessionEmail : (profile.email || ""),
                   phone: isEmail ? (profile.phone || "") : sessionEmail,
-                  stamps: loyaltyCard?.stamps ?? 0,
-                  points: loyaltyCard?.points ?? 0,
+                  stamps: loyaltyCard?.stamps ?? existing?.stamps ?? 0,
+                  points: loyaltyCard?.points ?? existing?.points ?? 0,
+                  freeDrinks: loyaltyCard?.free_drinks ?? loyaltyCard?.freeDrinks ?? existing?.freeDrinks ?? 0,
+                  totalCardsCompleted: loyaltyCard?.total_cards_completed ?? loyaltyCard?.totalCardsCompleted ?? existing?.totalCardsCompleted ?? 0,
                   joinedAt: profile.created_at
                     ? new Date(profile.created_at).toISOString().split("T")[0]
                     : existing?.joinedAt || new Date().toISOString().split("T")[0]
@@ -593,6 +599,8 @@ export function LoyaltyView() {
         }
         setPoints(current.points);
         setIsGuest(guestState);
+        setFreeDrinks(current.freeDrinks || 0);
+        setTotalCardsCompleted(current.totalCardsCompleted || 0);
 
         setStamps((prevStamps) => {
           if (isLoadedRef.current && !isGuestRef.current && currentStamps > prevStamps) {
@@ -665,11 +673,14 @@ export function LoyaltyView() {
                       timestamp: new Date().toISOString(),
                     });
                   } else if (newStamps === 0 && prevStamps >= 10) {
+                    const isDrinkStored = (payload.new?.free_drinks ?? payload.new?.freeDrinks ?? 0) > (payload.old?.free_drinks ?? payload.old?.freeDrinks ?? 0);
                     appendLocalHistoryEntry(loyaltyCardId, {
-                      id: `rt-redeem-${Date.now()}`,
-                      type: "redeemed",
-                      title: "Free Drink Reward Claimed",
-                      description: "You claimed your free drink reward! Your stamps have been reset to 0.",
+                      id: `rt-${isDrinkStored ? "store" : "redeem"}-${Date.now()}`,
+                      type: isDrinkStored ? "earned" : "redeemed",
+                      title: isDrinkStored ? "Free Mini Drink Stored! 🎁" : "Free Drink Reward Claimed",
+                      description: isDrinkStored
+                        ? "Your completed card was banked into your Free Mini Drinks! A fresh card has started (0/10 stamps)."
+                        : "You claimed your free drink reward! Your stamps have been reset to 0.",
                       totalStamps: 0,
                       timestamp: new Date().toISOString(),
                     });
@@ -694,6 +705,10 @@ export function LoyaltyView() {
                 });
               }
               if (newPoints !== undefined) setPoints(newPoints);
+              const newFreeDrinks = payload.new?.free_drinks ?? payload.new?.freeDrinks;
+              if (newFreeDrinks !== undefined) setFreeDrinks(newFreeDrinks);
+              const newTotalCards = payload.new?.total_cards_completed ?? payload.new?.totalCardsCompleted;
+              if (newTotalCards !== undefined) setTotalCardsCompleted(newTotalCards);
             }
           )
           .subscribe();
@@ -785,6 +800,60 @@ export function LoyaltyView() {
         .then(({ error }) => {
           if (error) console.error("Error syncing reward claim:", error);
         });
+    }
+  };
+
+  const handleRedeemStoredDrink = async () => {
+    if (freeDrinks <= 0) return;
+
+    const newFreeDrinks = freeDrinks - 1;
+    setFreeDrinks(newFreeDrinks);
+    setShowRedeemModal(false);
+    setShowClaimSuccess(true);
+    triggerConfetti(true);
+
+    const nowIso = new Date().toISOString();
+    appendLocalHistoryEntry(memberId, {
+      id: `redeem-vault-${Date.now()}`,
+      type: "redeemed",
+      title: "Free Drink Reward Claimed",
+      description: `Redeemed 1 complimentary beverage from your Vault. Remaining in vault: ${newFreeDrinks}`,
+      totalStamps: stamps,
+      timestamp: nowIso,
+    });
+
+    if (memberEmail) {
+      notificationsService.addNotification(
+        memberEmail,
+        "Free Drink Redeemed",
+        `You redeemed 1 Free Drink at the counter! You have ${newFreeDrinks} free drink${newFreeDrinks === 1 ? "" : "s"} remaining in your vault.`,
+        "loyalty"
+      );
+    }
+
+    loadStampHistory(memberId, memberEmail, stamps);
+
+    // Save to local db
+    const members = db.getLoyaltyMembers();
+    const current = members.find((m) => m.id === memberId);
+    if (current) {
+      db.saveLoyaltyMember({
+        ...current,
+        freeDrinks: newFreeDrinks,
+      });
+    }
+
+    try {
+      await fetch("/api/loyalty", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardId: memberId,
+          freeDrinks: newFreeDrinks,
+        }),
+      });
+    } catch (e) {
+      console.warn("Failed to sync redeem via API:", e);
     }
   };
 
@@ -1014,13 +1083,12 @@ export function LoyaltyView() {
                             {/* Card Actions Group */}
                             <div className="absolute top-8 right-8 flex items-center gap-2 z-20">
                               {stamps >= 10 && (
-                                <button
-                                  onClick={handleClaimReward}
-                                  className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 type-ui flex items-center gap-1.5 transition-all shadow-lg animate-pulse whitespace-nowrap cursor-pointer"
+                                <div
+                                  className="rounded-full border border-emerald-500/40 bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-3.5 py-1.5 type-ui flex items-center gap-1.5 shadow-sm whitespace-nowrap text-xs font-bold select-none animate-pulse"
                                 >
-                                  <Gift size={14} className="text-emerald-300" />
-                                  Claim Free Drink
-                                </button>
+
+                                  <span>Free Mini Drink Available! 🎁</span>
+                                </div>
                               )}
                               {/* Fullscreen Button */}
                               <button
@@ -1051,9 +1119,9 @@ export function LoyaltyView() {
                                     className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full border flex flex-col items-center justify-center relative transition-all duration-300 ${isStamped
                                       ? "bg-transparent border-emerald-500/40"
                                       : isRewardSlot
-                                        ? "bg-zinc-100 border-emerald-500/40 text-zinc-500 dark:bg-[#181818] dark:border-emerald-500/30 dark:text-zinc-600 cursor-pointer"
+                                        ? "bg-zinc-100 border-emerald-500/40 text-zinc-500 dark:bg-[#181818] dark:border-emerald-500/30 dark:text-zinc-600"
                                         : "bg-zinc-100 border-zinc-200/80 dark:bg-[#181818] dark:border-white/5"
-                                      } ${isRewardSlot && stamps >= 10 ? "bg-emerald-50/70 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-lg gold-glow cursor-pointer" : ""} ${isRewardSlot ? "group" : ""}`}
+                                      } ${isRewardSlot && stamps >= 10 ? "bg-emerald-50/70 border-emerald-500 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-lg gold-glow" : ""} ${isRewardSlot ? "group" : ""}`}
                                   >
                                     {isStamped ? (
                                       <motion.div
@@ -1250,14 +1318,27 @@ export function LoyaltyView() {
                 </div>
               </FadeUp>
 
+              {/* ─── FREE MINI DRINKS SECTION (Above Stamp History) ─── */}
+              <FadeUp delay={0.05} className="w-[310px] xs:w-[350px] sm:w-full mx-auto mt-24 sm:mt-28 pt-6 sm:pt-8">
+                <div className="flex items-center justify-between pb-3.5 border-b border-card-border">
+                  <h3 className="text-sm sm:text-base font-serif font-bold text-foreground tracking-wide flex items-center gap-2">
+                    <Gift size={16} className="text-brand-green dark:text-emerald-400" />
+                    Free Mini Drinks
+                  </h3>
+                  <span className={`text-xs font-mono font-bold ${freeDrinks > 0 ? "text-brand-green dark:text-emerald-400" : "text-zinc-500 dark:text-zinc-400"}`}>
+                    {freeDrinks} {freeDrinks === 1 ? "Drink" : "Drinks"} Available
+                  </span>
+                </div>
+              </FadeUp>
+
               {/* ─── STAMP HISTORY SECTION ─── */}
-              <FadeUp delay={0.1} className="w-[310px] xs:w-[350px] sm:w-full mx-auto mt-24 sm:mt-28 pt-6 sm:pt-8">
+              <FadeUp delay={0.1} className="w-[310px] xs:w-[350px] sm:w-full mx-auto mt-8 sm:mt-10 pt-4 sm:pt-6">
                 <div className="flex items-center justify-between pb-3.5 border-b border-card-border">
                   <h3 className="text-sm sm:text-base font-serif font-bold text-foreground tracking-wide">
                     Stamp History
                   </h3>
                   <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
-                    {stamps} / 10 Stamps
+                    {stamps} / 10 Stamps {(totalCardsCompleted || 0) > 0 ? `• Cycle #${totalCardsCompleted + 1}` : ""}
                   </span>
                 </div>
 
@@ -1291,6 +1372,85 @@ export function LoyaltyView() {
         </div>
       </div>
 
+
+      {/* Redeem Stored Drink Modal */}
+      <AnimatePresence>
+        {showRedeemModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowRedeemModal(false)}
+              className="absolute inset-0 bg-black/85 backdrop-blur-md"
+            />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-card-border bg-card/95 dark:bg-zinc-950/95 backdrop-blur-xl p-6 shadow-2xl text-center flex flex-col items-center gap-5 z-10"
+            >
+              <button
+                onClick={() => setShowRedeemModal(false)}
+                className="absolute top-4 right-4 text-zinc-500 hover:text-foreground p-1 rounded-full cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="w-12 h-12 rounded-full bg-brand-green/10 flex items-center justify-center text-brand-green">
+                <Coffee size={24} />
+              </div>
+
+              <div>
+                <h3 className="text-base font-serif font-bold text-foreground">
+                  Redeem Free Drink
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                  Present this QR code or Member ID at the counter to redeem your complimentary beverage.
+                </p>
+              </div>
+
+              {/* QR Code Presentation */}
+              <div className="w-40 h-40 bg-white p-2.5 rounded-xl flex items-center justify-center shadow-inner border border-card-border">
+                {qrCodeUrl ? (
+                  <img
+                    src={qrCodeUrl}
+                    alt="Redeem QR Code"
+                    className="w-full h-full object-contain select-none"
+                  />
+                ) : (
+                  <span className="font-mono text-xs text-zinc-600 font-bold">{memberId}</span>
+                )}
+              </div>
+
+              <div className="text-center space-y-1">
+                <span className="font-mono text-xs font-bold text-brand-green bg-brand-green/10 px-2.5 py-1 rounded-full border border-brand-green/20">
+                  Member ID: {memberId}
+                </span>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pt-1">
+                  Vault Balance: {freeDrinks} {freeDrinks === 1 ? "drink" : "drinks"} available
+                </p>
+              </div>
+
+              <div className="w-full flex gap-2 pt-2">
+                <button
+                  onClick={() => setShowRedeemModal(false)}
+                  className="flex-1 rounded-full border border-card-border py-2.5 text-xs font-semibold text-zinc-500 hover:text-foreground cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleRedeemStoredDrink}
+                  className="flex-1 rounded-full bg-brand-green hover:bg-brand-green-hover text-white py-2.5 text-xs font-bold transition-all shadow-md cursor-pointer"
+                >
+                  Claim 1 Drink
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Claim Reward Success Modal */}
       <AnimatePresence>

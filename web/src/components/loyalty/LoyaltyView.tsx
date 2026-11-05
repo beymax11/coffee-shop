@@ -1032,6 +1032,15 @@ export function LoyaltyView() {
             <div className="max-w-[760px] mx-auto w-full space-y-6 sm:space-y-8">
               {/* ─── DIGITAL LOYALTY CARD ─── */}
               <FadeUp className="w-full">
+                {/* Mobile-only Reward Notification Badge (Outside of card box at the top) */}
+                {stamps >= 10 && (
+                  <div className="flex sm:hidden justify-center mb-4">
+                    <div className="rounded-full border border-emerald-500/40 bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-3.5 py-1.5 type-ui flex items-center gap-1.5 shadow-sm whitespace-nowrap text-xs font-bold select-none animate-pulse">
+                      <span>Free Mini Drink Available! 🎁</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="w-[310px] xs:w-[350px] h-[540px] xs:h-[600px] sm:w-full sm:h-[465px] mx-auto relative">
                   <div
                     className={`${isFullscreen
@@ -1084,9 +1093,8 @@ export function LoyaltyView() {
                             <div className="absolute top-8 right-8 flex items-center gap-2 z-20">
                               {stamps >= 10 && (
                                 <div
-                                  className="rounded-full border border-emerald-500/40 bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-3.5 py-1.5 type-ui flex items-center gap-1.5 shadow-sm whitespace-nowrap text-xs font-bold select-none animate-pulse"
+                                  className="hidden sm:flex rounded-full border border-emerald-500/40 bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 px-3.5 py-1.5 type-ui items-center gap-1.5 shadow-sm whitespace-nowrap text-xs font-bold select-none animate-pulse"
                                 >
-
                                   <span>Free Mini Drink Available! 🎁</span>
                                 </div>
                               )}

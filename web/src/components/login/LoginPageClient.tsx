@@ -29,30 +29,37 @@ export function LoginPageClient() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  // Pre-login banners (e.g. email verified, password reset) must not lock the form via isSuccess
+  const [noticeMessage, setNoticeMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-    if (params.get("view") === "page" || isMobile) {
+    const hasAuthPageParam =
+      params.get("view") === "page" ||
+      params.get("verified") === "true" ||
+      params.get("reset") === "success" ||
+      Boolean(params.get("error"));
+    if (hasAuthPageParam || isMobile) {
       setViewMode("page");
     } else {
       setViewMode("drawer");
     }
     
     if (params.get("verified") === "true") {
-      setIsSuccess(true);
-      setSuccessMessage("Email verified successfully! Please sign in below to access your account.");
+      setNoticeMessage("Email verified successfully! Please sign in below to access your account.");
       toast.success("Email verified! You can now log in.", {
+        id: "email-verified-toast",
         duration: 5000,
       });
     }
 
     if (params.get("reset") === "success") {
-      setIsSuccess(true);
-      setSuccessMessage("Password reset successfully! Please sign in below with your new password.");
+      setNoticeMessage("Password reset successfully! Please sign in below with your new password.");
       toast.success("Password reset successfully! You can now log in.", {
+        id: "password-reset-toast",
         duration: 5000,
       });
     }
@@ -76,6 +83,8 @@ export function LoginPageClient() {
     setIsSubmitting(true);
     setErrorMsg("");
     setIsSuccess(false);
+    setNoticeMessage("");
+    setSuccessMessage("");
 
     const trimmedEmail = email.trim();
     let loginEmail = trimmedEmail;
@@ -356,6 +365,8 @@ export function LoginPageClient() {
     );
   }
 
+  const bannerMessage = isSuccess ? successMessage : noticeMessage;
+
   return (
     <div className="w-full flex-1 min-h-[calc(100dvh-72px)] md:min-h-[calc(100dvh-80px)] bg-background text-foreground flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 relative overflow-x-hidden touch-pan-y transition-colors duration-500">
       {/* Decorative brand glow - strictly contained to avoid horizontal drag/scroll on mobile */}
@@ -394,20 +405,22 @@ export function LoginPageClient() {
           )}
 
           <AnimatePresence>
-            {isSuccess && (
+            {bannerMessage && (
               <motion.div
+                key="login-status-banner"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 type-success text-emerald-600 dark:text-emerald-400 flex items-center gap-2 overflow-hidden"
               >
                 <Check size={16} className="shrink-0" />
-                <span className="text-sm font-sans">{successMessage}</span>
+                <span className="text-sm font-sans">{bannerMessage}</span>
               </motion.div>
             )}
 
             {errorMsg && (
               <motion.div
+                key="login-error-banner"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}

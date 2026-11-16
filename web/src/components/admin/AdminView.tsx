@@ -8,7 +8,6 @@ import { MenuItem, Reservation, ReservationType } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { getMaintenanceMode, setMaintenanceMode } from "@/utils/settings";
-import { formatPhoneNumber } from "@/utils/phone";
 import { notificationsService } from "@/utils/notifications";
 import { eraseCookie } from "@/utils/cookies";
 import { invalidateCache } from "@/utils/cache";
@@ -97,7 +96,6 @@ export const AdminView: React.FC = () => {
   const [loyaltyForm, setLoyaltyForm] = useState({
     name: "",
     email: "",
-    phone: "",
     stamps: 0
   });
   // Status mappings for reservations (we store approval state locally)
@@ -1394,11 +1392,8 @@ export const AdminView: React.FC = () => {
     const { supabase } = await import("@/utils/supabase");
     const existingIds = loyaltyMembers.map((m) => m.id);
     const email = loyaltyForm.email.trim();
-    const phone = loyaltyForm.phone.trim();
     const name = loyaltyForm.name.trim();
     const stamps = Number(loyaltyForm.stamps) || 0;
-
-    const formattedPhone = phone ? formatPhoneNumber(phone) : "";
 
     let memberId = "";
     try {
@@ -1408,7 +1403,6 @@ export const AdminView: React.FC = () => {
         body: JSON.stringify({
           name,
           email,
-          phone: formattedPhone,
           stamps,
           existingIds,
         }),
@@ -1435,7 +1429,6 @@ export const AdminView: React.FC = () => {
       id: memberId,
       name: name,
       email: email,
-      phone: formattedPhone || undefined,
       stamps: stamps,
       points: 0,
       joinedAt: new Date().toISOString().split("T")[0]
@@ -1454,7 +1447,7 @@ export const AdminView: React.FC = () => {
     });
 
     setShowAddLoyaltyModal(false);
-    setLoyaltyForm({ name: "", email: "", phone: "", stamps: 0 });
+    setLoyaltyForm({ name: "", email: "", stamps: 0 });
     toast.success(`Loyalty card registered for ${newMember.name}!`);
   };
 
@@ -1594,7 +1587,7 @@ export const AdminView: React.FC = () => {
                     setShowAddMenuModal(true);
                   }}
                   onRegisterLoyaltyClick={() => {
-                    setLoyaltyForm({ name: "", email: "", phone: "", stamps: 0 });
+                    setLoyaltyForm({ name: "", email: "", stamps: 0 });
                     setShowAddLoyaltyModal(true);
                   }}
                 />
@@ -1637,7 +1630,7 @@ export const AdminView: React.FC = () => {
                   setLoyaltySearch={setLoyaltySearch}
                   onDeleteLoyalty={handleDeleteLoyalty}
                   onOpenRegisterModal={() => {
-                    setLoyaltyForm({ name: "", email: "", phone: "", stamps: 0 });
+                    setLoyaltyForm({ name: "", email: "", stamps: 0 });
                     setShowAddLoyaltyModal(true);
                   }}
                   onRedeemFreeDrink={handleRedeemFreeDrink}

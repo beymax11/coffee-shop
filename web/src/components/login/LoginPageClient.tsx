@@ -7,9 +7,13 @@ import { Mail, Lock, Eye, EyeOff, Loader2, Check, LogIn } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db } from "@/utils/db";
 import { supabase } from "@/utils/supabase";
-import { generateUniqueLoyaltyCardId } from "@/lib/id-generator";
 import { setCookie, eraseCookie } from "@/utils/cookies";
-import { initAdminClientSession } from "@/utils/admin-session-client";
+import {
+  clearAdminSessionState,
+  persistCustomerLoginSession,
+  persistStaffLoginSession,
+  resolveLoginEmail,
+} from "@/utils/login-client";
 import { toast } from "sonner";
 
 /**
@@ -86,37 +90,11 @@ export function LoginPageClient() {
     setNoticeMessage("");
     setSuccessMessage("");
 
-    const trimmedEmail = email.trim();
-    let loginEmail = trimmedEmail;
-
-    // --- RESOLVE USERNAME TO EMAIL ---
-    if (supabase) {
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("email")
-          .eq("username", trimmedEmail)
-          .single();
-
-        if (profile?.email) {
-          loginEmail = profile.email;
-        }
-      } catch (err) {
-        // Fall back to input text if no matching username profile found
-      }
-    } else {
-      // Mock mode fallback for 'admin' username
-      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
-      if (trimmedEmail.toLowerCase() === "admin") {
-        loginEmail = adminEmail;
-      }
-    }
+    const loginEmail = await resolveLoginEmail(email);
 
     // --- FALLBACK MOCK AUTHENTICATION (if Supabase is not configured) ---
     if (!supabase) {
       setTimeout(async () => {
-        setIsSubmitting(false);
-
         // Email mock flow
         const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@coffee.com";
         const isAdmin = loginEmail.toLowerCase() === adminEmail.toLowerCase() && password === "admin123";
@@ -134,49 +112,28 @@ export function LoginPageClient() {
           const userName = isAdmin ? "Antonioni Grounds Admin" : isBarista ? "Barista Staff" : (matchedMockUser?.name || "Staff");
           const userEmail = isAdmin ? adminEmail : isBarista ? "barista@coffee.com" : (matchedMockUser?.email || "");
 
-          setSuccessMessage("Access granted. Redirecting to admin panel (Mock)...");
-          setIsSuccess(true);
-          localStorage.setItem("admin_session", "true");
-          localStorage.setItem("admin_profile", JSON.stringify({
-            name: userName,
-            email: userEmail,
-            role: userRole
-          }));
-          localStorage.removeItem("customer_session");
-          setCookie("admin_session", "true", 7);
-          setCookie("admin_role", userRole, 7);
-          eraseCookie("sb-access-token");
-
-          // Initialize single active session and 15m/7d dual-tokens
-          await initAdminClientSession({
+          await persistStaffLoginSession({
             userId: "mock-admin-id",
             email: userEmail,
             role: userRole as "admin" | "barista",
             name: userName,
           });
-        } else if (matchedMockUser && password === "customer123") {
-          setSuccessMessage("Welcome back. Logging you in...");
+          setSuccessMessage("Access granted. Redirecting to admin panel (Mock)...");
           setIsSuccess(true);
+          window.location.replace("/admin");
+        } else if (matchedMockUser && password === "customer123") {
+          clearAdminSessionState();
           localStorage.setItem("customer_session", matchedMockUser.email);
-          localStorage.removeItem("admin_session");
-          localStorage.removeItem("admin_profile");
-          eraseCookie("admin_session");
-          eraseCookie("admin_role");
+          setCookie("customer_session", "true", 7);
           eraseCookie("sb-access-token");
+          window.dispatchEvent(new Event("storage"));
+          setSuccessMessage("Welcome back. Redirecting to Good Cup account...");
+          setIsSuccess(true);
+          window.location.replace("/");
         } else {
+          setIsSubmitting(false);
           setErrorMsg("Invalid credentials (Mock). Try 'admin' / 'admin123' or 'customer123'.");
-          return;
         }
-
-        const hasAdminSession = !!localStorage.getItem("admin_session");
-        window.dispatchEvent(new Event("storage"));
-        setTimeout(() => {
-          if (hasAdminSession) {
-            router.replace("/admin");
-          } else {
-            router.replace("/");
-          }
-        }, 1200);
       }, 900);
       return;
     }
@@ -211,138 +168,32 @@ export function LoginPageClient() {
 
       if (isStaff) {
         const actualRole = (role === "admin" || (user.email && user.email.toLowerCase() === adminEmail.toLowerCase())) ? "admin" : "barista";
-        setSuccessMessage("Access granted. Redirecting to Antonioni Grounds Admin Panel...");
-        setIsSuccess(true);
-        localStorage.setItem("admin_session", "true");
         const adminName = profile?.name || user.user_metadata?.name || (actualRole === "admin" ? "Admin User" : "Barista Staff");
-        const userEmail = user.email || "";
-        localStorage.setItem("admin_profile", JSON.stringify({
-          name: adminName,
-          email: userEmail,
-          role: actualRole
-        }));
-        localStorage.removeItem("customer_session");
-        setCookie("admin_session", "true", 7);
-        setCookie("admin_role", actualRole, 7);
-        if (data.session?.access_token) {
-          setCookie("sb-access-token", data.session.access_token, 7);
-        }
-
-        // Initialize single active session and 15m/7d dual-tokens
-        const sessionData = await initAdminClientSession({
+        await persistStaffLoginSession({
           userId: user.id,
-          email: userEmail,
+          email: user.email || "",
           role: actualRole,
           name: adminName,
           accessToken: data.session?.access_token,
         });
-        if (sessionData?.role) {
-          setCookie("admin_role", sessionData.role, 7);
-          localStorage.setItem("admin_profile", JSON.stringify({
-            name: adminName,
-            email: userEmail,
-            role: sessionData.role
-          }));
-        }
+        setSuccessMessage("Access granted. Redirecting to Antonioni Grounds Admin Panel...");
+        setIsSuccess(true);
+        window.location.replace("/admin");
       } else {
-        // Customer Sign In
+        // Customer Sign In: persist session synchronously and navigate home immediately
+        persistCustomerLoginSession({
+          user,
+          profile,
+          accessToken: data.session?.access_token,
+        });
         setSuccessMessage("Welcome back. Redirecting to Good Cup account...");
         setIsSuccess(true);
-        eraseCookie("admin_session");
-        eraseCookie("admin_role");
-        if (data.session?.access_token) {
-          setCookie("sb-access-token", data.session.access_token, 7);
-        }
-
-        const members = db.getLoyaltyMembers();
-        const existingMember = members.find(
-          (m) => m.email && user.email && m.email.toLowerCase() === user.email.toLowerCase()
-        );
-
-        const rawCard = profile?.loyalty_cards;
-        const loyaltyCard = Array.isArray(rawCard) ? rawCard[0] : rawCard;
-
-        if (existingMember) {
-          if (profile) {
-            let memberIdToUse = loyaltyCard?.id || existingMember.id;
-            if (!memberIdToUse || memberIdToUse.length > 20) {
-              memberIdToUse = await generateUniqueLoyaltyCardId(
-                supabase,
-                members.map((m) => m.id)
-              );
-              if (supabase && !loyaltyCard?.id) {
-                supabase
-                  .from("loyalty_cards")
-                  .upsert({
-                    id: memberIdToUse,
-                    user_id: user.id,
-                    stamps: 0,
-                    points: 0
-                  }, { onConflict: "user_id", ignoreDuplicates: true })
-                  .then(({ error }) => {
-                    if (error) console.error("Error updating member_id on login:", error);
-                  });
-              }
-            }
-            existingMember.id = memberIdToUse;
-            existingMember.stamps = loyaltyCard?.stamps ?? existingMember.stamps;
-            existingMember.points = loyaltyCard?.points ?? existingMember.points;
-            existingMember.name = profile.name ?? existingMember.name;
-            existingMember.username = profile.username ?? existingMember.username;
-            db.saveLoyaltyMember(existingMember);
-          }
-          localStorage.setItem("customer_session", existingMember.email || "");
-        } else {
-          const displayName = profile?.name || user.email?.split("@")[0] || "Member";
-          const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
-          let memberIdToUse = loyaltyCard?.id;
-          if (!memberIdToUse || memberIdToUse.length > 20) {
-            memberIdToUse = await generateUniqueLoyaltyCardId(
-              supabase,
-              members.map((m) => m.id)
-            );
-            if (supabase && !loyaltyCard?.id) {
-              supabase
-                .from("loyalty_cards")
-                .upsert({
-                  id: memberIdToUse,
-                  user_id: user.id,
-                  stamps: 0,
-                  points: 0
-                }, { onConflict: "user_id", ignoreDuplicates: true })
-                .then(({ error }) => {
-                  if (error) console.error("Error updating member_id on login:", error);
-                });
-            }
-          }
-          db.saveLoyaltyMember({
-            id: memberIdToUse,
-            name: capitalizedName,
-            username: profile?.username || "",
-            email: user.email || "",
-            phone: "",
-            stamps: loyaltyCard?.stamps || 0,
-            points: loyaltyCard?.points || 0,
-            joinedAt: profile?.created_at
-              ? new Date(profile.created_at).toISOString().split("T")[0]
-              : new Date().toISOString().split("T")[0],
-          });
-          localStorage.setItem("customer_session", user.email || "");
-        }
+        window.location.replace("/");
       }
-
-      const hasAdminSession = !!localStorage.getItem("admin_session");
-      window.dispatchEvent(new Event("storage"));
-      setTimeout(() => {
-        if (hasAdminSession) {
-          router.replace("/admin");
-        } else {
-          router.replace("/");
-        }
-      }, 1200);
     } catch (err: unknown) {
       console.error("Auth process error:", err);
       const errorMessage = err instanceof Error ? err.message : "An error occurred during authentication.";
+      setIsSuccess(false);
       setErrorMsg(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -360,7 +211,11 @@ export function LoginPageClient() {
   if (viewMode === "drawer") {
     return (
       <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
-        <LoginDrawer isOpen onClose={() => router.replace("/")} />
+        <LoginDrawer
+          isOpen
+          onClose={() => router.replace("/")}
+          onAuthSuccess={(isStaff) => window.location.replace(isStaff ? "/admin" : "/")}
+        />
       </div>
     );
   }
